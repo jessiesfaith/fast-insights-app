@@ -1,0 +1,61 @@
+customer_id,customer_name,customer_type,city,state_country,payment_terms,credit_limit,ap_email,ap_contact
+CUST-001,Johns Hopkins Health System,Hospital System,Baltimore,MD,Net 30,5000000,accounts.payable@jhu.edu,Emily Hartman
+CUST-002,Mayo Clinic,Hospital System,Rochester,MN,Net 45,8000000,ap@mayo.edu,Tom Brody
+CUST-003,Cleveland Clinic,Hospital System,Cleveland,OH,Net 30,6000000,ap@ccf.org,Sandra Lee
+CUST-004,Mass General Brigham,Hospital System,Boston,MA,Net 45,7500000,payables@mgb.org,Kevin Walsh
+CUST-005,UCSF Medical Center,Hospital System,San Francisco,CA,Net 30,4000000,ap@ucsf.edu,Rachel Kim
+CUST-006,NYU Langone Health,Hospital System,New York,NY,Net 30,4500000,ap@nyulangone.org,James Denton
+CUST-007,Cedars-Sinai Medical Center,Hospital System,Los Angeles,CA,Net 45,3500000,ap@csmc.edu,Patricia Olsen
+CUST-008,Duke University Hospital,Hospital System,Durham,NC,Net 30,3000000,ap@duke.edu,Mark Finley
+CUST-009,Vanderbilt University Medical Center,Hospital System,Nashville,TN,Net 30,2500000,ap@vumc.org,Susan Park
+CUST-010,Stanford Health Care,Hospital System,Palo Alto,CA,Net 45,4000000,ap@stanfordhealthcare.org,Brian Torres
+CUST-011,McKesson Specialty Health,Distributor,The Woodlands,TX,Net 30,10000000,ar.disputes@mckesson.com,David Nguyen
+CUST-012,AmerisourceBergen Specialty,Distributor,Conshohocken,PA,Net 30,10000000,payments@amerisourcebergen.com,Gina Flores
+CUST-013,Cardinal Health Specialty,Distributor,Dublin,OH,Net 30,9000000,ap@cardinalhealth.com,Frank Russo
+CUST-014,Biologics Inc.,Distributor,Morrisville,NC,Net 45,2000000,invoices@biologicsinc.com,Heather Brooks
+CUST-015,Diplomat Specialty Pharmacy,Distributor,Flint,MI,Net 30,1500000,ap@diplomat.com,Nathan Cole
+CUST-016,Broad Institute,Research Institution,Cambridge,MA,Net 45,1000000,ap@broadinstitute.org,Olivia Grant
+CUST-017,Salk Institute for Biological Studies,Research Institution,La Jolla,CA,Net 45,800000,purchasing@salk.edu,Carlos Mendez
+CUST-018,Whitehead Institute,Research Institution,Cambridge,MA,Net 30,500000,accounts@wi.mit.edu,Diana Shah
+CUST-019,Fred Hutchinson Cancer Center,Research Institution,Seattle,WA,Net 45,1200000,ap@fredhutch.org,Aaron Patel
+CUST-020,Dana-Farber Cancer Institute,Research Institution,Boston,MA,Net 30,1500000,ap@dfci.harvard.edu,Laura Green
+CUST-021,MD Anderson Cancer Center,Research Institution,Houston,TX,Net 30,2000000,ap@mdanderson.org,Steven Clark
+CUST-022,Memorial Sloan Kettering,Research Institution,New York,NY,Net 45,2500000,ap@mskcc.org,Tina Murphy
+CUST-023,Vizient Inc.,GPO,Irving,TX,Net 30,5000000,ap@vizientinc.com,Paul Adams
+CUST-024,Premier Inc.,GPO,Charlotte,NC,Net 30,4000000,payables@premierinc.com,Lisa Jordan
+CUST-025,HealthTrust Performance Group,GPO,Nashville,TN,Net 30,3000000,ap@healthtrustpg.com,Robert Kim
+CUST-026,Genentech Inc.,Biotech,South San Francisco,CA,Net 45,3000000,ap@gene.com,Jennifer Wu
+CUST-027,Regeneron Pharmaceuticals,Biotech,Tarrytown,NY,Net 45,2500000,ap@regeneron.com,Michael Young
+CUST-028,BioMarin Pharmaceutical,Biotech,San Rafael,CA,Net 30,1000000,ap@biomarin.com,Amy Chen
+CUST-029,Ultragenyx Pharmaceutical,Biotech,Novato,CA,Net 45,800000,ap@ultragenyx.com,Daniel Morris
+CUST-030,Blueprint Medicines,Biotech,Cambridge,MA,Net 30,700000,ap@blueprintmedicines.com,Stephanie Hall
+CUST-031,ICON plc,CRO,Dublin,IRE,Net 45,500000,ap@iconplc.com,Chris Bennett
+CUST-032,PPD (Thermo Fisher),CRO,Wilmington,NC,Net 45,600000,ap@ppd.com,Megan Foster
+CUST-033,Parexel International,CRO,Waltham,MA,Net 30,400000,ap@parexel.com,Ryan Dixon
+CUST-034,Lonza Group,CDMO,Basel,CH,Net 60,900000,ap@lonza.com,Karen Simmons
+CUST-035,Patheon (Thermo Fisher),CDMO,Durham,NC,Net 45,700000,ap@patheon.com,Gary Newton
+CUST-036,University of Michigan Health,Academic Medical,Ann Arbor,MI,Net 30,2000000,ap@med.umich.edu,Alice Roberts
+CUST-037,University of Pittsburgh Medical,Academic Medical,Pittsburgh,PA,Net 30,1800000,ap@upmc.edu,Brandon Scott
+CUST-038,UC San Diego Health,Academic Medical,San Diego,CA,Net 45,1500000,ap@health.ucsd.edu,Catherine Price
+CUST-039,University of Washington Medical,Academic Medical,Seattle,WA,Net 30,1200000,ap@uwmedicine.org,Derek Evans
+CUST-040,Emory Healthcare,Academic Medical,Atlanta,GA,Net 30,2200000,ap@emory.edu,Elaine Turner
+CUST-041,NIH Clinical Center,Federal,Bethesda,MD,Net 30,500000,ap@nih.gov,Frank White
+CUST-042,Veterans Health Administration,Federal,Washington,DC,Net 30,800000,ap@va.gov,Gloria Harris
+CUST-043,Department of Defense Health,Federal,Washington,DC,Net 45,600000,ap@health.mil,Henry Johnson
+CUST-044,Roche (Basel HQ),International Pharma,Basel,CH,Net 60,3500000,ap@roche.com,Isabelle Dupont
+CUST-045,Novartis AG,International Pharma,Basel,CH,Net 60,3000000,ap@novartis.com,Jean-Pierre Moreau
+CUST-046,AstraZeneca UK,International Pharma,Cambridge,UK,Net 60,2500000,ap@astrazeneca.com,Katherine Smith
+CUST-047,UCB Pharma,International Pharma,Brussels,BE,Net 60,1000000,ap@ucb.com,Luc Vandenberg
+CUST-048,CVS Specialty,Specialty Pharmacy,Woonsocket,RI,Net 30,2000000,ap@cvsspecialty.com,Mary Collins
+CUST-049,Walgreens Specialty,Specialty Pharmacy,Deerfield,IL,Net 30,1800000,ap@walgreens.com,Nicholas Ward
+CUST-050,Accredo Health Group,Specialty Pharmacy,Memphis,TN,Net 30,1500000,ap@accredo.com,Olivia Powell
+CUST-051,Coram CVS Specialty,Specialty Pharmacy,Denver,CO,Net 30,900000,ap@coram.com,Peter Hughes
+CUST-052,AllianceRx Walgreens Prime,Specialty Pharmacy,Pittsburgh,PA,Net 30,800000,ap@alliancerx.com,Quinn Barnes
+CUST-053,UnitedHealth Group,Payer,Minnetonka,MN,Net 45,1000000,ap@uhg.com,Rebecca Foster
+CUST-054,Cigna Health,Payer,Bloomfield,CT,Net 45,800000,ap@cigna.com,Samuel Cook
+CUST-055,Agios Pharmaceuticals,Biotech,Cambridge,MA,Net 30,400000,ap@agios.com,Tamara Bell
+CUST-056,Alnylam Pharmaceuticals,Biotech,Cambridge,MA,Net 45,600000,ap@alnylam.com,Victor Gray
+CUST-057,Bluebird Bio,Biotech,Somerville,MA,Net 30,300000,ap@bluebirdbio.com,Wendy Hayes
+CUST-058,Sage Therapeutics,Biotech,Cambridge,MA,Net 30,350000,ap@sagerx.com,Xavier Long
+CUST-059,Karuna Therapeutics,Biotech,Boston,MA,Net 45,250000,ap@karunatx.com,Yolanda Price
+CUST-060,Relay Therapeutics,Biotech,Cambridge,MA,Net 30,200000,ap@relaytx.com,Zachary Reed

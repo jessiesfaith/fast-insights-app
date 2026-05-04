@@ -1,0 +1,121 @@
+/* ============================================================
+   AR Tool-Beta — design tokens
+   Light + dark, glassmorphic, light-violet accent.
+   Theme is selected by data-theme attribute on <html>.
+   ============================================================ */
+
+:root,
+[data-theme='light'] {
+  /* surfaces */
+  --bg-base:        #f5f3ff;
+  --bg-gradient:    linear-gradient(135deg, #faf5ff 0%, #ede9fe 50%, #f5f3ff 100%);
+  --bg-elevated:    rgba(255, 255, 255, 0.65);
+  --bg-elevated-2:  rgba(255, 255, 255, 0.85);
+
+  /* borders */
+  --border:         rgba(167, 139, 250, 0.22);
+  --border-strong:  rgba(139, 92, 246, 0.35);
+
+  /* text */
+  --text-primary:   #1e1b4b;
+  --text-secondary: #4c1d95;
+  --text-tertiary:  #6d28d9;
+  --text-muted:     #7c6ba8;
+
+  /* accent */
+  --accent:         #8b5cf6;
+  --accent-hover:   #7c3aed;
+  --accent-soft:    #ede9fe;
+  --accent-glow:    rgba(139, 92, 246, 0.25);
+  --accent-contrast:#ffffff;
+
+  /* severity */
+  --severity-high:     #dc2626;
+  --severity-high-bg:  rgba(220, 38, 38, 0.10);
+  --severity-medium:   #d97706;
+  --severity-medium-bg:rgba(217, 119, 6, 0.10);
+  --severity-low:      #0891b2;
+  --severity-low-bg:   rgba(8, 145, 178, 0.10);
+  --severity-resolved: #16a34a;
+  --severity-resolved-bg: rgba(22, 163, 74, 0.10);
+
+  /* directional */
+  --pos:           #16a34a;
+  --neg:           #dc2626;
+
+  /* glass shadow */
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 8px 32px rgba(76, 29, 149, 0.08);
+  --shadow-card-strong:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 14px 44px rgba(76, 29, 149, 0.14);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg-base:        #0f0a1f;
+  --bg-gradient:    linear-gradient(135deg, #0f0a1f 0%, #1a0f2e 50%, #14102a 100%);
+  --bg-elevated:    rgba(30, 27, 75, 0.45);
+  --bg-elevated-2:  rgba(45, 35, 90, 0.55);
+
+  --border:         rgba(167, 139, 250, 0.18);
+  --border-strong:  rgba(196, 181, 253, 0.30);
+
+  --text-primary:   #faf5ff;
+  --text-secondary: #ddd6fe;
+  --text-tertiary:  #a78bfa;
+  --text-muted:     #8c7ec0;
+
+  --accent:         #a78bfa;
+  --accent-hover:   #c4b5fd;
+  --accent-soft:    rgba(167, 139, 250, 0.12);
+  --accent-glow:    rgba(167, 139, 250, 0.30);
+  --accent-contrast:#0f0a1f;
+
+  --severity-high:     #f87171;
+  --severity-high-bg:  rgba(248, 113, 113, 0.14);
+  --severity-medium:   #fbbf24;
+  --severity-medium-bg:rgba(251, 191, 36, 0.14);
+  --severity-low:      #67e8f9;
+  --severity-low-bg:   rgba(103, 232, 249, 0.14);
+  --severity-resolved: #4ade80;
+  --severity-resolved-bg: rgba(74, 222, 128, 0.14);
+
+  --pos:           #4ade80;
+  --neg:           #f87171;
+
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-card-strong:
+    0 1px 0 rgba(255, 255, 255, 0.10) inset,
+    0 14px 44px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+/* sizing tokens */
+:root {
+  --radius-sm:   8px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --row-height: 36px;
+  --tile-padding: 16px;
+  --card-padding: 20px;
+
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

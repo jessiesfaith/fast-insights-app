@@ -1,0 +1,122 @@
+/* ============================================================
+   Print stylesheet — strips glassmorphism for the audit pack PDF.
+   Solid white, no blur, full ink contrast, paginated.
+   ============================================================ */
+
+@media print {
+  @page {
+    size: Letter;
+    margin: 0.6in 0.55in 0.7in 0.55in;
+  }
+
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  .glass,
+  .glass-2,
+  .glass-strong,
+  .glass-rail,
+  .glass-bar,
+  .glass-pill {
+    background: #ffffff !important;
+    border: 1px solid #d4d4d8 !important;
+    border-radius: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Print Dashboard then Audit pack sequentially regardless of which tab is
+     currently active in the UI. Per-exception detail is shown expandably on
+     the audit-pack tab itself, so the Exceptions view doesn't need its own
+     print section. */
+  [data-print-view='dashboard'],
+  [data-print-view='audit'] {
+    display: block !important;
+  }
+  [data-print-view='dashboard'] {
+    page-break-before: avoid;
+  }
+  [data-print-view='audit'] {
+    page-break-before: always;
+  }
+  /* Suppress views that don't belong in the audit-pack PDF */
+  [data-print-view='upload'],
+  [data-print-view='exceptions'],
+  [data-print-view='customer'] {
+    display: none !important;
+  }
+
+  /* Each top-level audit-pack section starts on its own page so the
+     reviewer / external auditor can sign off section-by-section. */
+  .audit-pack-section {
+    page-break-before: always;
+    break-before: page;
+  }
+  .audit-pack-section[data-first='true'] {
+    page-break-before: avoid;
+    break-before: auto;
+  }
+
+  .severity-high,
+  [data-severity='high'] {
+    color: #b91c1c !important;
+  }
+  .severity-medium,
+  [data-severity='medium'] {
+    color: #a16207 !important;
+  }
+  .severity-low,
+  [data-severity='low'] {
+    color: #155e75 !important;
+  }
+  .severity-resolved,
+  [data-severity='resolved'] {
+    color: #15803d !important;
+  }
+
+  /* tighter density for paper */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th,
+  td {
+    border: 1px solid #d4d4d8;
+    padding: 4px 6px;
+    font-size: 10pt;
+  }
+
+  /* keep cards from breaking awkwardly */
+  .page-break-before { page-break-before: always; }
+  .page-break-after  { page-break-after: always; }
+  .avoid-break       { page-break-inside: avoid; }
+
+  /* print footer (rendered on every page via fixed positioning is browser-dependent;
+     we stamp a footer block on the audit pack itself) */
+}
+
+.print-only { display: none; }

@@ -1,0 +1,104 @@
+/* ============================================================
+   Glassmorphic surface primitives.
+   Reference: Linear × Mercury × Vercel — restrained blur, soft violet glow.
+   ============================================================ */
+
+.glass {
+  background: var(--bg-elevated);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-2 {
+  background: var(--bg-elevated-2);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-strong {
+  background: var(--bg-elevated-2);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card-strong);
+}
+
+.glass-rail {
+  background: var(--bg-elevated);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  border-right: 1px solid var(--border);
+}
+
+.glass-bar {
+  background: var(--bg-elevated);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  border-bottom: 1px solid var(--border);
+}
+
+.glass-pill {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.glass-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border) 50%, transparent 100%);
+  border: 0;
+  margin: var(--space-4) 0;
+}
+
+/* hover lift for cards */
+.glass.is-interactive,
+.glass-2.is-interactive {
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  cursor: pointer;
+}
+.glass.is-interactive:hover,
+.glass-2.is-interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card-strong);
+  transform: translateY(-1px);
+}
+
+/* a soft accent glow ring used on the active card / focus */
+.accent-ring {
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 0 4px var(--accent-glow),
+    var(--shadow-card);
+}
+
+/* severity strip — left edge accent on rows / cards */
+.severity-strip {
+  position: relative;
+}
+.severity-strip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--severity-low);
+}
+.severity-strip[data-severity='high']::before     { background: var(--severity-high); }
+.severity-strip[data-severity='medium']::before   { background: var(--severity-medium); }
+.severity-strip[data-severity='low']::before      { background: var(--severity-low); }
+.severity-strip[data-severity='resolved']::before { background: var(--severity-resolved); }
