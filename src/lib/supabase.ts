@@ -198,15 +198,6 @@ function buildSummary<K extends DatasetKey>(
   key: K,
   rows: ARData[K],
 ): ImportSummary {
-  const idCol: Record<DatasetKey, string> = {
-    invoices: 'invoice_id',
-    receipts: 'receipt_id',
-    creditMemos: 'memo_id',
-    glEntries: 'entry_id',
-    bankStatements: 'line_id',
-    customers: 'customer_id',
-  };
-
   let totalAmount: number | null = null;
   if (key === 'invoices') {
     totalAmount = (rows as unknown as Invoice[]).reduce((s, r) => s + r.total_amount, 0);

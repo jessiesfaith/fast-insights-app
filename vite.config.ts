@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 const isSingleFile = process.env.SINGLE_FILE === '1';
 
 export default defineConfig(async () => {
-  const plugins = [react()];
+  const plugins: any[] = [react()];
 
   if (isSingleFile) {
     const { viteSingleFile } = await import('vite-plugin-singlefile');
