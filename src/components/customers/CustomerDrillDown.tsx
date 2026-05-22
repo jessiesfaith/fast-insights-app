@@ -516,11 +516,11 @@ function CreditsCard({ rows }: { rows: ReturnType<typeof buildCustomerCredits> }
 }
 
 function resolveCSSVar(varExpr: string): string {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return '#8b5cf6';
+  if (typeof window === 'undefined' || typeof document === 'undefined') return '#00c805';
   const m = varExpr.match(/var\((--[^)]+)\)/);
   if (!m) return varExpr;
   const value = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
-  return value || '#8b5cf6';
+  return value || '#00c805';
 }
 
 export default CustomerDrillDown;

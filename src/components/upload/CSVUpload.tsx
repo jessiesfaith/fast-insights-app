@@ -256,13 +256,13 @@ export function CSVUpload() {
             className="row gap-2"
             style={{
               alignItems: 'center',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              background: 'linear-gradient(135deg, #006d04, #00c805)',
               color: '#fff',
-              border: '1px solid rgba(139,92,246,0.4)',
+              border: '1px solid rgba(0,200,5,0.4)',
               padding: '9px 14px',
               borderRadius: 10,
               fontWeight: 600,
-              boxShadow: '0 4px 14px rgba(99,102,241,0.25)',
+              boxShadow: '0 4px 14px rgba(0,109,4,0.25)',
               cursor: busy ? 'progress' : 'pointer',
               opacity: busy ? 0.7 : 1,
             }}

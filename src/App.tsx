@@ -549,7 +549,11 @@ function NavToggle({ active, onClick, label }: { active: boolean; onClick: () =>
 
 function Logo() {
   return (
-    <div
+    <a
+      href="https://fastinsights.io"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="fastinsights.io"
       className="center"
       style={{
         width: 36,
@@ -558,10 +562,11 @@ function Logo() {
         background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))',
         color: 'var(--accent-contrast)',
         boxShadow: '0 6px 18px var(--accent-glow)',
+        textDecoration: 'none',
       }}
     >
       <Sparkles size={18} />
-    </div>
+    </a>
   );
 }
 

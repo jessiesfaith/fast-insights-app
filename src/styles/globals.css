@@ -37,7 +37,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Layered violet gradient backdrop — gives the glass something to refract. */
+/* Layered gradient backdrop — gives the glass something to refract. */
 body::before {
   content: '';
   position: fixed;
