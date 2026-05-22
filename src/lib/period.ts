@@ -59,3 +59,11 @@ export function isWithin(date: string, start: string, end: string): boolean {
   const d = date.slice(0, 10);
   return d >= start && d <= end;
 }
+
+/** Whole days between two ISO dates (b − a). Unparseable input returns 0. */
+export function daysBetween(a: string, b: string): number {
+  const da = Date.parse(a + 'T00:00:00Z');
+  const db = Date.parse(b + 'T00:00:00Z');
+  if (Number.isNaN(da) || Number.isNaN(db)) return 0;
+  return Math.round((db - da) / 86_400_000);
+}

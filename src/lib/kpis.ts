@@ -7,10 +7,8 @@
 import { ARData } from '../types/data';
 import { KPIBundle, KPIKey, KPIResult, KPIUnit } from '../types/kpi';
 import { buildAging } from './aging';
-import { computeSubledgerAR } from './recon';
+import { ACCT_AR, computeSubledgerAR } from './recon';
 import { isWithin, periodBounds, priorPeriod } from './period';
-
-const ACCT_AR = '1200';
 
 // -------- individual KPI functions ----------------------------------------
 
@@ -40,36 +38,11 @@ export function dsoCountback(data: ARData, periodEnd: string, endingAR: number):
   return days;
 }
 
-export function pctCurrent(data: ARData, period: string): number {
-  const aging = buildAging(data, period);
-  if (aging.totalOpenAR === 0) return 0;
-  const current = aging.totals.find((t) => t.bucket === 'Current');
-  return (current?.amount ?? 0) / aging.totalOpenAR;
-}
-
-export function pastDuePct(data: ARData, period: string): number {
-  const aging = buildAging(data, period);
-  if (aging.totalOpenAR === 0) return 0;
-  const pastDue = aging.totals
-    .filter((t) => t.bucket !== 'Current')
-    .reduce((s, t) => s + t.amount, 0);
-  return pastDue / aging.totalOpenAR;
-}
-
-export function topTenConcentration(data: ARData, period: string): number {
-  const aging = buildAging(data, period);
-  if (aging.totalOpenAR === 0) return 0;
-  const top10 = aging.byCustomer.slice(0, 10).reduce((s, c) => s + c.total, 0);
-  return top10 / aging.totalOpenAR;
-}
-
 export function unappliedCash(data: ARData, periodEnd: string): number {
   let total = 0;
   for (const r of data.receipts) {
     if (r.receipt_date.slice(0, 10) > periodEnd.slice(0, 10)) continue;
-    if (r.status === 'Unapplied') {
-      total += r.amount - r.amount_applied;
-    } else if (r.amount_applied < r.amount) {
+    if (r.status === 'Unapplied' || r.amount_applied < r.amount) {
       total += r.amount - r.amount_applied;
     }
   }
@@ -159,7 +132,7 @@ export function daysToApplyMedian(data: ARData, periodStart: string, periodEnd: 
 
 // -------- bundle ----------------------------------------------------------
 
-const KPI_META: Record<KPIKey, { label: string; unit: KPIUnit; goodDirection: 'up' | 'down' }> = {
+export const KPI_META: Record<KPIKey, { label: string; unit: KPIUnit; goodDirection: 'up' | 'down' }> = {
   dso:                 { label: 'DSO (countback)',   unit: 'days', goodDirection: 'down' },
   pctCurrent:          { label: '% Current',         unit: 'pct',  goodDirection: 'up' },
   pastDuePct:          { label: 'Past Due %',        unit: 'pct',  goodDirection: 'down' },

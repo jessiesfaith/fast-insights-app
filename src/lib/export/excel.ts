@@ -28,7 +28,7 @@ import { KPI_FORMULA, buildKPIs } from '../kpis';
 import { buildARBridge, buildThreeWay } from '../recon';
 import { isWithin, periodBounds } from '../period';
 import { buildTickmarkSignoffs } from '../tickmarks';
-import { fmtPeriod } from '../format';
+import { fileTimestamp, fmtPeriod, slugForFileName } from '../format';
 import { TOOL_VERSION } from './json';
 
 interface ExportInput {
@@ -140,10 +140,8 @@ export function exportAuditPackExcel(input: ExportInput): string {
 }
 
 export function excelFileName(entity: string, period: string, generatedAt: string): string {
-  const slug = (s: string) =>
-    s.replace(/[^a-zA-Z0-9-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'unknown';
-  const ts = generatedAt.replace(/[:]/g, '-').replace(/\..+$/, '');
-  return `ar-tool-beta-pack_${slug(entity || 'entity')}_${slug(period)}_${ts}.xlsx`;
+  const ts = fileTimestamp(generatedAt);
+  return `ar-tool-beta-pack_${slugForFileName(entity || 'entity')}_${slugForFileName(period)}_${ts}.xlsx`;
 }
 
 // ---- sheet builders ------------------------------------------------------

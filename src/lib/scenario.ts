@@ -26,6 +26,10 @@ import {
   ScenarioState,
   WhatIfState,
 } from '../types/scenario';
+import { daysBetween } from './period';
+
+// Rounding tolerance — amounts within half a cent are treated as equal.
+const EPS = 0.005;
 
 // Selecting an empty array for a filter dimension means "no constraint" —
 // keep everything in that dimension.
@@ -137,13 +141,6 @@ function effectiveWhatIf(state: ScenarioState): WhatIfState {
   return state.whatIf;
 }
 
-function daysBetween(a: string, b: string): number {
-  const da = Date.parse(a + 'T00:00:00Z');
-  const db = Date.parse(b + 'T00:00:00Z');
-  if (Number.isNaN(da) || Number.isNaN(db)) return 0;
-  return Math.round((db - da) / 86_400_000);
-}
-
 function applyWhatIf(data: ARData, what: WhatIfState, asOf: string): ARData {
   const cleanedReceipts: CashReceipt[] = data.receipts.map((r) => {
     const isUnapplied = r.status === 'Unapplied' || r.amount_applied < r.amount;
@@ -151,7 +148,7 @@ function applyWhatIf(data: ARData, what: WhatIfState, asOf: string): ARData {
     const unapplied = Math.max(r.amount - r.amount_applied, 0);
     const additional = unapplied * what.resolveUnappliedCashPct;
     const newApplied = r.amount_applied + additional;
-    const fullyApplied = Math.abs(r.amount - newApplied) < 0.005;
+    const fullyApplied = Math.abs(r.amount - newApplied) < EPS;
     return {
       ...r,
       amount_applied: newApplied,
@@ -206,9 +203,9 @@ function applyWhatIf(data: ARData, what: WhatIfState, asOf: string): ARData {
       if (dpd <= 0) continue;
       const applied = (recvByInv.get(inv.invoice_id) ?? 0) + (credByInv.get(inv.invoice_id) ?? 0);
       const open = inv.total_amount - applied;
-      if (open <= 0.005) continue;
+      if (open <= EPS) continue;
       const collect = open * what.collectPastDuePct;
-      if (collect <= 0.005) continue;
+      if (collect <= EPS) continue;
       collectionReceipts.push({
         receipt_id: `WI-${inv.invoice_id}`,
         customer_id: inv.customer_id,

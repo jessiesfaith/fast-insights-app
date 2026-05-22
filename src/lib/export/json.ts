@@ -11,19 +11,15 @@ import {
   SnapshotV1,
 } from '../../types/snapshot';
 import { runDetection } from '../detect';
+import { fnv1aHex } from '../hash';
+import { fileTimestamp, slugForFileName } from '../format';
 
 export const TOOL_VERSION = '0.1.0';
 
 // ---- hashing -------------------------------------------------------------
 
-export function fnv1aHex(s: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-  }
-  return h.toString(16).padStart(8, '0');
-}
+// Re-exported so existing importers (and tests) keep working unchanged.
+export { fnv1aHex };
 
 export function hashDataset(rows: unknown[]): string {
   return fnv1aHex(JSON.stringify(rows));
@@ -111,10 +107,8 @@ export function buildSnapshot(input: SnapshotInput): SnapshotV1 {
 // ---- file IO -------------------------------------------------------------
 
 export function snapshotFileName(entity: string, period: string, generatedAt: string): string {
-  const slug = (s: string) =>
-    s.replace(/[^a-zA-Z0-9-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'unknown';
-  const ts = generatedAt.replace(/[:]/g, '-').replace(/\..+$/, ''); // YYYY-MM-DDTHH-MM-SS
-  return `ar-tool-beta-snapshot_${slug(entity || 'entity')}_${slug(period || 'period')}_${ts}.json`;
+  const ts = fileTimestamp(generatedAt); // YYYY-MM-DDTHH-MM-SS
+  return `ar-tool-beta-snapshot_${slugForFileName(entity || 'entity')}_${slugForFileName(period || 'period')}_${ts}.json`;
 }
 
 export function downloadSnapshot(snapshot: SnapshotV1): string {

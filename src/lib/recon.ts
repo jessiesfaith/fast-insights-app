@@ -22,7 +22,8 @@ import {
 import { isOnOrBefore, isWithin, periodBounds, priorPeriod } from './period';
 
 const ACCT_AR = '1200';
-const ACCT_SUSPENSE = '2050';
+// Rounding tolerance — balances within half a cent are treated as equal.
+const EPS = 0.005;
 
 // ---------------- balance A — Subledger AR -------------------------------
 
@@ -65,7 +66,7 @@ export function computeSubledgerAR(data: ARData, periodEnd: string): {
     const appliedCredits = (memosByInvoice.get(inv.invoice_id) ?? [])
       .reduce((s, m) => s + m.amount, 0);
     const openBalance = inv.total_amount - appliedReceipts - appliedCredits;
-    if (Math.abs(openBalance) < 0.005) continue;
+    if (Math.abs(openBalance) < EPS) continue;
     rows.push({ invoice: inv, openBalance, appliedReceipts, appliedCredits });
   }
 
@@ -146,7 +147,7 @@ function buildSubledgerVsGL(data: ARData, periodEnd: string): { variance: number
       missingRefs.push({ type: 'invoice', id: inv.invoice_id });
     }
   }
-  if (Math.abs(missingTotal) > 0.005) {
+  if (Math.abs(missingTotal) > EPS) {
     items.push({
       id: 'missing-gl-postings',
       label: 'Missing GL postings',
@@ -169,7 +170,7 @@ function buildSubledgerVsGL(data: ARData, periodEnd: string): { variance: number
     const inv = data.invoices.find((i) => i.invoice_id === sourceDoc);
     if (inv) dupRefs.push({ type: 'invoice', id: inv.invoice_id });
   }
-  if (Math.abs(dupTotal) > 0.005) {
+  if (Math.abs(dupTotal) > EPS) {
     items.push({
       id: 'duplicate-gl-postings',
       label: 'Duplicate GL postings',
@@ -185,12 +186,12 @@ function buildSubledgerVsGL(data: ARData, periodEnd: string): { variance: number
   for (const r of data.receipts) {
     if (!isOnOrBefore(r.receipt_date, periodEnd)) continue;
     const unapplied = r.amount - r.amount_applied;
-    if (r.status === 'Unapplied' || unapplied > 0.005) {
+    if (r.status === 'Unapplied' || unapplied > EPS) {
       unappliedTotal += Math.max(unapplied, r.status === 'Unapplied' ? r.amount : 0);
       unappliedRefs.push({ type: 'receipt', id: r.receipt_id });
     }
   }
-  if (Math.abs(unappliedTotal) > 0.005) {
+  if (Math.abs(unappliedTotal) > EPS) {
     items.push({
       id: 'unapplied-cash-suspense',
       label: 'Unapplied cash in suspense (2050)',
@@ -213,7 +214,7 @@ function buildSubledgerVsGL(data: ARData, periodEnd: string): { variance: number
       writeoffRefs.push({ type: 'glEntry', id: e.entry_id });
     }
   }
-  if (Math.abs(writeoffDesyncTotal) > 0.005) {
+  if (Math.abs(writeoffDesyncTotal) > EPS) {
     items.push({
       id: 'writeoff-desync',
       label: 'Write-off desync',
@@ -258,7 +259,7 @@ function buildGLVsBank(data: ARData, periodStart: string, periodEnd: string): {
       inTransitRefs.push({ type: 'bankStatement', id: bank.line_id });
     }
   }
-  if (Math.abs(inTransitTotal) > 0.005) {
+  if (Math.abs(inTransitTotal) > EPS) {
     items.push({
       id: 'in-transit-receipts',
       label: 'In-transit receipts (booked, not yet cleared)',
@@ -286,7 +287,7 @@ function buildGLVsBank(data: ARData, periodStart: string, periodEnd: string): {
     bankOnlyTotal += amt;
     bankOnlyRefs.push({ type: 'bankStatement', id: b.line_id });
   }
-  if (Math.abs(bankOnlyTotal) > 0.005) {
+  if (Math.abs(bankOnlyTotal) > EPS) {
     items.push({
       id: 'bank-only-items',
       label: 'Bank-only items not in GL',
@@ -304,12 +305,12 @@ function buildGLVsBank(data: ARData, periodStart: string, periodEnd: string): {
   for (const r of data.receipts) {
     if (!isWithin(r.receipt_date, periodStart, periodEnd)) continue;
     const unapplied = r.amount - r.amount_applied;
-    if (unapplied > 0.005 || r.status === 'Unapplied') {
+    if (unapplied > EPS || r.status === 'Unapplied') {
       unappliedTotal += unapplied;
       unappliedRefs.push({ type: 'receipt', id: r.receipt_id });
     }
   }
-  if (Math.abs(unappliedTotal) > 0.005) {
+  if (Math.abs(unappliedTotal) > EPS) {
     items.push({
       id: 'unapplied-cash-period',
       label: 'Unapplied cash this period',
@@ -477,4 +478,4 @@ export function buildARBridge(data: ARData, period: string): ARBridgeResult {
 }
 
 // re-export internals for tests
-export { ACCT_AR, ACCT_SUSPENSE };
+export { ACCT_AR };

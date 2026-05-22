@@ -21,37 +21,22 @@ import {
   DetectionResult,
   ExceptionCategory,
 } from '../types/exception';
+import { ACCT_AR } from './recon';
+import { daysBetween } from './period';
+import { fnv1aHex } from './hash';
 
-const ACCT_AR = '1200';
 const AGED_THRESHOLD_DAYS = 30;
 const EPS = 0.005;
 
 // ---- helpers ---------------------------------------------------------------
 
-function fnv1a(s: string): string {
-  // 32-bit FNV-1a — adequate for stable, deterministic IDs (no crypto needed)
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-  }
-  return h.toString(16).padStart(8, '0');
-}
-
 function exceptionId(category: ExceptionCategory, period: string, refs: SourceRef[]): string {
   const ids = refs.map((r) => `${r.type}:${r.id}`).sort();
-  return `${category}-${fnv1a(`${category}|${period}|${ids.join(',')}`)}`;
+  return `${category}-${fnv1aHex(`${category}|${period}|${ids.join(',')}`)}`;
 }
 
 function periodOf(iso: string): string {
   return iso ? iso.slice(0, 7) : '';
-}
-
-function daysBetween(a: string, b: string): number {
-  const da = Date.parse(a + 'T00:00:00Z');
-  const db = Date.parse(b + 'T00:00:00Z');
-  if (Number.isNaN(da) || Number.isNaN(db)) return 0;
-  return Math.round((db - da) / 86_400_000);
 }
 
 interface BuildArgs {

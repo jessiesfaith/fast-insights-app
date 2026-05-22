@@ -17,7 +17,7 @@ import {
   ImportSummary,
   Invoice,
 } from '../types/data';
-import { crossValidate } from './parse';
+import { crossValidate, ID_COL } from './parse';
 import type { SampleLoadResult } from './sampleData';
 
 // ---------- client singleton ------------------------------------------------
@@ -194,6 +194,16 @@ async function fetchAll<T>(
 
 // ---------- summary builder -------------------------------------------------
 
+// Date column used to derive the period range, per dataset.
+const SUMMARY_DATE_COL: Record<DatasetKey, string | null> = {
+  invoices: 'invoice_date',
+  receipts: 'receipt_date',
+  creditMemos: 'memo_date',
+  glEntries: 'entry_date',
+  bankStatements: 'value_date',
+  customers: null,
+};
+
 function buildSummary<K extends DatasetKey>(
   key: K,
   rows: ARData[K],
@@ -211,17 +221,8 @@ function buildSummary<K extends DatasetKey>(
     totalAmount = (rows as unknown as BankStatement[]).reduce((s, r) => s + r.credit, 0);
   }
 
-  const dateCol: Record<DatasetKey, string | null> = {
-    invoices: 'invoice_date',
-    receipts: 'receipt_date',
-    creditMemos: 'memo_date',
-    glEntries: 'entry_date',
-    bankStatements: 'value_date',
-    customers: null,
-  };
-
   let periodRange: [string, string] | null = null;
-  const dc = dateCol[key];
+  const dc = SUMMARY_DATE_COL[key];
   if (dc) {
     const periods: string[] = [];
     for (const r of rows as unknown as Array<Record<string, string>>) {
@@ -248,21 +249,12 @@ function buildSummary<K extends DatasetKey>(
 
 // ---------- deduplication ---------------------------------------------------
 
-const ID_FIELDS: Record<DatasetKey, string> = {
-  invoices: 'invoice_id',
-  receipts: 'receipt_id',
-  creditMemos: 'memo_id',
-  glEntries: 'entry_id',
-  bankStatements: 'line_id',
-  customers: 'customer_id',
-};
-
 /**
  * Merge `incoming` rows into `existing`, keeping only rows whose primary key
  * is not already present. Returns the merged array (existing + truly new rows).
  */
 function dedup<T>(existing: T[], incoming: T[], key: DatasetKey): T[] {
-  const idField = ID_FIELDS[key] as keyof T;
+  const idField = ID_COL[key] as keyof T;
   const seen = new Set<unknown>(existing.map((r) => r[idField]));
   const newRows = incoming.filter((r) => !seen.has(r[idField]));
   return [...existing, ...newRows];

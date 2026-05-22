@@ -61,3 +61,13 @@ export function fmtPeriod(period: string | null | undefined): string {
   const idx = Number(m) - 1;
   return `${months[idx] ?? m} ${y}`;
 }
+
+/** Make a string safe to embed in a file name — alphanumerics and dashes only. */
+export function slugForFileName(s: string): string {
+  return s.replace(/[^a-zA-Z0-9-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'unknown';
+}
+
+/** Turn an ISO timestamp into a file-name-safe stamp: YYYY-MM-DDTHH-MM-SS. */
+export function fileTimestamp(iso: string): string {
+  return iso.replace(/[:]/g, '-').replace(/\..+$/, '');
+}

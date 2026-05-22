@@ -11,9 +11,10 @@ import {
   TickmarkRecord,
   TickmarkRowType,
 } from '../types/audit';
+import { KPIKey } from '../types/kpi';
 import { runDetection } from './detect';
 import { buildAging } from './aging';
-import { buildKPIs } from './kpis';
+import { KPI_META, buildKPIs } from './kpis';
 import { buildARBridge, buildThreeWay } from './recon';
 
 export interface TickmarkContext {
@@ -24,17 +25,6 @@ export interface TickmarkContext {
   /** Dollar value associated with the row (null if N/A — e.g. KPIs in days). */
   amount: number | null;
 }
-
-const KPI_LABEL: Record<string, string> = {
-  dso: 'DSO (countback)',
-  pctCurrent: '% Current',
-  pastDuePct: 'Past Due %',
-  topTenConcentration: 'Top 10 concentration',
-  unappliedCash: 'Unapplied Cash',
-  unappliedCredits: 'Unapplied Credits',
-  shortPay: 'Short Pay $',
-  daysToApplyMedian: 'Days to Apply (med)',
-};
 
 const RECON_LABEL: Record<string, string> = {
   sub: 'A. Subledger AR',
@@ -109,7 +99,7 @@ export function resolveTickmarkContext(
       const k = bundle?.results.find((r) => r.key === id);
       return {
         section: 'KPI summary',
-        line: KPI_LABEL[id] ?? id,
+        line: KPI_META[id as KPIKey]?.label ?? id,
         amount: k && k.unit === 'money' ? k.current : null,
       };
     }

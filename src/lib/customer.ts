@@ -7,7 +7,7 @@
 import { ARData, CashReceipt, CreditMemo, Customer, Invoice } from '../types/data';
 import { AgingBucket } from '../types/kpi';
 import { bucketForDaysPastDue } from './aging';
-import { isOnOrBefore, isWithin, periodBounds, priorPeriod } from './period';
+import { daysBetween, isOnOrBefore, isWithin, periodBounds, priorPeriod } from './period';
 import { computeSubledgerAR } from './recon';
 
 export interface CustomerSummary {
@@ -36,15 +36,6 @@ export interface CustomerOpenInvoice {
   openBalance: number;
   daysPastDue: number;
   bucket: AgingBucket;
-}
-
-// ------------ helpers -----------------------------------------------------
-
-function daysBetween(a: string, b: string): number {
-  const da = Date.parse(a + 'T00:00:00Z');
-  const db = Date.parse(b + 'T00:00:00Z');
-  if (Number.isNaN(da) || Number.isNaN(db)) return 0;
-  return Math.round((db - da) / 86_400_000);
 }
 
 // ------------ summary -----------------------------------------------------
