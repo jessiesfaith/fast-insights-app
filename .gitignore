@@ -28,3 +28,6 @@ vite.config.d.ts
 
 # Claude workspace
 .claude/
+
+# Cowork project memory (working notes, not application code)
+memory.md
