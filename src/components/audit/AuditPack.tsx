@@ -14,6 +14,7 @@ import { useDataStore } from '../../lib/dataStore';
 import { runDetection } from '../../lib/detect';
 import { buildKPIs } from '../../lib/kpis';
 import { fmtDate, fmtDateTime, fmtMoney, fmtPct, fmtPeriod } from '../../lib/format';
+import { STATUS_TONE } from '../../lib/uiColors';
 import { ARBridgeLineRefs, buildARBridge, buildARBridgeRefs, buildThreeWay } from '../../lib/recon';
 import { buildTickmarkSignoffs } from '../../lib/tickmarks';
 import { TICKMARK_LEGEND_TITLE } from '../../types/audit';
@@ -918,14 +919,7 @@ function ExceptionDetailList({
 }
 
 function StatusPill({ status }: { status: ExceptionWorkflow['status'] }) {
-  const tone =
-    status === 'Resolved'
-      ? { bg: 'var(--severity-resolved-bg)', fg: 'var(--severity-resolved)' }
-      : status === "Won't Fix"
-      ? { bg: 'var(--bg-elevated)',          fg: 'var(--text-tertiary)' }
-      : status === 'In Review'
-      ? { bg: 'var(--accent-soft)',          fg: 'var(--accent-hover)' }
-      : { bg: 'var(--severity-medium-bg)',   fg: 'var(--severity-medium)' };
+  const tone = STATUS_TONE[status];
   return (
     <span
       style={{

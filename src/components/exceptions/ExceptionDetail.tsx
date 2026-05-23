@@ -6,6 +6,7 @@ import { DetectedException } from '../../types/exception';
 import { isResolved } from '../../types/workflow';
 import { useDataStore } from '../../lib/dataStore';
 import { fmtMoney, fmtDateTime } from '../../lib/format';
+import { STATUS_TONE } from '../../lib/uiColors';
 import { periodBounds } from '../../lib/period';
 import GlassCard from '../ui/GlassCard';
 import { CategoryBadge, SeverityBadge } from './ExceptionBadge';
@@ -118,12 +119,7 @@ export function ExceptionDetail({ exception, data, onSelectCustomer }: Props) {
 }
 
 function StatusBadge({ status }: { status: WorkflowStatus }) {
-  const tone = {
-    Open:        { bg: 'var(--severity-medium-bg)',   fg: 'var(--severity-medium)' },
-    'In Review': { bg: 'var(--accent-soft)',          fg: 'var(--accent-hover)' },
-    Resolved:    { bg: 'var(--severity-resolved-bg)', fg: 'var(--severity-resolved)' },
-    "Won't Fix": { bg: 'var(--bg-elevated-2)',        fg: 'var(--text-tertiary)' },
-  }[status];
+  const tone = STATUS_TONE[status];
   return (
     <span
       className="glass-pill"

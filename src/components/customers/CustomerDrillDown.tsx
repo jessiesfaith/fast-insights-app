@@ -20,6 +20,7 @@ import { useDataStore } from '../../lib/dataStore';
 import { fmtDate, fmtMoney, fmtPct, fmtPeriod } from '../../lib/format';
 import GlassCard from '../ui/GlassCard';
 import { CategoryBadge, SeverityBadge } from '../exceptions/ExceptionBadge';
+import { BUCKET_COLOR, resolveCSSVar } from '../../lib/uiColors';
 
 interface Props {
   customerId: string;
@@ -28,14 +29,6 @@ interface Props {
   onBack: () => void;
   onSelectException?: (exceptionId: string) => void;
 }
-
-const BUCKET_COLOR: Record<string, string> = {
-  Current: 'var(--severity-resolved)',
-  '1-30':  'var(--severity-low)',
-  '31-60': 'var(--accent)',
-  '61-90': 'var(--severity-medium)',
-  '90+':   'var(--severity-high)',
-};
 
 export function CustomerDrillDown({ customerId, period, data, onBack, onSelectException }: Props) {
   const { workflows } = useDataStore();
@@ -513,14 +506,6 @@ function CreditsCard({ rows }: { rows: ReturnType<typeof buildCustomerCredits> }
       </div>
     </GlassCard>
   );
-}
-
-function resolveCSSVar(varExpr: string): string {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return '#00c805';
-  const m = varExpr.match(/var\((--[^)]+)\)/);
-  if (!m) return varExpr;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
-  return value || '#00c805';
 }
 
 export default CustomerDrillDown;

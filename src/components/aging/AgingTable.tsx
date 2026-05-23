@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { AGING_BUCKETS, AgingBucket, AgingResult, AgingCustomerRow } from '../../types/kpi';
 import { fmtMoney } from '../../lib/format';
+import { BUCKET_COLOR } from '../../lib/uiColors';
 
 type SortKey = 'customer_name' | 'invoiceCount' | AgingBucket | 'total';
 type SortDir = 'asc' | 'desc';
@@ -62,7 +63,7 @@ export function AgingTable({ aging, onSelectCustomer, maxRows = 50 }: Props) {
               </td>
               <td className="num">{r.invoiceCount}</td>
               {AGING_BUCKETS.map((b) => (
-                <td key={b} className="num" style={{ color: bucketColor(b) }}>
+                <td key={b} className="num" style={{ color: BUCKET_COLOR[b] }}>
                   {r.totals[b] === 0 ? '—' : fmtMoney(r.totals[b], 0)}
                 </td>
               ))}
@@ -98,7 +99,7 @@ export function AgingTable({ aging, onSelectCustomer, maxRows = 50 }: Props) {
                 {aging.byCustomer.reduce((s, c) => s + c.invoiceCount, 0)}
               </td>
               {AGING_BUCKETS.map((b) => (
-                <td key={b} className="num" style={{ fontWeight: 700, color: bucketColor(b) }}>
+                <td key={b} className="num" style={{ fontWeight: 700, color: BUCKET_COLOR[b] }}>
                   {fmtMoney(aging.byCustomer.reduce((s, c) => s + c.totals[b], 0), 0)}
                 </td>
               ))}
@@ -124,16 +125,6 @@ function compare(a: AgingCustomerRow, b: AgingCustomerRow, key: SortKey, dir: So
   if (key === 'invoiceCount') return sign * (a.invoiceCount - b.invoiceCount);
   if (key === 'total') return sign * (a.total - b.total);
   return sign * (a.totals[key] - b.totals[key]);
-}
-
-function bucketColor(b: AgingBucket): string {
-  switch (b) {
-    case 'Current': return 'var(--severity-resolved)';
-    case '1-30':    return 'var(--severity-low)';
-    case '31-60':   return 'var(--accent)';
-    case '61-90':   return 'var(--severity-medium)';
-    case '90+':     return 'var(--severity-high)';
-  }
 }
 
 function Th({

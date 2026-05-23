@@ -4,18 +4,11 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { AGING_BUCKETS, AgingResult, AgingBucket } from '../../types/kpi';
 import { fmtMoney, fmtPct } from '../../lib/format';
+import { BUCKET_COLOR, resolveCSSVar } from '../../lib/uiColors';
 
 interface Props {
   aging: AgingResult;
 }
-
-const BUCKET_COLOR: Record<AgingBucket, string> = {
-  Current: 'var(--severity-resolved)',
-  '1-30':  'var(--severity-low)',
-  '31-60': 'var(--accent)',
-  '61-90': 'var(--severity-medium)',
-  '90+':   'var(--severity-high)',
-};
 
 export function AgingChart({ aging }: Props) {
   const data = aging.totals.map((t) => ({ bucket: t.bucket, amount: t.amount, count: t.count }));
@@ -133,15 +126,6 @@ function MixBar({ aging }: { aging: AgingResult }) {
       </div>
     </div>
   );
-}
-
-// Recharts needs concrete color values, not CSS vars. Resolve at render time.
-function resolveCSSVar(varExpr: string): string {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return '#00c805';
-  const m = varExpr.match(/var\((--[^)]+)\)/);
-  if (!m) return varExpr;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
-  return value || '#00c805';
 }
 
 export default AgingChart;

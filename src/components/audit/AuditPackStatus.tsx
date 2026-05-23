@@ -14,8 +14,7 @@ import { AlertTriangle, BadgeCheck, RefreshCw, ShieldAlert } from 'lucide-react'
 import { ARData } from '../../types/data';
 import { useDataStore } from '../../lib/dataStore';
 import { runDetection } from '../../lib/detect';
-import { computeSubledgerAR } from '../../lib/recon';
-import { periodBounds } from '../../lib/period';
+import { bridgeTie } from '../../lib/recon';
 import { buildDatasetHashes } from '../../lib/export/json';
 import { fmtDateTime, fmtMoney } from '../../lib/format';
 import GlassCard from '../ui/GlassCard';
@@ -42,9 +41,7 @@ export function AuditPackStatus({ data, period }: Props) {
     if (summaries.length !== 6) reasons.push(`${summaries.length} of 6 datasets loaded — load the full population.`);
     const bridge = getBridgeBalance(period);
     if (!bridge) reasons.push('Preparer ending balance not entered on AR Bridge.');
-    const subEnd = computeSubledgerAR(data, periodBounds(period).end).total;
-    const variance = bridge ? bridge.amount - subEnd : null;
-    const ties = variance !== null && Math.abs(variance) < 0.005;
+    const { subledgerEnding: subEnd, variance, ties } = bridgeTie(data, period, bridge?.amount ?? null);
     if (bridge && !ties) reasons.push(`Rollforward variance is ${fmtMoney(variance!, 0)} — must tie to $0.`);
     const detection = runDetection(data);
     const openHigh = detection.exceptions.filter((e) => {

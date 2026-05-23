@@ -10,6 +10,7 @@ import { useDataStore } from '../../lib/dataStore';
 import { WORKFLOW_STATUSES, WorkflowStatus, isResolved } from '../../types/workflow';
 import { isTypingTarget } from '../../lib/shortcuts';
 import { fmtMoney } from '../../lib/format';
+import { STATUS_TONE } from '../../lib/uiColors';
 import { CategoryBadge, SeverityBadge } from './ExceptionBadge';
 
 type SortKey = 'severity' | 'amount_impact' | 'age_days' | 'customer_id' | 'category' | 'status';
@@ -307,12 +308,7 @@ export function ExceptionQueue({ exceptions, selectedId, onSelect }: Props) {
 }
 
 function RowStatusPill({ status }: { status: WorkflowStatus }) {
-  const tone = {
-    Open:        { bg: 'var(--severity-medium-bg)',   fg: 'var(--severity-medium)' },
-    'In Review': { bg: 'var(--accent-soft)',          fg: 'var(--accent-hover)' },
-    Resolved:    { bg: 'var(--severity-resolved-bg)', fg: 'var(--severity-resolved)' },
-    "Won't Fix": { bg: 'var(--bg-elevated-2)',        fg: 'var(--text-tertiary)' },
-  }[status];
+  const tone = STATUS_TONE[status];
   return (
     <span
       style={{

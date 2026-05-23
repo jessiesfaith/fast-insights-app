@@ -10,8 +10,7 @@ import { useState } from 'react';
 import { CheckCircle2, KeyRound, Lock, Unlock } from 'lucide-react';
 import { ARData } from '../../types/data';
 import { useDataStore } from '../../lib/dataStore';
-import { computeSubledgerAR } from '../../lib/recon';
-import { periodBounds } from '../../lib/period';
+import { bridgeTie } from '../../lib/recon';
 import { fmtDateTime, fmtMoney, fmtPeriod } from '../../lib/format';
 import GlassCard from '../ui/GlassCard';
 
@@ -37,10 +36,8 @@ export function PeriodCloseSection({ data, period }: Props) {
   const closed = isPeriodClosed(period);
   const closedEntry = getClosedPeriodEntry(period);
 
-  const subEnding = computeSubledgerAR(data, periodBounds(period).end).total;
   const bridge = getBridgeBalance(period);
-  const variance = bridge ? bridge.amount - subEnding : null;
-  const variancesTie = variance !== null && Math.abs(variance) < 0.005;
+  const { subledgerEnding: subEnding, ties: variancesTie } = bridgeTie(data, period, bridge?.amount ?? null);
 
   const preparerSigned = !!signOff.preparerName.trim();
   const reviewerSigned = !!signOff.reviewerName.trim();

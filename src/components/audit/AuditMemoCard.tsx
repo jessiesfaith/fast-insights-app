@@ -8,7 +8,7 @@ import { ARData } from '../../types/data';
 import { useDataStore } from '../../lib/dataStore';
 import { fmtDate, fmtPeriod } from '../../lib/format';
 import { TICKMARK_LEGEND, TICKMARK_LETTERS } from '../../types/audit';
-import { computeSubledgerAR } from '../../lib/recon';
+import { bridgeTie } from '../../lib/recon';
 import { periodBounds } from '../../lib/period';
 import GlassCard from '../ui/GlassCard';
 
@@ -20,10 +20,7 @@ interface Props {
 export function AuditMemoCard({ data, period }: Props) {
   const { signOff, getBridgeBalance } = useDataStore();
   const bounds = periodBounds(period);
-  const subEnding = computeSubledgerAR(data, bounds.end).total;
-  const bridgeEntry = getBridgeBalance(period);
-  const variance = bridgeEntry ? bridgeEntry.amount - subEnding : null;
-  const ties = variance !== null && Math.abs(variance) < 0.005;
+  const { variance, ties } = bridgeTie(data, period, getBridgeBalance(period)?.amount ?? null);
 
   return (
     <GlassCard padding={0}>

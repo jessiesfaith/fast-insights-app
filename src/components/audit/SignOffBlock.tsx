@@ -7,7 +7,7 @@ import { Lock } from 'lucide-react';
 import { ARData } from '../../types/data';
 import { useDataStore } from '../../lib/dataStore';
 import { fmtDate, fmtMoney } from '../../lib/format';
-import { computeSubledgerAR } from '../../lib/recon';
+import { bridgeTie } from '../../lib/recon';
 import { periodBounds } from '../../lib/period';
 import GlassCard from '../ui/GlassCard';
 
@@ -28,10 +28,8 @@ export function SignOffBlock({ data, period }: Props) {
   }, [operator]);
 
   // Rollforward variance gate — preparer signature blocked until $0.
-  const subledgerEnding = computeSubledgerAR(data, periodBounds(period).end).total;
   const entry = getBridgeBalance(period);
-  const variance = entry ? entry.amount - subledgerEnding : null;
-  const ties = variance !== null && Math.abs(variance) < 0.005;
+  const { subledgerEnding, variance, ties } = bridgeTie(data, period, entry?.amount ?? null);
   const closed = isPeriodClosed(period);
   // Preparer is locked when the rollforward doesn't tie OR the period is closed.
   const preparerLocked = !ties || closed;

@@ -12,19 +12,13 @@ import {
   isResolved,
 } from '../../types/workflow';
 import { useDataStore } from '../../lib/dataStore';
+import { STATUS_TONE } from '../../lib/uiColors';
 import AuditLog from './AuditLog';
 
 interface Props {
   exception: DetectedException;
   workflow: ExceptionWorkflow | undefined;
 }
-
-const STATUS_TONE: Record<WorkflowStatus, { bg: string; fg: string }> = {
-  Open:        { bg: 'var(--severity-medium-bg)',   fg: 'var(--severity-medium)' },
-  'In Review': { bg: 'var(--accent-soft)',          fg: 'var(--accent-hover)' },
-  Resolved:    { bg: 'var(--severity-resolved-bg)', fg: 'var(--severity-resolved)' },
-  "Won't Fix": { bg: 'var(--bg-elevated-2)',        fg: 'var(--text-tertiary)' },
-};
 
 export function WorkflowControls({ exception, workflow }: Props) {
   const { operator, setExceptionStatus, setExceptionAssignee, addExceptionComment } = useDataStore();

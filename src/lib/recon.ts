@@ -477,5 +477,21 @@ export function buildARBridge(data: ARData, period: string): ARBridgeResult {
   };
 }
 
+/**
+ * Preparer rollforward check — the AR Bridge ending balance the preparer
+ * keyed in vs the independently computed subledger AR. Several audit-pack
+ * cards need this same trio, so it lives here once.
+ */
+export function bridgeTie(
+  data: ARData,
+  period: string,
+  enteredAmount: number | null | undefined,
+): { subledgerEnding: number; variance: number | null; ties: boolean } {
+  const subledgerEnding = computeSubledgerAR(data, periodBounds(period).end).total;
+  const variance = enteredAmount == null ? null : enteredAmount - subledgerEnding;
+  const ties = variance !== null && Math.abs(variance) < EPS;
+  return { subledgerEnding, variance, ties };
+}
+
 // re-export internals for tests
 export { ACCT_AR };
