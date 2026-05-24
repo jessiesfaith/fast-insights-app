@@ -31,3 +31,5 @@ vite.config.d.ts
 
 # Cowork project memory (working notes, not application code)
 memory.md
+
+.vercel
