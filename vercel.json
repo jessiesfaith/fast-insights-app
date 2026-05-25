@@ -1,10 +1,13 @@
 {
   "redirects": [
-    { "source": "/cashflow", "destination": "/cashflow/", "permanent": false }
+    { "source": "/cashflow", "destination": "/cashflow/", "permanent": false },
+    { "source": "/revrec", "destination": "/revrec/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
     { "source": "/cashflow/(.*)", "destination": "https://cashflow-cyan-xi.vercel.app/$1" },
+    { "source": "/revrec/", "destination": "https://revrec-eta.vercel.app/" },
+    { "source": "/revrec/(.*)", "destination": "https://revrec-eta.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
