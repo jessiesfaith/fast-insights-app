@@ -1,5 +1,9 @@
 {
+  "redirects": [
+    { "source": "/cashflow", "destination": "/cashflow/", "permanent": false }
+  ],
   "rewrites": [
+    { "source": "/cashflow/:path*", "destination": "https://cashflow-cyan-xi.vercel.app/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
