@@ -6,8 +6,8 @@
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
     { "source": "/cashflow/(.*)", "destination": "https://cashflow-cyan-xi.vercel.app/$1" },
-    { "source": "/revrec/", "destination": "https://revrec-eta.vercel.app/" },
-    { "source": "/revrec/(.*)", "destination": "https://revrec-eta.vercel.app/$1" },
+    { "source": "/revrec/", "destination": "https://revrec-ashy.vercel.app/" },
+    { "source": "/revrec/(.*)", "destination": "https://revrec-ashy.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
