@@ -15,23 +15,11 @@ const usd0 = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-const num2 = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 export function fmtMoney(n: number | null | undefined, decimals = 2): string {
   if (n == null || Number.isNaN(n)) return '—';
   const abs = Math.abs(n);
   const formatted = decimals === 0 ? usd0.format(abs) : usd2.format(abs);
   return n < 0 ? `(${formatted})` : formatted;
-}
-
-export function fmtNumber(n: number | null | undefined): string {
-  if (n == null || Number.isNaN(n)) return '—';
-  const abs = Math.abs(n);
-  const s = num2.format(abs);
-  return n < 0 ? `(${s})` : s;
 }
 
 export function fmtPct(n: number | null | undefined, decimals = 1): string {

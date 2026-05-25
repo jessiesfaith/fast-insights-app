@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -49,6 +50,11 @@ export default defineConfig(async () => {
     server: {
       port: 5173,
       open: true,
+    },
+    test: {
+      // Skip Vitest copies inside .claude/worktrees (test-discovery would otherwise
+      // run each suite N+1 times). Defaults retained for node_modules/dist.
+      exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', '**/.{idea,git,cache,output,temp}/**'],
     },
   };
 });
