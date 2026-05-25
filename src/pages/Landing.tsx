@@ -34,7 +34,7 @@ const TOOLS: ToolEntry[] = [
     tagline: 'ASC 606 schedules, deferred revenue waterfalls, and rev-rec close support.',
     href: '/revrec',
     icon: TrendingUp,
-    status: 'coming-soon',
+    status: 'live',
   },
   {
     id: 'cashflow',
