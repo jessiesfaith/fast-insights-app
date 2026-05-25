@@ -199,8 +199,10 @@ export default function Landing() {
             <Link
               key={tool.id}
               to={tool.href}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{ textDecoration: 'none', color: 'inherit' }}
-              aria-label={`Open ${tool.name}`}
+              aria-label={`Open ${tool.name} in a new tab`}
             >
               {card}
             </Link>
