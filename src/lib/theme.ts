@@ -5,11 +5,12 @@ export type Theme = 'light' | 'dark';
 const STORAGE_KEY = 'ar-tool-beta:theme';
 
 function readInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'light';
+  if (typeof window === 'undefined') return 'dark';
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === 'light' || stored === 'dark') return stored;
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
-  return prefersDark ? 'dark' : 'light';
+  // Default to dark for first-time visitors. The inline script in
+  // index.html mirrors this so there's no flash of light mode.
+  return 'dark';
 }
 
 function applyTheme(theme: Theme) {

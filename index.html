@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>FAST Insights</title>
+    <script>
+      // Apply theme synchronously before React mounts to prevent a flash
+      // of incorrect theme. Mirrors the logic in src/lib/theme.ts:
+      // localStorage wins; otherwise default to dark for first-time visitors.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('ar-tool-beta:theme');
+          var theme = (stored === 'light' || stored === 'dark') ? stored : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

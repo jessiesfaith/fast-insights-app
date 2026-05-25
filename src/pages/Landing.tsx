@@ -8,6 +8,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 interface ToolEntry {
   id: string;
@@ -63,16 +64,26 @@ export default function Landing() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
-            color: 'var(--text-secondary)',
-            fontSize: 12,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
+            justifyContent: 'space-between',
+            gap: 16,
             marginBottom: 12,
           }}
         >
-          <Sparkles size={14} />
-          <span>FAST Insights</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              color: 'var(--text-secondary)',
+              fontSize: 12,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <Sparkles size={14} />
+            <span>FAST Insights</span>
+          </div>
+          <ThemeToggle />
         </div>
         <h1
           style={{
