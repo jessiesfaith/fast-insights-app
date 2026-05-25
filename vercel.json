@@ -3,7 +3,8 @@
     { "source": "/cashflow", "destination": "/cashflow/", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/cashflow/:path*", "destination": "https://cashflow-cyan-xi.vercel.app/:path*" },
+    { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
+    { "source": "/cashflow/(.*)", "destination": "https://cashflow-cyan-xi.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
