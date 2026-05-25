@@ -42,7 +42,7 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Direct & indirect cashflow modeling, forecast vs. actual, and burn analysis.',
     href: '/cashflow',
     icon: Wallet,
-    status: 'coming-soon',
+    status: 'live',
   },
 ];
 
