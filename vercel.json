@@ -1,13 +1,19 @@
 {
   "redirects": [
     { "source": "/cashflow", "destination": "/cashflow/", "permanent": false },
-    { "source": "/revrec", "destination": "/revrec/", "permanent": false }
+    { "source": "/revrec", "destination": "/revrec/", "permanent": false },
+    { "source": "/estimated-taxes", "destination": "/estimated-taxes/", "permanent": false },
+    { "source": "/property-for-stock", "destination": "/property-for-stock/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
     { "source": "/cashflow/(.*)", "destination": "https://cashflow-cyan-xi.vercel.app/$1" },
     { "source": "/revrec/", "destination": "https://revrec-ashy.vercel.app/" },
     { "source": "/revrec/(.*)", "destination": "https://revrec-ashy.vercel.app/$1" },
+    { "source": "/estimated-taxes/", "destination": "https://estimated-taxes.vercel.app/" },
+    { "source": "/estimated-taxes/(.*)", "destination": "https://estimated-taxes.vercel.app/$1" },
+    { "source": "/property-for-stock/", "destination": "https://property-for-stock.vercel.app/" },
+    { "source": "/property-for-stock/(.*)", "destination": "https://property-for-stock.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Building2, Calculator, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -42,6 +42,22 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Direct & indirect cashflow modeling, forecast vs. actual, and burn analysis.',
     href: '/cashflow',
     icon: Wallet,
+    status: 'live',
+  },
+  {
+    id: 'estimated-taxes',
+    name: 'Estimated Taxes',
+    tagline: 'W-2 + 1099 estimated-tax & safe-harbor analyzer — federal & California, with paystub / 1099 OCR.',
+    href: '/estimated-taxes',
+    icon: Calculator,
+    status: 'live',
+  },
+  {
+    id: 'property-for-stock',
+    name: 'Property for Stock',
+    tagline: 'Property-for-common-stock calculator — FMV/NBV deal sizing, §351 control test, journal entry, and §1245/§1250 recapture.',
+    href: '/property-for-stock',
+    icon: Building2,
     status: 'live',
   },
 ];
