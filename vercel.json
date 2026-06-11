@@ -3,7 +3,8 @@
     { "source": "/cashflow", "destination": "/cashflow/", "permanent": false },
     { "source": "/revrec", "destination": "/revrec/", "permanent": false },
     { "source": "/estimated-taxes", "destination": "/estimated-taxes/", "permanent": false },
-    { "source": "/property-for-stock", "destination": "/property-for-stock/", "permanent": false }
+    { "source": "/property-for-stock", "destination": "/property-for-stock/", "permanent": false },
+    { "source": "/trust-strategy-builder", "destination": "/trust-strategy-builder/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
@@ -14,6 +15,8 @@
     { "source": "/estimated-taxes/(.*)", "destination": "https://estimated-taxes.vercel.app/$1" },
     { "source": "/property-for-stock/", "destination": "https://property-for-stock.vercel.app/" },
     { "source": "/property-for-stock/(.*)", "destination": "https://property-for-stock.vercel.app/$1" },
+    { "source": "/trust-strategy-builder/", "destination": "https://trust-strategy-builder.vercel.app/" },
+    { "source": "/trust-strategy-builder/(.*)", "destination": "https://trust-strategy-builder.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

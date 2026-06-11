@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Building2, Calculator, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Building2, Calculator, Landmark, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -58,6 +58,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Property-for-common-stock calculator — FMV/NBV deal sizing, §351 control test, journal entry, and §1245/§1250 recapture.',
     href: '/property-for-stock',
     icon: Building2,
+    status: 'live',
+  },
+  {
+    id: 'trust-strategy-builder',
+    name: 'Trust Strategy Builder',
+    tagline: 'Estate / trust / entity planning organizer & attorney-prep tool — assets, LLCs, sub-trusts, trustee protection, and a dynamic mind map. Planning only; not legal advice.',
+    href: '/trust-strategy-builder',
+    icon: Landmark,
     status: 'live',
   },
 ];
