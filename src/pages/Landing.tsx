@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Building2, Calculator, Landmark, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Building2, Calculator, ClipboardCheck, Landmark, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -66,6 +66,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Estate / trust / entity planning organizer & attorney-prep tool — assets, LLCs, sub-trusts, trustee protection, and a dynamic mind map. Planning only; not legal advice.',
     href: '/trust-strategy-builder',
     icon: Landmark,
+    status: 'live',
+  },
+  {
+    id: 'month-end-close',
+    name: 'Month-End Close & Governance',
+    tagline: 'Bookkeeping close checklist by workstream — segregation of duties, three-role sign-off, period lock, controls, and an exception log. Workflow only; not accounting advice.',
+    href: '/month-end-close',
+    icon: ClipboardCheck,
     status: 'live',
   },
 ];
