@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Building2, Calculator, ClipboardCheck, Landmark, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, Landmark, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -74,6 +74,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Bookkeeping close checklist by workstream — segregation of duties, three-role sign-off, period lock, controls, and an exception log. Workflow only; not accounting advice.',
     href: '/month-end-close',
     icon: ClipboardCheck,
+    status: 'live',
+  },
+  {
+    id: 'inventory-reconciliation',
+    name: 'Inventory Reconciliation',
+    tagline: 'Full-cycle inventory recon — GL roll-forward, subledger-to-control tie-out, GR/IR & AP liability, obsolescence reserve, scrap & returns, product cost by invoice/GL, and turnover (MoM/QoQ/YTD/YoY). Workflow only; not accounting advice.',
+    href: '/inventory-reconciliation',
+    icon: Boxes,
     status: 'live',
   },
 ];

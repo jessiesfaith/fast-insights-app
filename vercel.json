@@ -5,7 +5,8 @@
     { "source": "/estimated-taxes", "destination": "/estimated-taxes/", "permanent": false },
     { "source": "/property-for-stock", "destination": "/property-for-stock/", "permanent": false },
     { "source": "/trust-strategy-builder", "destination": "/trust-strategy-builder/", "permanent": false },
-    { "source": "/month-end-close", "destination": "/month-end-close/", "permanent": false }
+    { "source": "/month-end-close", "destination": "/month-end-close/", "permanent": false },
+    { "source": "/inventory-reconciliation", "destination": "/inventory-reconciliation/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
@@ -20,6 +21,8 @@
     { "source": "/trust-strategy-builder/(.*)", "destination": "https://trust-strategy-builder.vercel.app/$1" },
     { "source": "/month-end-close/", "destination": "https://month-end-close-rho.vercel.app/" },
     { "source": "/month-end-close/(.*)", "destination": "https://month-end-close-rho.vercel.app/$1" },
+    { "source": "/inventory-reconciliation/", "destination": "https://inventory-reconciliation.vercel.app/" },
+    { "source": "/inventory-reconciliation/(.*)", "destination": "https://inventory-reconciliation.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
