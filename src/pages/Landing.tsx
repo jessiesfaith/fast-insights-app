@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, Landmark, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -82,6 +82,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Full-cycle inventory recon — GL roll-forward, subledger-to-control tie-out, GR/IR & AP liability, obsolescence reserve, scrap & returns, product cost by invoice/GL, and turnover (MoM/QoQ/YTD/YoY). Workflow only; not accounting advice.',
     href: '/inventory-reconciliation',
     icon: Boxes,
+    status: 'live',
+  },
+  {
+    id: 'equity-management',
+    name: 'Equity Management',
+    tagline: 'Cap table + stock-based comp (ISOs, RSUs, ESPP, warrants) with Black-Scholes & ASC 718, bond and term-debt amortization, income statement with basic & diluted EPS, plus a ledger→subledger→GL reconciliation. Workflow only; not accounting, tax, or investment advice.',
+    href: '/equity-management',
+    icon: PieChart,
     status: 'live',
   },
 ];
