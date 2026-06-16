@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, FileText, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, Factory, FileText, KeyRound, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -98,6 +98,22 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Consolidated I/S, B/S, OCI, retained earnings & equity rollforward, trial balance → adjusted TB, multi-currency consolidation of 3 subsidiaries with an elimination ledger, stock-based comp & pro forma, a Form 1065 tax book (Schedule K / K-1), 10-K / 10-Q, and a SOX delegation-of-authority approval matrix. Workflow only; not accounting, tax, or investment advice.',
     href: '/financial-statements',
     icon: FileText,
+    status: 'live',
+  },
+  {
+    id: 'fixed-assets-reconciliation',
+    name: 'Fixed Assets Reconciliation',
+    tagline: 'Full-cycle PP&E recon — dual roll-forward (gross cost + accumulated depreciation → net book value), CIP, capitalization policy, physical existence/tagging, depreciation, impairment, useful lives, disposals, ASC 842 leases, multi-currency consolidation, ARO, held-for-sale, intangibles, book-vs-tax (MACRS), and a SOX/AFE delegation-of-authority matrix. Workflow only; not accounting, tax, or audit advice.',
+    href: '/fixed-assets-reconciliation',
+    icon: Factory,
+    status: 'live',
+  },
+  {
+    id: 'lease-accounting',
+    name: 'Lease Accounting',
+    tagline: 'End-to-end ASC 842 lessee accounting — five-step finance/operating classification, ROU asset & lease liability measurement, amortization schedules, liability & ROU roll-forwards, subledger-to-GL tie-out, maturity analysis & disclosures, modifications, lessor accounting (sales-type / direct-financing / operating) and sale-leaseback, with an IFRS 16 toggle and a SOX delegation-of-authority matrix. Workflow only; not accounting, tax, or audit advice.',
+    href: '/lease-accounting',
+    icon: KeyRound,
     status: 'live',
   },
 ];

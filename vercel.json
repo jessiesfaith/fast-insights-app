@@ -8,7 +8,9 @@
     { "source": "/month-end-close", "destination": "/month-end-close/", "permanent": false },
     { "source": "/inventory-reconciliation", "destination": "/inventory-reconciliation/", "permanent": false },
     { "source": "/equity-management", "destination": "/equity-management/", "permanent": false },
-    { "source": "/financial-statements", "destination": "/financial-statements/", "permanent": false }
+    { "source": "/financial-statements", "destination": "/financial-statements/", "permanent": false },
+    { "source": "/lease-accounting", "destination": "/lease-accounting/", "permanent": false },
+    { "source": "/fixed-assets-reconciliation", "destination": "/fixed-assets-reconciliation/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
@@ -29,6 +31,10 @@
     { "source": "/equity-management/(.*)", "destination": "https://equity-management.vercel.app/$1" },
     { "source": "/financial-statements/", "destination": "https://financial-statements-lake.vercel.app/" },
     { "source": "/financial-statements/(.*)", "destination": "https://financial-statements-lake.vercel.app/$1" },
+    { "source": "/lease-accounting/", "destination": "https://lease-accounting.vercel.app/" },
+    { "source": "/lease-accounting/(.*)", "destination": "https://lease-accounting.vercel.app/$1" },
+    { "source": "/fixed-assets-reconciliation/", "destination": "https://fixed-assets-reconciliation.vercel.app/" },
+    { "source": "/fixed-assets-reconciliation/(.*)", "destination": "https://fixed-assets-reconciliation.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
