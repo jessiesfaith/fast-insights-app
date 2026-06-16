@@ -6,7 +6,7 @@
 // with the AR Tool dashboard.
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, FileText, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -90,6 +90,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Cap table + stock-based comp (ISOs, RSUs, ESPP, warrants) with Black-Scholes & ASC 718, bond and term-debt amortization, income statement with basic & diluted EPS, plus a ledger→subledger→GL reconciliation. Workflow only; not accounting, tax, or investment advice.',
     href: '/equity-management',
     icon: PieChart,
+    status: 'live',
+  },
+  {
+    id: 'financial-statements',
+    name: 'Financial Statements',
+    tagline: 'Consolidated I/S, B/S, OCI, retained earnings & equity rollforward, trial balance → adjusted TB, multi-currency consolidation of 3 subsidiaries with an elimination ledger, stock-based comp & pro forma, a Form 1065 tax book (Schedule K / K-1), 10-K / 10-Q, and a SOX delegation-of-authority approval matrix. Workflow only; not accounting, tax, or investment advice.',
+    href: '/financial-statements',
+    icon: FileText,
     status: 'live',
   },
 ];

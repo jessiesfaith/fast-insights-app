@@ -7,7 +7,8 @@
     { "source": "/trust-strategy-builder", "destination": "/trust-strategy-builder/", "permanent": false },
     { "source": "/month-end-close", "destination": "/month-end-close/", "permanent": false },
     { "source": "/inventory-reconciliation", "destination": "/inventory-reconciliation/", "permanent": false },
-    { "source": "/equity-management", "destination": "/equity-management/", "permanent": false }
+    { "source": "/equity-management", "destination": "/equity-management/", "permanent": false },
+    { "source": "/financial-statements", "destination": "/financial-statements/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
@@ -26,6 +27,8 @@
     { "source": "/inventory-reconciliation/(.*)", "destination": "https://inventory-reconciliation.vercel.app/$1" },
     { "source": "/equity-management/", "destination": "https://equity-management.vercel.app/" },
     { "source": "/equity-management/(.*)", "destination": "https://equity-management.vercel.app/$1" },
+    { "source": "/financial-statements/", "destination": "https://financial-statements-lake.vercel.app/" },
+    { "source": "/financial-statements/(.*)", "destination": "https://financial-statements-lake.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
