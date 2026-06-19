@@ -10,7 +10,8 @@
     { "source": "/equity-management", "destination": "/equity-management/", "permanent": false },
     { "source": "/financial-statements", "destination": "/financial-statements/", "permanent": false },
     { "source": "/lease-accounting", "destination": "/lease-accounting/", "permanent": false },
-    { "source": "/fixed-assets-reconciliation", "destination": "/fixed-assets-reconciliation/", "permanent": false }
+    { "source": "/fixed-assets-reconciliation", "destination": "/fixed-assets-reconciliation/", "permanent": false },
+    { "source": "/cpa-dashboard", "destination": "/cpa-dashboard/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cashflow/", "destination": "https://cashflow-cyan-xi.vercel.app/" },
@@ -35,6 +36,8 @@
     { "source": "/lease-accounting/(.*)", "destination": "https://lease-accounting.vercel.app/$1" },
     { "source": "/fixed-assets-reconciliation/", "destination": "https://fixed-assets-reconciliation.vercel.app/" },
     { "source": "/fixed-assets-reconciliation/(.*)", "destination": "https://fixed-assets-reconciliation.vercel.app/$1" },
+    { "source": "/cpa-dashboard/", "destination": "https://cpa-dashboard-ashy.vercel.app/" },
+    { "source": "/cpa-dashboard/(.*)", "destination": "https://cpa-dashboard-ashy.vercel.app/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
