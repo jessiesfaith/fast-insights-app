@@ -5,10 +5,16 @@
 // Uses the existing glass design system so the visual language stays unified
 // with the AR Tool dashboard.
 
+import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, ClipboardCheck, Factory, FileText, KeyRound, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
+
+// Tools are proxied under the production host (see vercel.json). Copied links
+// always point here — never a preview/localhost origin — so they're safe to
+// paste into the AI store or send to someone directly.
+const SITE_ORIGIN = 'https://app.fastinsights.io';
 
 interface ToolEntry {
   id: string;
@@ -119,6 +125,43 @@ const TOOLS: ToolEntry[] = [
 ];
 
 export default function Landing() {
+  // Tracks which tool's link was just copied, so the button can flash "Copied".
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyLink = (e: MouseEvent<HTMLButtonElement>, tool: ToolEntry) => {
+    // The card itself is a link (stretched overlay) — keep the copy click from
+    // also opening the tool.
+    e.preventDefault();
+    e.stopPropagation();
+
+    const url = `${SITE_ORIGIN}${tool.href}`;
+    const flash = () => {
+      setCopiedId(tool.id);
+      window.setTimeout(() => setCopiedId((cur) => (cur === tool.id ? null : cur)), 1600);
+    };
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        flash();
+      } catch {
+        /* clipboard unavailable — silently no-op */
+      }
+    };
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(flash, fallback);
+    } else {
+      fallback();
+    }
+  };
+
   return (
     <div
       style={{
@@ -192,20 +235,36 @@ export default function Landing() {
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           const live = tool.status === 'live';
-          const card = (
+          const copied = copiedId === tool.id;
+
+          return (
             <GlassCard
+              key={tool.id}
               variant="default"
               interactive={live}
               padding={24}
+              aria-disabled={live ? undefined : 'true'}
               style={{
+                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 14,
                 height: '100%',
                 opacity: live ? 1 : 0.65,
-                cursor: live ? 'pointer' : 'default',
               }}
             >
+              {/* Stretched link: the whole card opens the tool, while the copy
+                  button (raised z-index, below) stays independently clickable. */}
+              {live && (
+                <Link
+                  to={tool.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${tool.name} in a new tab`}
+                  style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 'inherit' }}
+                />
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div
                   style={{
@@ -248,6 +307,7 @@ export default function Landing() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  gap: 12,
                   marginTop: 4,
                 }}
               >
@@ -262,26 +322,46 @@ export default function Landing() {
                 >
                   {live ? 'Open' : 'Coming soon'}
                 </span>
-                {live && <ArrowRight size={16} color="var(--text-secondary)" />}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    position: 'relative',
+                    zIndex: 2,
+                  }}
+                >
+                  {live && (
+                    <button
+                      type="button"
+                      onClick={(e) => copyLink(e, tool)}
+                      aria-label={`Copy link to ${tool.name}`}
+                      title="Copy a shareable link to this tool"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '5px 11px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: '0.02em',
+                        whiteSpace: 'nowrap',
+                        color: copied ? 'var(--accent)' : 'var(--text-secondary)',
+                        background: copied ? 'var(--accent-soft)' : 'var(--bg-elevated-2)',
+                        border: `1px solid ${copied ? 'var(--accent)' : 'var(--border)'}`,
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        transition: 'color .15s, border-color .15s, background .15s',
+                      }}
+                    >
+                      {copied ? <Check size={13} /> : <Copy size={13} />}
+                      {copied ? 'Copied' : 'Copy link'}
+                    </button>
+                  )}
+                  {live && <ArrowRight size={16} color="var(--text-secondary)" />}
+                </div>
               </div>
             </GlassCard>
-          );
-
-          return live ? (
-            <Link
-              key={tool.id}
-              to={tool.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none', color: 'inherit' }}
-              aria-label={`Open ${tool.name} in a new tab`}
-            >
-              {card}
-            </Link>
-          ) : (
-            <div key={tool.id} aria-disabled="true">
-              {card}
-            </div>
           );
         })}
       </section>
