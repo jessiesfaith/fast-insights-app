@@ -7,6 +7,7 @@
 
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { track } from '@vercel/analytics';
 import { ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
@@ -212,6 +213,7 @@ export default function Landing() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Open the Launch Gantt in a new tab"
+              onClick={() => track('tool_open', { tool: 'gantt' })}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#00c805', textDecoration: 'none', border: '1px solid #00c805', borderRadius: 999, padding: '7px 14px', whiteSpace: 'nowrap' }}
             >
               <CalendarRange size={15} /> Launch Gantt
@@ -280,6 +282,7 @@ export default function Landing() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Open ${tool.name} in a new tab`}
+                  onClick={() => track('tool_open', { tool: tool.id })}
                   style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 'inherit' }}
                 />
               )}

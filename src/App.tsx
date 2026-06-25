@@ -9,6 +9,7 @@
 // routes, sharing the same domain, deploy pipeline, and auth surface.
 
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Landing from './pages/Landing';
 import ARTool from './pages/ARTool';
 
@@ -20,6 +21,9 @@ export default function App() {
         <Route path="/ar" element={<ARTool />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      {/* Privacy-first, cookieless page analytics (Vercel Web Analytics). Enable it in the
+          Vercel project dashboard (Analytics tab) for data to start flowing. */}
+      <Analytics />
     </BrowserRouter>
   );
 }
