@@ -283,12 +283,17 @@ footer.foot a{font-family:'Geist Mono';font-size:13px}
   </form>
 </div>
 <script>
+// Stay signed in for this tab session only; cleared when the page/tab is closed -> login again.
+(function(){ try{ if(sessionStorage.getItem('fi_gantt_auth')==='1'){ var g=document.getElementById('loginGate'); if(g) g.style.display='none'; } }catch(e){} })();
 function fiLogin(e){ if(e&&e.preventDefault) e.preventDefault();
   var u=document.getElementById('lg_user').value, p=document.getElementById('lg_pass').value;
-  var U=[74,101,115,115,105,99,97,32,68,111,117,103,104,101,114,116,121].map(function(c){return String.fromCharCode(c);}).join('');
-  var P=[102,97,115,116,105,110,115,105,103,104,116,115].map(function(c){return String.fromCharCode(c);}).join('');
-  if(u.trim().toLowerCase()===U.toLowerCase() && p===P){ document.getElementById('loginGate').style.display='none'; }
-  else { document.getElementById('lg_err').textContent='Incorrect username or password.'; }
+  var CRED=[102,97,115,116,105,110,115,105,103,104,116,115].map(function(c){return String.fromCharCode(c);}).join(''); // fastinsights
+  if(u.trim().toLowerCase()===CRED && p===CRED){
+    try{ sessionStorage.setItem('fi_gantt_auth','1'); }catch(e){}
+    document.getElementById('loginGate').style.display='none';
+  } else {
+    document.getElementById('lg_err').textContent='Incorrect username or password.';
+  }
   return false;
 }
 </script>
