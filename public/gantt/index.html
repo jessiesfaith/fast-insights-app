@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fast Insights · Launch Gantt</title>
+<meta name="description" content="Fast Insights launch Gantt — phases, tasks, milestones and progress on one timeline for the LinkedIn launch plan.">
+
+<!-- Fonts + favicon (matches the rest of the platform) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Geist+Mono:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2300c805'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' text-anchor='middle' fill='%230a0a0a' font-family='Arial'%3EF%3C/text%3E%3C/svg%3E">
+
+<!-- Theme bootstrap (shared light/lavender themes; no auth gate — internal tool) -->
+<script>
+  document.documentElement.setAttribute('data-theme', localStorage.getItem('fi_gantt_theme') || 'dark');
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  // ?embed=1 → chrome-less mode for embedding the chart in another page (e.g. the hub)
+  try{ if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed'); }catch(e){}
+</script>
+
+<style>
+/* ===== Design tokens (verbatim from the platform) ===== */
+:root{
+  --paper:#0f0f10; --paper-2:#161618; --ink:#fafaf7; --ink-soft:#cbd5e1;
+  --ink-mute:#8a8f98; --line:#2a2a2e; --line-soft:#1f1f22;
+  --coral:#00c805; --gold:#c89a2d; --mustard:#c89a2d; --plum:#a78bfa;
+  --rune:#38bdf8; --sage:#22c55e; --owl:#a78bfa;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.45);
+  --radius:16px;
+  --weekend:rgba(255,255,255,.04);
+}
+html[data-theme="light"]{
+  --paper:#f7f7f5; --paper-2:#ffffff; --ink:#0a0a0a; --ink-soft:#3f3f46; --ink-mute:#71717a;
+  --line:#e4e4e7; --line-soft:#f1f1f3;
+  --coral:#00a004; --gold:#b8860b; --mustard:#b8860b; --plum:#7c3aed;
+  --rune:#2563eb; --sage:#16a34a; --owl:#7c3aed;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08);
+  --weekend:rgba(0,0,0,.035);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-size:15px;line-height:1.5;}
+h1,h2,h3,.display{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:600;letter-spacing:-.01em;}
+.kicker,.mono,.num,.tag{font-family:'Geist Mono',ui-monospace,monospace;}
+a{color:var(--coral);text-decoration:none} a:hover{text-decoration:underline}
+
+/* ===== Header band ===== */
+body{--header-bg:#0a0a0a}
+html[data-theme="light"] body{--header-bg:#ffffff}
+header.hub-bar{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:12px 20px;background:var(--header-bg,var(--paper-2));border-bottom:1px solid var(--line);
+  backdrop-filter:blur(8px);}
+header.hub-bar .bar-left{display:flex;align-items:center;gap:14px;min-width:0}
+header.hub-bar .brand{display:flex;align-items:center;gap:12px;min-width:0}
+header.hub-bar h1{font-size:20px;margin:0}
+header.hub-bar h1 em{color:var(--coral);font-style:italic}
+header.hub-bar .tag{font-size:11px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em}
+header.hub-bar .bar-link{font-family:'Geist Mono';font-size:12px;color:var(--ink-soft);
+  border:1px solid var(--line);padding:7px 12px;border-radius:999px;white-space:nowrap}
+header.hub-bar .bar-link:hover{text-decoration:none;border-color:var(--coral);color:var(--coral)}
+.theme-toggle{display:inline-flex;align-items:center;gap:6px;flex:none;
+  border:1px solid var(--line);background:var(--paper-2);color:var(--ink);
+  font-family:'Nunito',system-ui,sans-serif;font-size:13px;font-weight:700;line-height:1;
+  padding:7px 12px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow);
+  transition:border-color .15s ease, background .15s ease, transform .15s ease;}
+.theme-toggle:hover{border-color:var(--coral);color:var(--coral);transform:translateY(-1px)}
+.theme-toggle:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+
+.wrap{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+
+/* ===== embed mode (?embed=1) — hide page chrome, show just the tracker ===== */
+html.embed header.hub-bar, html.embed footer.foot, html.embed .page-head{display:none!important}
+html.embed .wrap{padding:14px 14px 20px}
+html.embed .gx{max-height:62vh}
+html.embed .theme-toggle{display:none!important}
+
+/* ===== Title + summary ===== */
+.page-head{margin:8px 0 18px}
+.page-head .kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--coral)}
+.page-head h2{font-size:clamp(24px,3.4vw,34px);margin:6px 0 6px;line-height:1.1}
+.page-head p.lede{font-size:15px;color:var(--ink-soft);max-width:64ch;margin:0}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:18px 0}
+.stat{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow)}
+.stat .lab{font-family:'Geist Mono';font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute)}
+.stat .val{font-family:'Fraunces';font-style:italic;font-weight:600;font-size:28px;line-height:1.1;margin-top:2px}
+.stat .sub{font-size:12px;color:var(--ink-mute);margin-top:2px}
+.stat .mini-bar{height:8px;border-radius:999px;background:var(--line-soft);overflow:hidden;margin-top:8px}
+.stat .mini-bar > i{display:block;height:100%;background:var(--sage);border-radius:999px}
+.stat.s-done .val{color:var(--sage)} .stat.s-active .val{color:var(--rune)}
+.stat.s-blocked .val{color:var(--coral)} .stat.s-todo .val{color:var(--ink-mute)}
+
+/* ===== Toolbar ===== */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
+.toolbar .spacer{flex:1}
+.btn{font-family:'Nunito';font-weight:700;font-size:14px;border:1px solid var(--line);
+  background:var(--paper-2);color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;
+  box-shadow:var(--shadow);transition:border-color .15s,transform .15s,background .15s;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--coral);transform:translateY(-1px)}
+.btn:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn.primary{background:var(--coral);border-color:var(--coral);color:#0a0a0a}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:7px 11px;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--paper-2);box-shadow:var(--shadow)}
+.seg button{font-family:'Geist Mono';font-size:12px;font-weight:600;border:0;background:transparent;color:var(--ink-soft);
+  padding:8px 13px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--coral);color:#0a0a0a}
+
+/* ===== Gantt ===== */
+.gx-card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.gx{overflow:auto;max-height:74vh;position:relative;-webkit-overflow-scrolling:touch}
+.gx-grid{display:flex;flex-direction:column;position:relative;min-width:max-content}
+
+/* header line */
+.gx-headline{display:flex;position:sticky;top:0;z-index:25}
+.gx-corner{flex:none;position:sticky;left:0;z-index:30;background:var(--paper-2);
+  border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  display:flex;align-items:flex-end;padding:0 14px 8px;font-family:'Geist Mono';font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute)}
+.gx-axis{flex:none;position:relative;background:var(--paper-2);border-bottom:1px solid var(--line)}
+.gx-axis .mo{position:absolute;top:0;height:22px;border-right:1px solid var(--line);
+  font-family:'Geist Mono';font-size:11px;font-weight:600;color:var(--ink-soft);
+  padding:4px 0 0 7px;white-space:nowrap;overflow:hidden}
+.gx-axis .tk{position:absolute;top:22px;height:24px;border-right:1px solid var(--line-soft);
+  font-family:'Geist Mono';font-size:10px;color:var(--ink-mute);text-align:center;padding-top:5px;
+  overflow:hidden;white-space:nowrap}
+.gx-axis .tk.we{color:var(--coral);opacity:.55}
+.gx-axis .todaypin{position:absolute;top:0;bottom:0;width:2px;background:var(--coral);z-index:2}
+.gx-axis .todaypin::after{content:"Today";position:absolute;top:2px;left:4px;font-family:'Geist Mono';
+  font-size:9px;font-weight:600;color:#0a0a0a;background:var(--coral);padding:1px 5px;border-radius:999px;white-space:nowrap}
+
+/* rows */
+.gx-row{display:flex;border-bottom:1px solid var(--line-soft)}
+.gx-row:hover .gx-label{background:var(--line-soft)}
+.gx-label{flex:none;position:sticky;left:0;z-index:10;background:var(--paper-2);
+  border-right:1px solid var(--line);padding:8px 14px;cursor:pointer;display:flex;gap:9px;align-items:flex-start}
+.gx-label .dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px}
+.gx-label .lab-body{min-width:0;flex:1}
+.gx-label .nm{font-weight:700;font-size:13.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gx-label .meta{font-family:'Geist Mono';font-size:10.5px;color:var(--ink-mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gx-track{flex:none;position:relative;background:var(--paper)}
+
+/* phase header row */
+.gx-row.is-phase .gx-label{background:var(--paper-2);align-items:center;cursor:pointer}
+.gx-row.is-phase{border-bottom:1px solid var(--line)}
+.gx-row.is-phase .gx-track{background:var(--paper-2)}
+.ph-tw{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
+.ph-caret{flex:none;color:var(--ink-mute);transition:transform .15s;font-size:11px;width:12px}
+.gx-row.is-collapsed .ph-caret{transform:rotate(-90deg)}
+.ph-name{font-family:'Geist Mono';font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-tw .chip{flex:none;margin-left:auto;font-family:'Geist Mono';font-size:10px;color:var(--ink-mute)}
+.ph-band{position:absolute;top:50%;transform:translateY(-50%);height:9px;border-radius:999px;opacity:.85}
+.ph-band > i{display:block;height:100%;border-radius:999px}
+
+/* bars */
+.bar{position:absolute;top:50%;transform:translateY(-50%);height:22px;border-radius:7px;
+  border:1px solid rgba(36,27,46,.18);overflow:hidden;cursor:pointer;display:flex;align-items:center;
+  box-shadow:0 1px 2px rgba(36,27,46,.08);transition:filter .12s,transform .12s}
+.bar:hover{filter:brightness(1.04);transform:translateY(-50%) translateY(-1px)}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px 0 0 6px}
+.bar .bnm{position:relative;z-index:1;font-size:11px;font-weight:700;color:#fff;
+  padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.18)}
+.bar.is-blocked{border-color:var(--coral);border-style:dashed}
+.bar.is-done .fill{opacity:.95}
+.bar-out{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;
+  color:var(--ink-soft);white-space:nowrap;pointer-events:none}
+.ms{position:absolute;top:50%;transform:translate(-50%,-50%) rotate(45deg);width:15px;height:15px;
+  border-radius:3px;cursor:pointer;box-shadow:0 1px 3px rgba(36,27,46,.25)}
+.ms-lab{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--ink-soft);
+  white-space:nowrap;pointer-events:none}
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--coral);opacity:.45;pointer-events:none;z-index:3}
+
+.gx-empty{padding:40px 20px;text-align:center;color:var(--ink-mute)}
+
+/* legend */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 2px 0;font-family:'Geist Mono';font-size:11px;color:var(--ink-mute)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend i.dia{border-radius:2px;transform:rotate(45deg)}
+
+/* ===== Modal / drawer ===== */
+.scrim{position:fixed;inset:0;background:rgba(36,27,46,.42);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,94vw);background:var(--paper);z-index:91;
+  box-shadow:-12px 0 40px rgba(36,27,46,.22);transform:translateX(100%);transition:transform .22s ease;
+  display:flex;flex-direction:column;overflow:auto}
+.drawer.open{transform:none}
+.drawer .dh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:2}
+.drawer .dh h3{margin:0;font-size:20px}
+.drawer .dh .x{border:1px solid var(--line);background:var(--paper-2);width:34px;height:34px;border-radius:50%;
+  font-size:18px;cursor:pointer;color:var(--ink-soft);line-height:1}
+.drawer .db{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-family:'Geist Mono';font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute)}
+.field input[type=text],.field input[type=date],.field select,.field textarea{
+  font-family:'Nunito';font-size:14px;color:var(--ink);background:var(--paper-2);
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
+.field textarea{min-height:64px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--coral);outline-offset:1px;border-color:var(--coral)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.prog-row{display:flex;align-items:center;gap:10px}
+.prog-row input[type=range]{flex:1;accent-color:var(--coral)}
+.prog-row .pv{font-family:'Geist Mono';font-size:13px;width:46px;text-align:right}
+.seg.full{width:100%}
+.seg.full button{flex:1;text-align:center}
+.df{padding:16px 20px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;position:sticky;bottom:0;background:var(--paper)}
+.df .spacer{flex:1}
+.btn.danger{color:var(--coral);border-color:var(--coral)}
+.btn.danger:hover{background:var(--coral);color:#fff}
+
+/* ===== Sheet connect modal ===== */
+.modal-scrim{position:fixed;inset:0;background:rgba(36,27,46,.42);z-index:92;opacity:0;pointer-events:none;transition:opacity .18s}
+.modal-scrim.open{opacity:1;pointer-events:auto}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-46%);width:min(560px,94vw);max-height:90vh;overflow:auto;
+  background:var(--paper);z-index:93;border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 24px 64px rgba(36,27,46,.34);
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+.modal .mh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.modal .mh h3{margin:0;font-size:20px}
+.modal .x{border:1px solid var(--line);background:var(--paper-2);width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--ink-soft);line-height:1}
+.modal .mb{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.modal .mf{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.modal .mf .spacer{flex:1}
+.mdivider{display:flex;align-items:center;gap:10px;color:var(--ink-mute);font-family:'Geist Mono';font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.mdivider::before,.mdivider::after{content:"";flex:1;height:1px;background:var(--line)}
+.hint{font-size:12px;color:var(--ink-mute);line-height:1.45}
+
+.sheet-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 14px;font-size:13px;color:var(--ink-soft);
+  background:var(--paper-2);border:1px solid var(--line);border-left:3px solid var(--sage);border-radius:12px;padding:8px 13px}
+.sheet-status .si{font-family:'Geist Mono';font-size:11.5px;color:var(--ink-mute)}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);
+  font-size:13px;font-weight:700;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);z-index:120;opacity:0;
+  pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+footer.foot{max-width:1280px;margin:32px auto 0;padding:20px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--ink-mute);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer.foot a{font-family:'Geist Mono';font-size:13px}
+
+@media(max-width:640px){
+  .gx-corner{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .bar:hover{transform:translateY(-50%)}
+}
+@media print{
+  header.hub-bar,.toolbar,.legend,footer.foot,.theme-toggle,.scrim,.drawer,.page-head p.lede{display:none!important}
+  .gx{max-height:none;overflow:visible}
+  .gx-card{box-shadow:none;border:1px solid #999}
+  body{background:#fff}
+}
+  /* ===== Login gate (cosmetic, like the Trust module) ===== */
+  .login-gate{position:fixed;inset:0;z-index:1000;background:#0a0a0a;display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:#161618;border:1px solid #2a2a2e;border-radius:16px;padding:30px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .login-card .login-logo{width:48px;height:48px;border-radius:12px;background:#00c805;color:#0a0a0a;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-family:'Geist Mono',ui-monospace,monospace}
+  .login-card h2{color:#fafaf7;font-family:'Fraunces',Georgia,serif;font-style:italic}
+  .login-card input{width:100%;font-family:'Nunito',system-ui,sans-serif;font-size:14px;color:#fafaf7;background:#0f0f10;border:1px solid #2a2a2e;border-radius:10px;padding:10px 12px;margin:6px 0}
+  .login-card input:focus{outline:2px solid #00c805;border-color:#00c805}
+  .login-card .lg-err{color:#f87171;font-size:13px;min-height:18px;margin:4px 0}
+</style>
+</head>
+<body>
+
+<!-- Cosmetic login gate (NOT real security) -->
+<div class="login-gate" id="loginGate">
+  <form class="login-card" onsubmit="return fiLogin(event)">
+    <div class="login-logo">FI</div>
+    <h2 style="margin:0 0 4px;font-size:22px">Fast Insights · Launch Gantt</h2>
+    <p style="margin:0 0 14px;color:#8a8f98;font-size:13px">Private — please sign in.</p>
+    <input id="lg_user" type="text" placeholder="Username" autocomplete="username">
+    <input id="lg_pass" type="password" placeholder="Password" autocomplete="current-password">
+    <div class="lg-err" id="lg_err"></div>
+    <button type="submit" class="btn primary" style="width:100%;justify-content:center">Sign in</button>
+    <div style="margin-top:10px;color:#8a8f98;font-size:12px">Private demo — access limited.</div>
+  </form>
+</div>
+<script>
+function fiLogin(e){ if(e&&e.preventDefault) e.preventDefault();
+  var u=document.getElementById('lg_user').value, p=document.getElementById('lg_pass').value;
+  var U=[74,101,115,115,105,99,97,32,68,111,117,103,104,101,114,116,121].map(function(c){return String.fromCharCode(c);}).join('');
+  var P=[102,97,115,116,105,110,115,105,103,104,116,115].map(function(c){return String.fromCharCode(c);}).join('');
+  if(u.trim().toLowerCase()===U.toLowerCase() && p===P){ document.getElementById('loginGate').style.display='none'; }
+  else { document.getElementById('lg_err').textContent='Incorrect username or password.'; }
+  return false;
+}
+</script>
+
+<header class="hub-bar">
+  <div class="bar-left">
+    <div class="brand">
+      <div style="width:34px;height:34px;border-radius:9px;background:#00c805;color:#0a0a0a;font-family:'Geist Mono',monospace;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">FI</div>
+      <h1>Fast <em>Insights</em></h1>
+      <div class="tag">Launch · Gantt</div>
+    </div>
+  </div>
+  <a class="bar-link" href="https://app.fastinsights.io" target="_blank" rel="noopener">app.fastinsights.io ↗</a>
+</header>
+
+<main class="wrap">
+
+  <div class="page-head">
+    <div class="kicker">Launch planner</div>
+    <h2>LinkedIn launch Gantt</h2>
+    <p class="lede">Every phase of the Fast Insights launch — Estimated Taxes, AIbookmark, the brand, and the weekly cadence —
+      on one timeline. Click any bar to edit; everything saves in this browser.</p>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <button class="btn primary" id="addBtn">＋ Add task</button>
+    <button class="btn sm" id="todayBtn">⊙ Today</button>
+    <div class="seg" id="zoomSeg" role="group" aria-label="Timeline zoom">
+      <button data-zoom="day">Day</button>
+      <button data-zoom="week">Week</button>
+      <button data-zoom="month">Month</button>
+    </div>
+    <button class="btn sm" id="sheetBtn">🔗 Google Sheet</button>
+    <span class="spacer"></span>
+    <button class="btn sm ghost" id="exportBtn">⬇ Export</button>
+    <button class="btn sm ghost" id="importBtn">⬆ Import</button>
+    <button class="btn sm ghost" id="printBtn">🖨 Print</button>
+    <button class="btn sm ghost" id="resetBtn">↺ Reset</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+
+  <div class="sheet-status" id="sheetStatus" hidden></div>
+
+  <div class="gx-card">
+    <div class="gx" id="gx"><div class="gx-grid" id="grid"></div></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--sage)"></i> Done</span>
+    <span><i style="background:var(--rune)"></i> In progress</span>
+    <span><i style="background:var(--ink-mute)"></i> To do</span>
+    <span><i style="background:var(--coral);border:1px dashed var(--coral)"></i> Blocked</span>
+    <span><i class="dia" style="background:var(--gold)"></i> Milestone</span>
+    <span style="color:var(--coral)">▏ Today</span>
+  </div>
+
+</main>
+
+<footer class="foot">
+  <span>Fast Insights · Launch Gantt — private planning tool. Saves in this browser.</span>
+  <a href="https://app.fastinsights.io" target="_blank" rel="noopener">app.fastinsights.io ↗</a>
+</footer>
+
+<!-- Edit drawer -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="dh"><h3 id="drawerTitle">Edit task</h3><button class="x" id="drawerClose" aria-label="Close">×</button></div>
+  <div class="db">
+    <div class="field">
+      <label for="fName">Task name</label>
+      <input type="text" id="fName" placeholder="e.g. Accessibility audit" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="fPhase">Phase / group</label>
+      <input type="text" id="fPhase" list="phaseList" placeholder="e.g. Pilot prep" autocomplete="off">
+      <datalist id="phaseList"></datalist>
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <div class="seg full" id="fType" role="group" aria-label="Task type">
+        <button type="button" data-type="task" aria-pressed="true">Task (bar)</button>
+        <button type="button" data-type="milestone" aria-pressed="false">Milestone ◆</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="fStart">Start</label>
+        <input type="date" id="fStart">
+      </div>
+      <div class="field" id="endField">
+        <label for="fEnd">End</label>
+        <input type="date" id="fEnd">
+      </div>
+    </div>
+    <div class="field">
+      <label for="fStatus">Status</label>
+      <select id="fStatus">
+        <option value="todo">To do</option>
+        <option value="active">In progress</option>
+        <option value="done">Done</option>
+        <option value="blocked">Blocked</option>
+      </select>
+    </div>
+    <div class="field" id="progField">
+      <label for="fProg">Progress</label>
+      <div class="prog-row">
+        <input type="range" id="fProg" min="0" max="100" step="5" value="0">
+        <span class="pv" id="fProgV">0%</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fNotes">Notes</label>
+      <textarea id="fNotes" placeholder="Anything worth remembering…"></textarea>
+    </div>
+  </div>
+  <div class="df">
+    <button class="btn danger sm" id="deleteBtn">Delete</button>
+    <span class="spacer"></span>
+    <button class="btn sm" id="cancelBtn">Cancel</button>
+    <button class="btn primary sm" id="saveBtn">Save</button>
+  </div>
+</aside>
+
+<!-- Google Sheet connect modal -->
+<div class="modal-scrim" id="sheetScrim"></div>
+<div class="modal" id="sheetModal" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="mh"><h3 id="sheetTitle">Connect a Google Sheet</h3><button class="x" id="sheetClose" aria-label="Close">×</button></div>
+  <div class="mb">
+    <p style="margin:0;color:var(--ink-soft);font-size:14px">Edit your plan in Google Sheets and pull it into this chart. Start from the template, publish it to the web as CSV, then paste the link.</p>
+    <p class="hint" style="margin:0">Your sheet needs these column headers: <b>Phase, Task, Type, Start, End, Status, %, Notes</b>.</p>
+    <div class="field">
+      <label for="fSheetUrl">Published CSV link</label>
+      <input type="text" id="fSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv" autocomplete="off">
+      <span class="hint">In Sheets: <b>File → Share → Publish to web</b> → pick the <b>Tracker</b> sheet → <b>Comma-separated values (.csv)</b> → Publish, then paste the link. A normal “anyone with the link can view” URL also works.</span>
+    </div>
+    <button class="btn primary sm" id="syncUrlBtn" style="align-self:flex-start">⟳ Sync from link</button>
+    <div class="mdivider">or paste CSV</div>
+    <div class="field">
+      <label for="fSheetCsv">Paste CSV (use this if your browser blocks the fetch)</label>
+      <textarea id="fSheetCsv" placeholder="Phase,Task,Type,Start,End,Status,%,Notes&#10;Foundation,Design system,Task,2026-01-05,2026-01-23,Done,100,"></textarea>
+    </div>
+    <button class="btn sm" id="syncCsvBtn" style="align-self:flex-start">Load pasted CSV</button>
+    <p id="sheetMsg" style="margin:0;min-height:18px;font-size:13px;color:var(--ink-mute)"></p>
+  </div>
+  <div class="mf">
+    <button class="btn danger sm" id="disconnectBtn" style="display:none">Disconnect sheet</button>
+    <span class="spacer"></span>
+    <button class="btn sm" id="sheetDone">Done</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Theme toggle (matches platform pattern) -->
+<script>
+(function(){
+  const KEY='fi_gantt_theme';
+  const btn=document.createElement('button');
+  btn.type='button'; btn.className='theme-toggle'; btn.setAttribute('aria-label','Toggle light or dark mode');
+  function render(){
+    const dark=document.documentElement.getAttribute('data-theme')==='dark';
+    btn.innerHTML = dark
+      ? '<span aria-hidden="true">☀️</span><span>Light</span>'
+      : '<span aria-hidden="true">🌙</span><span>Dark</span>';
+  }
+  btn.onclick=function(){
+    const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    localStorage.setItem(KEY,next); document.documentElement.setAttribute('data-theme',next); render();
+  };
+  const left=document.querySelector('header.hub-bar .bar-left');
+  if(left) left.insertBefore(btn,left.firstChild); else document.body.appendChild(btn);
+  render();
+})();
+</script>
+
+<!-- ===== Gantt app ===== -->
+<script>
+(function(){
+  'use strict';
+  const KEY='fi_launch_gantt_v1';
+  const DAY=86400000;
+  const PALETTE=['var(--coral)','var(--rune)','var(--sage)','var(--plum)','var(--gold)','var(--owl)'];
+  const PXBY={day:30,week:14,month:5};
+  const ROW_H=38, PH_H=34, AXIS_H=46, MO_H=22;
+  const STATUS_LABEL={todo:'To do',active:'In progress',done:'Done',blocked:'Blocked'};
+  const STATUS_COLOR={todo:'var(--ink-mute)',active:'var(--rune)',done:'var(--sage)',blocked:'var(--coral)'};
+
+  /* ---------- date helpers ---------- */
+  function isoToDays(iso){ const p=iso.split('-').map(Number); return Math.floor(Date.UTC(p[0],p[1]-1,p[2])/DAY); }
+  function daysToIso(n){ return new Date(n*DAY).toISOString().slice(0,10); }
+  function todayDays(){ const t=new Date(); return Math.floor(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate())/DAY); }
+  function mondayOnOrBefore(n){ const dow=(new Date(n*DAY).getUTCDay()+6)%7; return n-dow; } // Mon=0
+  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmt(n){ const d=new Date(n*DAY); return MON[d.getUTCMonth()]+' '+d.getUTCDate(); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  /* ---------- seed ---------- */
+  function T(name,phase,start,end,status,progress){
+    status=status||'done';
+    if(progress==null) progress = status==='done'?100 : status==='active'?40 : 0;
+    return {id:uid(),name,phase,start,end,status,progress,milestone:false,notes:''};
+  }
+  function M(name,phase,date){ return {id:uid(),name,phase,start:date,end:date,status:'todo',progress:0,milestone:true,notes:''}; }
+  let _seq=0; function uid(){ _seq++; return 't'+Date.now().toString(36)+_seq.toString(36); }
+
+  function seed(){
+    return {
+      v:1, zoom:'week', collapsed:{},
+      phaseOrder:['Estimated Taxes','AIbookmark','Fast Insights','Shared ops'],
+      tasks:[
+        T('Launch post (Option A) + pin link comment','Estimated Taxes','2026-06-22','2026-06-23','active',40),
+        T('Reshare launch to Fast Insights page','Estimated Taxes','2026-06-22','2026-06-23','todo'),
+        T('Value post: the 100/110% cheat code','Estimated Taxes','2026-06-24','2026-06-25','todo'),
+        T('Engagement poll: know the safe-harbor rule?','Estimated Taxes','2026-06-29','2026-06-30','todo'),
+        T('Repurpose to Reddit + X thread','Estimated Taxes','2026-06-22','2026-07-03','todo'),
+        T('Recycle winner (near a quarterly deadline)','Estimated Taxes','2026-07-20','2026-07-24','todo'),
+        T('Teaser: build-in-public (warm the audience)','AIbookmark','2026-06-29','2026-07-01','todo'),
+        T('Launch post (Option A) + pin link comment','AIbookmark','2026-07-06','2026-07-07','todo'),
+        T('Value / use-case post','AIbookmark','2026-07-08','2026-07-09','todo'),
+        T('Repurpose to Product Hunt + subreddits + X','AIbookmark','2026-07-06','2026-07-10','todo'),
+        T('Proof / result post','AIbookmark','2026-07-20','2026-07-22','todo'),
+        T('Set up company page: banner, About, Products','Fast Insights','2026-06-22','2026-06-26','todo'),
+        T('Reshare product posts to the page','Fast Insights','2026-06-22','2026-07-27','todo'),
+        T('Roundup post: 2 free tools I built','Fast Insights','2026-07-13','2026-07-14','todo'),
+        T('Post cadence: 3-4 posts / week','Shared ops','2026-06-22','2026-07-27','todo'),
+        T('Reply window: first 90 min after each post','Shared ops','2026-06-22','2026-07-27','todo'),
+        T('Weekly tracker review: double down on winners','Shared ops','2026-06-22','2026-07-27','todo'),
+        T('Grow email list (route the reminders form)','Shared ops','2026-06-29','2026-07-27','todo'),
+        M('Estimated Taxes launch','Estimated Taxes','2026-06-22'),
+        M('AIbookmark launch','AIbookmark','2026-07-06'),
+        M('Roundup post','Fast Insights','2026-07-13')
+      ]
+    };
+  }
+
+  /* ---------- state ---------- */
+  let state=load();
+  function load(){
+    try{ const raw=localStorage.getItem(KEY); if(raw){ const s=JSON.parse(raw); if(s&&s.tasks) return s; } }catch(e){}
+    return seed();
+  }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+
+  function phases(){
+    const set=[];
+    (state.phaseOrder||[]).forEach(p=>{ if(state.tasks.some(t=>t.phase===p)) set.push(p); });
+    state.tasks.forEach(t=>{ if(set.indexOf(t.phase)<0) set.push(t.phase); });
+    return set;
+  }
+  function phaseColor(p){ const i=phases().indexOf(p); return PALETTE[(i<0?0:i)%PALETTE.length]; }
+
+  function range(){
+    let lo=Infinity, hi=-Infinity;
+    state.tasks.forEach(t=>{ lo=Math.min(lo,isoToDays(t.start)); hi=Math.max(hi,isoToDays(t.end)); });
+    if(!isFinite(lo)){ const t=todayDays(); lo=t; hi=t+30; }
+    lo=mondayOnOrBefore(lo-3); hi=hi+7;
+    return {lo,hi};
+  }
+
+  /* ---------- stats ---------- */
+  function renderStats(){
+    const real=state.tasks.filter(t=>!t.milestone);
+    let wsum=0,wp=0; const c={todo:0,active:0,done:0,blocked:0};
+    real.forEach(t=>{ const d=Math.max(1,isoToDays(t.end)-isoToDays(t.start)+1); wsum+=d; wp+=d*(t.status==='done'?100:t.progress); c[t.status]=(c[t.status]||0)+1; });
+    const pct=wsum?Math.round(wp/wsum):0;
+    const ms=state.tasks.filter(t=>t.milestone).sort((a,b)=>isoToDays(a.start)-isoToDays(b.start));
+    const today=todayDays();
+    const nextMs=ms.find(m=>isoToDays(m.start)>=today)||ms[ms.length-1];
+    const r=range(); const endDays=Math.max.apply(null,state.tasks.map(t=>isoToDays(t.end)));
+    const daysLeft=Math.max(0,endDays-today);
+    const el=document.getElementById('stats');
+    el.innerHTML=[
+      stat('Overall progress',pct+'%',real.length+' tasks · weighted by duration',pct),
+      stat('Done',c.done,'phases & tasks complete',null,'s-done'),
+      stat('In progress',c.active,(c.blocked?c.blocked+' blocked':'actively building'),null,'s-active'),
+      stat('Next milestone',nextMs?esc(nextMs.name):'—',nextMs?fmt(isoToDays(nextMs.start)):'',null,'s-todo'),
+      stat('Time to finish',daysLeft+'d',endDays>=today?('ends '+fmt(endDays)):'past due',null,'s-todo')
+    ].join('');
+  }
+  function stat(lab,val,sub,bar,cls){
+    return '<div class="stat '+(cls||'')+'"><div class="lab">'+lab+'</div><div class="val">'+val+'</div>'+
+      (sub?'<div class="sub">'+sub+'</div>':'')+
+      (bar!=null?'<div class="mini-bar"><i style="width:'+bar+'%"></i></div>':'')+'</div>';
+  }
+
+  /* ---------- gantt render ---------- */
+  function render(){
+    renderStats();
+    document.querySelectorAll('#zoomSeg button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.zoom===state.zoom)));
+    const px=PXBY[state.zoom];
+    const r=range(); const totalDays=r.hi-r.lo+1; const tlW=totalDays*px;
+    const LEFTW = window.innerWidth<=640?190:300;
+    const today=todayDays();
+    const todayX=(today-r.lo)*px;
+
+    // weekend + week-grid background for tracks
+    const wkLine = 'repeating-linear-gradient(90deg, var(--line-soft) 0, var(--line-soft) 1px, transparent 1px, transparent '+(7*px)+'px)';
+    const weekend = state.zoom!=='month'
+      ? ', repeating-linear-gradient(90deg, transparent 0, transparent '+(5*px)+'px, var(--weekend) '+(5*px)+'px, var(--weekend) '+(7*px)+'px)'
+      : '';
+    const trackBg = wkLine+weekend;
+
+    let html='';
+    // header line
+    html+='<div class="gx-headline">';
+    html+='<div class="gx-corner" style="width:'+LEFTW+'px;height:'+AXIS_H+'px">Phase / task</div>';
+    html+='<div class="gx-axis" style="width:'+tlW+'px;height:'+AXIS_H+'px">'+axisHtml(r,px)+
+          (todayX>=0&&todayX<=tlW?'<div class="todaypin" style="left:'+todayX+'px"></div>':'')+'</div>';
+    html+='</div>';
+
+    // rows
+    const ph=phases();
+    if(!state.tasks.length){
+      html+='<div class="gx-empty" style="width:'+(LEFTW+tlW)+'px">No tasks yet. Hit <b>＋ Add task</b> to start your plan.</div>';
+    }
+    ph.forEach(p=>{
+      const items=state.tasks.filter(t=>t.phase===p);
+      const col=phaseColor(p);
+      const collapsed=!!(state.collapsed&&state.collapsed[p]);
+      // phase summary band
+      let plo=Infinity,phi=-Infinity,wsum=0,wp=0,dn=0;
+      items.forEach(t=>{ plo=Math.min(plo,isoToDays(t.start)); phi=Math.max(phi,isoToDays(t.end));
+        if(!t.milestone){ const d=Math.max(1,isoToDays(t.end)-isoToDays(t.start)+1); wsum+=d; wp+=d*(t.status==='done'?100:t.progress);}
+        if(t.status==='done') dn++; });
+      const ppct=wsum?Math.round(wp/wsum):0;
+      const bandL=(plo-r.lo)*px, bandW=Math.max(px,(phi-plo+1)*px);
+      html+='<div class="gx-row is-phase'+(collapsed?' is-collapsed':'')+'" style="height:'+PH_H+'px">';
+      html+='<div class="gx-label" data-phase-toggle="'+esc(p)+'" style="width:'+LEFTW+'px"><div class="ph-tw">'+
+            '<span class="ph-caret">▼</span><span class="ph-name" style="color:'+col+'">'+esc(p)+'</span>'+
+            '<span class="chip">'+dn+'/'+items.length+' · '+ppct+'%</span></div></div>';
+      html+='<div class="gx-track" style="width:'+tlW+'px;background-image:'+trackBg+'">'+
+            '<div class="ph-band" style="left:'+bandL+'px;width:'+bandW+'px;background:'+col+'33">'+
+            '<i style="width:'+ppct+'%;background:'+col+'"></i></div>'+
+            todayLine(todayX,tlW)+'</div>';
+      html+='</div>';
+
+      if(collapsed) return;
+      items.sort((a,b)=>isoToDays(a.start)-isoToDays(b.start));
+      items.forEach(t=>{
+        const s=isoToDays(t.start), e=isoToDays(t.end);
+        html+='<div class="gx-row" style="height:'+ROW_H+'px">';
+        html+='<div class="gx-label" data-edit="'+t.id+'" style="width:'+LEFTW+'px">'+
+              '<span class="dot" style="background:'+(t.milestone?'var(--gold)':STATUS_COLOR[t.status])+'"></span>'+
+              '<span class="lab-body"><span class="nm">'+(t.milestone?'◆ ':'')+esc(t.name)+'</span>'+
+              '<span class="meta">'+(t.milestone?fmt(s):(fmt(s)+' – '+fmt(e)+' · '+(e-s+1)+'d · '+(t.status==='done'?'done':t.progress+'%')))+'</span></span></div>';
+        // track cell
+        let inner=todayLine(todayX,tlW);
+        if(t.milestone){
+          const x=(s-r.lo)*px;
+          inner+='<div class="ms" data-edit="'+t.id+'" title="'+esc(t.name)+' · '+fmt(s)+'" style="left:'+x+'px;background:var(--gold)"></div>'+
+                 '<div class="ms-lab" style="left:'+(x+12)+'px">'+esc(t.name)+'</div>';
+        } else {
+          const x=(s-r.lo)*px, w=Math.max(px,(e-s+1)*px);
+          const prog=t.status==='done'?100:t.progress;
+          const showInside=w>74;
+          inner+='<div class="bar'+(t.status==='blocked'?' is-blocked':'')+(t.status==='done'?' is-done':'')+'" data-edit="'+t.id+'" '+
+                 'title="'+esc(t.name)+' · '+fmt(s)+'–'+fmt(e)+' · '+STATUS_LABEL[t.status]+' · '+prog+'%" '+
+                 'style="left:'+x+'px;width:'+w+'px;background:'+col+'33">'+
+                 '<span class="fill" style="width:'+prog+'%;background:'+col+'"></span>'+
+                 (showInside?'<span class="bnm">'+esc(t.name)+'</span>':'')+'</div>';
+          if(!showInside) inner+='<div class="bar-out" style="left:'+(x+w+7)+'px">'+esc(t.name)+'</div>';
+        }
+        html+='<div class="gx-track" style="width:'+tlW+'px;background-image:'+trackBg+'">'+inner+'</div>';
+        html+='</div>';
+      });
+    });
+
+    const grid=document.getElementById('grid');
+    grid.style.width=(LEFTW+tlW)+'px';
+    grid.innerHTML=html;
+  }
+
+  function todayLine(x,tlW){ return (x>=0&&x<=tlW)?'<div class="today-line" style="left:'+x+'px"></div>':''; }
+
+  function axisHtml(r,px){
+    let h='';
+    // month bands
+    let d=r.lo;
+    while(d<=r.hi){
+      const dt=new Date(d*DAY); const y=dt.getUTCFullYear(), m=dt.getUTCMonth();
+      const monStart=Math.floor(Date.UTC(y,m,1)/DAY);
+      const monEnd=Math.floor(Date.UTC(y,m+1,0)/DAY);
+      const cs=Math.max(r.lo,monStart), ce=Math.min(r.hi,monEnd);
+      const x=(cs-r.lo)*px, w=(ce-cs+1)*px;
+      const label=(w>64)?(MON[m]+' '+y):(w>30?MON[m]:'');
+      h+='<div class="mo" style="left:'+x+'px;width:'+w+'px">'+label+'</div>';
+      d=monEnd+1;
+    }
+    // ticks
+    if(state.zoom==='day'){
+      for(let n=r.lo;n<=r.hi;n++){
+        const dt=new Date(n*DAY); const dow=dt.getUTCDay(); const we=(dow===0||dow===6);
+        h+='<div class="tk'+(we?' we':'')+'" style="left:'+((n-r.lo)*px)+'px;width:'+px+'px">'+dt.getUTCDate()+'</div>';
+      }
+    } else if(state.zoom==='week'){
+      let mon=mondayOnOrBefore(r.lo);
+      for(let n=mon;n<=r.hi;n+=7){
+        if(n<r.lo){ continue; }
+        const dt=new Date(n*DAY);
+        h+='<div class="tk" style="left:'+((n-r.lo)*px)+'px;width:'+(7*px)+'px">'+MON[dt.getUTCMonth()]+' '+dt.getUTCDate()+'</div>';
+      }
+    }
+    return h;
+  }
+
+  /* ---------- drawer ---------- */
+  let editingId=null, draftType='task';
+  const drawer=document.getElementById('drawer'), scrim=document.getElementById('scrim');
+  const F={name:'fName',phase:'fPhase',start:'fStart',end:'fEnd',status:'fStatus',prog:'fProg',notes:'fNotes'};
+  function $(id){ return document.getElementById(id); }
+
+  function openDrawer(id){
+    editingId=id;
+    const t = id ? state.tasks.find(x=>x.id===id) : null;
+    $('drawerTitle').textContent = id?'Edit task':'New task';
+    $('deleteBtn').style.display = id?'':'none';
+    // phase datalist
+    $('phaseList').innerHTML = phases().map(p=>'<option value="'+esc(p)+'">').join('');
+    const todayIso=daysToIso(todayDays());
+    $(F.name).value = t?t.name:'';
+    $(F.phase).value = t?t.phase:(phases()[0]||'General');
+    $(F.start).value = t?t.start:todayIso;
+    $(F.end).value = t?t.end:daysToIso(todayDays()+13);
+    $(F.status).value = t?t.status:'todo';
+    setProg(t?(t.status==='done'?100:t.progress):0);
+    $(F.notes).value = t?t.notes:'';
+    setType(t&&t.milestone?'milestone':'task');
+    scrim.classList.add('open'); drawer.classList.add('open');
+    setTimeout(()=>$(F.name).focus(),60);
+  }
+  function closeDrawer(){ scrim.classList.remove('open'); drawer.classList.remove('open'); editingId=null; }
+
+  function setType(tp){
+    draftType=tp;
+    document.querySelectorAll('#fType button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.type===tp)));
+    $('endField').style.display = tp==='milestone'?'none':'';
+    $('progField').style.display = tp==='milestone'?'none':'';
+  }
+  function setProg(v){ $(F.prog).value=v; $('fProgV').textContent=v+'%'; }
+
+  $('fProg').addEventListener('input',e=>{ $('fProgV').textContent=e.target.value+'%'; });
+  $('fStatus').addEventListener('change',e=>{
+    const v=e.target.value;
+    if(v==='done') setProg(100);
+    else if(v==='todo') setProg(0);
+    else if(v==='active' && (+$(F.prog).value===0||+$(F.prog).value===100)) setProg(40);
+  });
+  document.querySelectorAll('#fType button').forEach(b=>b.addEventListener('click',()=>setType(b.dataset.type)));
+
+  function saveDraft(){
+    const name=$(F.name).value.trim(); if(!name){ $(F.name).focus(); toast('Give the task a name'); return; }
+    let phase=$(F.phase).value.trim()||'General';
+    let start=$(F.start).value||daysToIso(todayDays());
+    let end = draftType==='milestone' ? start : ($(F.end).value||start);
+    if(isoToDays(end)<isoToDays(start)) end=start;
+    const status=$(F.status).value;
+    const progress = draftType==='milestone'?0 : (status==='done'?100:+$(F.prog).value);
+    const milestone = draftType==='milestone';
+    if(editingId){
+      const t=state.tasks.find(x=>x.id===editingId);
+      Object.assign(t,{name,phase,start,end,status,progress,milestone,notes:$(F.notes).value.trim()});
+    } else {
+      state.tasks.push({id:uid(),name,phase,start,end,status,progress,milestone,notes:$(F.notes).value.trim()});
+      if((state.phaseOrder||[]).indexOf(phase)<0){ state.phaseOrder=state.phaseOrder||[]; state.phaseOrder.push(phase); }
+    }
+    save(); render(); closeDrawer(); toast(editingId?'Saved':'Task added');
+  }
+  function deleteDraft(){
+    if(!editingId) return;
+    if(!confirm('Delete this task?')) return;
+    state.tasks=state.tasks.filter(x=>x.id!==editingId);
+    save(); render(); closeDrawer(); toast('Deleted');
+  }
+
+  /* ---------- events ---------- */
+  document.getElementById('grid').addEventListener('click',e=>{
+    const ed=e.target.closest('[data-edit]'); if(ed){ openDrawer(ed.getAttribute('data-edit')); return; }
+    const tg=e.target.closest('[data-phase-toggle]');
+    if(tg){ const p=tg.getAttribute('data-phase-toggle'); state.collapsed=state.collapsed||{}; state.collapsed[p]=!state.collapsed[p]; save(); render(); }
+  });
+  $('addBtn').onclick=()=>openDrawer(null);
+  $('drawerClose').onclick=closeDrawer; $('cancelBtn').onclick=closeDrawer; scrim.onclick=closeDrawer;
+  $('saveBtn').onclick=saveDraft; $('deleteBtn').onclick=deleteDraft;
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&drawer.classList.contains('open')) closeDrawer(); });
+
+  document.getElementById('zoomSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-zoom]'); if(!b) return;
+    state.zoom=b.dataset.zoom; save(); render();
+  });
+  $('todayBtn').onclick=()=>{
+    const gx=document.getElementById('gx'); const px=PXBY[state.zoom]; const r=range();
+    const LEFTW=window.innerWidth<=640?190:300;
+    const x=(todayDays()-r.lo)*px;
+    gx.scrollTo({left:Math.max(0,x-gx.clientWidth/2+LEFTW),behavior:'smooth'});
+  };
+
+  $('exportBtn').onclick=()=>{
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='fast-insights-launch-gantt-'+daysToIso(todayDays())+'.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('Exported JSON');
+  };
+  $('importBtn').onclick=()=>$('importFile').click();
+  $('importFile').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ try{ const s=JSON.parse(rd.result); if(!s||!Array.isArray(s.tasks)) throw 0;
+      state=s; state.zoom=state.zoom||'week';
+      // never let an imported file implant an auto-fetching sheet connection — reconnect manually instead
+      state.source='local'; state.sheetUrl=''; state.lastSync=null;
+      save(); render(); renderSheetStatus(); toast('Imported '+s.tasks.length+' tasks');
+    }catch(err){ toast('That file is not a valid tracker export'); } e.target.value=''; };
+    rd.readAsText(f);
+  });
+  $('printBtn').onclick=()=>window.print();
+  $('resetBtn').onclick=()=>{ if(confirm('Reset to the Fast Insights launch plan? Your current tasks will be replaced.')){ state=seed(); save(); render(); renderSheetStatus(); toast('Reset to launch plan'); } };
+
+  /* ---------- Google Sheet sync ---------- */
+  const sheetScrim=$('sheetScrim'), sheetModal=$('sheetModal');
+  function openSheet(){
+    $('fSheetUrl').value=state.sheetUrl||'';
+    $('disconnectBtn').style.display=(state.source==='sheet')?'':'none';
+    sheetMsg('','mute');
+    sheetScrim.classList.add('open'); sheetModal.classList.add('open');
+    setTimeout(()=>$('fSheetUrl').focus(),60);
+  }
+  function closeSheet(){ sheetScrim.classList.remove('open'); sheetModal.classList.remove('open'); }
+  function sheetMsg(t,kind){ const el=$('sheetMsg'); el.textContent=t; el.style.color=kind==='ok'?'var(--sage)':kind==='warn'?'var(--coral)':'var(--ink-mute)'; }
+
+  function csvParse(text){
+    const rows=[]; let row=[],field='',i=0,q=false; text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    while(i<text.length){ const c=text[i];
+      if(q){ if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else q=false; } else field+=c; }
+      else { if(c==='"') q=true; else if(c===','){ row.push(field); field=''; }
+        else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; } else field+=c; }
+      i++;
+    }
+    row.push(field); rows.push(row);
+    return rows.filter(r=>r.length>1 || (r[0]&&r[0].trim()));
+  }
+  const _yr=y=>{ y=+y; return y<100?2000+y:y; };
+  const _iso=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  function parseDateLoose(s){
+    s=(s||'').trim(); if(!s) return null; let m;
+    if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)) return _iso(+m[1],+m[2],+m[3]);
+    if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/)) return _iso(_yr(m[3]),+m[1],+m[2]);
+    const MN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+    if(m=s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s.,]*(\d{2,4})$/)){ const mo=MN[m[2].slice(0,3).toLowerCase()]; if(mo) return _iso(_yr(m[3]),mo,+m[1]); }
+    if(m=s.match(/^([A-Za-z]{3,})\s+(\d{1,2}),?\s+(\d{2,4})$/)){ const mo=MN[m[1].slice(0,3).toLowerCase()]; if(mo) return _iso(_yr(m[3]),mo,+m[2]); }
+    const d=new Date(s); if(!isNaN(d)) return d.toISOString().slice(0,10);
+    return null;
+  }
+  function csvToTasks(text){
+    const rows=csvParse(text); if(!rows.length) throw new Error('empty');
+    let hi=-1,H=null;
+    for(let r=0;r<Math.min(rows.length,15);r++){
+      const low=rows[r].map(x=>(x||'').trim().toLowerCase());
+      if(low.indexOf('phase')>=0 && (low.indexOf('task')>=0||low.indexOf('name')>=0)){ hi=r; H=low; break; }
+    }
+    if(hi<0) throw new Error('no-header');
+    const idx=names=>{ for(const n of names){ const k=H.indexOf(n); if(k>=0) return k; } return -1; };
+    const cP=idx(['phase']),cN=idx(['task','name']),cT=idx(['type']),cS=idx(['start','start date']),
+          cE=idx(['end','end date','finish']),cSt=idx(['status']),cPr=idx(['%','progress','percent','% complete']),cNo=idx(['notes','note']);
+    const STMAP={'to do':'todo','todo':'todo','not started':'todo','in progress':'active','active':'active','doing':'active','done':'done','complete':'done','completed':'done','blocked':'blocked'};
+    const out=[];
+    for(let r=hi+1;r<rows.length;r++){
+      const row=rows[r]; const get=k=>k>=0?(row[k]||'').trim():'';
+      let phase=get(cP), name=get(cN); if(!name) continue;
+      name=name.replace(/^\s*◆\s*/,'').trim(); if(!name) continue;
+      const milestone=/mile/.test(get(cT).toLowerCase());
+      let start=parseDateLoose(get(cS)), end=parseDateLoose(get(cE))||start;
+      if(!start) start=end; if(!start) continue; if(!end) end=start;
+      if(isoToDays(end)<isoToDays(start)) end=start;
+      const status=STMAP[get(cSt).toLowerCase()]||'todo';
+      let pr=get(cPr), progress;
+      if(/%/.test(pr)) progress=parseFloat(pr)||0;
+      else { const n=parseFloat(pr); progress=isNaN(n)?0:(n>0&&n<=1&&/\./.test(pr)?Math.round(n*100):n); }
+      progress=Math.max(0,Math.min(100,Math.round(progress))); if(status==='done') progress=100;
+      out.push({id:uid(),phase:phase||'General',name,type:milestone?'Milestone':'Task',milestone,start,end:milestone?start:end,status,progress,notes:get(cNo)});
+    }
+    if(!out.length) throw new Error('no-rows');
+    return out;
+  }
+  function applyTasks(tasks,url){
+    state.tasks=tasks;
+    const order=[]; tasks.forEach(t=>{ if(order.indexOf(t.phase)<0) order.push(t.phase); });
+    state.phaseOrder=order; state.source='sheet';
+    if(url!==undefined) state.sheetUrl=url;
+    state.lastSync=new Date().toISOString(); state.collapsed=state.collapsed||{};
+    save(); render(); renderSheetStatus();
+  }
+  function normalizeCsvUrl(u){
+    u=(u||'').trim(); if(!u) return '';
+    if(/output=csv/.test(u)) return u;
+    if(/\/pub(html)?(\?|#|$)/.test(u)) return u.split('#')[0].replace('/pubhtml','/pub')+(u.indexOf('?')>=0?'&':'?')+'output=csv';
+    const m=u.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if(m){ const gid=(u.match(/[#&?]gid=(\d+)/)||[])[1]||'0'; return 'https://docs.google.com/spreadsheets/d/'+m[1]+'/gviz/tq?tqx=out:csv&gid='+gid; }
+    return u;
+  }
+  async function syncFromUrl(rawUrl,silent){
+    const url=normalizeCsvUrl(rawUrl);
+    if(!url){ if(!silent) sheetMsg('Paste a Google Sheets link first.','warn'); return; }
+    // only ever fetch public Google Sheets hosts — no arbitrary URLs (the rest goes through Paste CSV)
+    let host=''; try{ host=new URL(url).host; }catch(e){}
+    if(!/^https:/i.test(url) || !(host==='docs.google.com' || /\.googleusercontent\.com$/.test(host))){
+      if(!silent) sheetMsg('For safety, only public Google Sheets links (docs.google.com) can be fetched. For anything else, use the “Paste CSV” box.','warn');
+      return;
+    }
+    if(!silent) sheetMsg('Fetching…','mute');
+    try{
+      const res=await fetch(url,{redirect:'follow'});
+      if(!res.ok) throw new Error('http-'+res.status);
+      const text=await res.text();
+      if(/^\s*</.test(text)) throw new Error('not-public');
+      const tasks=csvToTasks(text);
+      applyTasks(tasks,rawUrl.trim());
+      if(!silent){ sheetMsg('Synced '+tasks.length+' tasks ✓','ok'); toast('Synced '+tasks.length+' tasks from Google Sheet'); setTimeout(closeSheet,700); }
+      else toast('Synced '+tasks.length+' tasks from Google Sheet');
+    }catch(err){
+      if(silent) return; // keep last-synced tasks quietly
+      let m='Could not fetch that link. ';
+      if(/not-public/.test(err.message)) m+='The sheet isn’t public — publish it to the web as CSV, or set “anyone with the link can view”.';
+      else if(/no-header/.test(err.message)) m+='Couldn’t find a header row containing “Phase” and “Task”.';
+      else if(/no-rows/.test(err.message)) m+='No task rows were found below the header.';
+      else m+='Your browser may be blocking it (CORS). Use the “Paste CSV” box below instead.';
+      sheetMsg(m,'warn');
+    }
+  }
+  function syncFromCsv(text){
+    try{ const tasks=csvToTasks(text); applyTasks(tasks,state.sheetUrl); sheetMsg('Loaded '+tasks.length+' tasks ✓','ok'); toast('Loaded '+tasks.length+' tasks'); setTimeout(closeSheet,700); }
+    catch(err){ const m=({'no-header':'Couldn’t find a header row containing “Phase” and “Task”.','no-rows':'No task rows found below the header.','empty':'Nothing to parse.'})[err.message]||'Could not parse that CSV.'; sheetMsg(m,'warn'); }
+  }
+  function renderSheetStatus(){
+    const el=$('sheetStatus');
+    if(state.source==='sheet' && (state.sheetUrl||state.lastSync)){
+      const when=state.lastSync?new Date(state.lastSync).toLocaleString():'—';
+      el.hidden=false;
+      el.innerHTML='<span>🔗 <b>Connected to Google Sheet</b></span><span class="si">last synced '+esc(when)+'</span>'+
+        '<span style="flex:1"></span><button class="btn sm" id="syncNowBtn">⟳ Sync now</button>'+
+        '<button class="btn sm ghost" id="sheetSettingsBtn">Settings</button>';
+      $('syncNowBtn').onclick=()=>{ state.sheetUrl?syncFromUrl(state.sheetUrl):openSheet(); };
+      $('sheetSettingsBtn').onclick=openSheet;
+    } else el.hidden=true;
+  }
+  $('sheetBtn').onclick=openSheet;
+  $('sheetClose').onclick=closeSheet; $('sheetDone').onclick=closeSheet; sheetScrim.onclick=closeSheet;
+  $('syncUrlBtn').onclick=()=>syncFromUrl($('fSheetUrl').value,false);
+  $('syncCsvBtn').onclick=()=>syncFromCsv($('fSheetCsv').value);
+  $('disconnectBtn').onclick=()=>{ state.source='local'; state.sheetUrl=''; state.lastSync=null; save(); renderSheetStatus(); closeSheet(); toast('Disconnected — editing locally now'); };
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&sheetModal.classList.contains('open')) closeSheet(); });
+
+  let toTimer; function toast(m){ const el=document.getElementById('toast'); el.textContent=m; el.classList.add('show'); clearTimeout(toTimer); toTimer=setTimeout(()=>el.classList.remove('show'),2200); }
+
+  let rT; window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout(render,150); });
+
+  render();
+  renderSheetStatus();
+  // first load: scroll near today
+  setTimeout(()=>$('todayBtn').click(),120);
+  // if connected to a sheet, quietly refresh from it (keep cached tasks if it fails)
+  if(state.source==='sheet' && state.sheetUrl) syncFromUrl(state.sheetUrl,true);
+})();
+</script>
+
+</body>
+</html>

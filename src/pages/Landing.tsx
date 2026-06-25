@@ -7,7 +7,7 @@
 
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -128,6 +128,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'CPA study guide + planning calculators for corporate tax — §382 NOL limitation & consolidated returns, §351 property-for-stock shareholder gain, earnings & profits (dividend vs. return of capital vs. capital gain), and complete-liquidation gain/loss. Education only; not tax advice.',
     href: '/cpa-dashboard',
     icon: Scale,
+    status: 'live',
+  },
+  {
+    id: 'gantt',
+    name: 'Launch Gantt',
+    tagline: 'Interactive Gantt planner — phases, tasks, milestones, drag-to-edit, Day/Week/Month zoom, and CSV/Google-Sheets sync. Saves in your browser. Private (login).',
+    href: '/gantt',
+    icon: CalendarRange,
     status: 'live',
   },
 ];
