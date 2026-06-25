@@ -130,14 +130,6 @@ const TOOLS: ToolEntry[] = [
     icon: Scale,
     status: 'live',
   },
-  {
-    id: 'gantt',
-    name: 'Launch Gantt',
-    tagline: 'Interactive Gantt planner — phases, tasks, milestones, drag-to-edit, Day/Week/Month zoom, and CSV/Google-Sheets sync. Saves in your browser. Private (login).',
-    href: '/gantt',
-    icon: CalendarRange,
-    status: 'live',
-  },
 ];
 
 export default function Landing() {
@@ -214,7 +206,18 @@ export default function Landing() {
             <Sparkles size={14} />
             <span>FAST Insights</span>
           </div>
-          <ThemeToggle />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <a
+              href="/gantt"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open the Launch Gantt in a new tab"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#00c805', textDecoration: 'none', border: '1px solid #00c805', borderRadius: 999, padding: '7px 14px', whiteSpace: 'nowrap' }}
+            >
+              <CalendarRange size={15} /> Launch Gantt
+            </a>
+            <ThemeToggle />
+          </div>
         </div>
         <h1
           style={{
