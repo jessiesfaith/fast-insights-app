@@ -3,7 +3,7 @@
 _Last updated: 2026-06-24_
 
 ## Purpose
-**AR Tool-Beta** - a modern glassmorphic accounts-receivable reconciliation dashboard for Fast Insights. It ingests six AR datasets (invoices, cash receipts, credit memos, GL entries, bank statements, customers) via CSV/JSON upload, sample data, or a Supabase cloud project, then runs reconciliation, aging, KPIs, bad-debt and scenario analysis with an ICFR-style audit trail. This repo is the multi-tool host at app.fastinsights.io: the AR tool lives at `/ar`, a Landing tool-picker at `/`, and it proxies `/revrec` and `/cashflow` to sibling Vercel projects.
+**AR Tool-Beta** - a modern glassmorphic accounts-receivable reconciliation dashboard for Fast Insights. It ingests six AR datasets (invoices, cash receipts, credit memos, GL entries, bank statements, customers) via CSV/JSON upload, sample data, or a Supabase cloud project, then runs reconciliation, aging, KPIs, bad-debt and scenario analysis with an ICFR-style audit trail. This repo is the multi-tool host at app.fastinsights.io: the AR tool lives at `/ar`, a Landing tool-picker at `/`, and it proxies each finance tool (`/revrec`, `/cashflow`, `/estimated-taxes`, etc.) to sibling Vercel projects. It also serves a **bundled static Launch Gantt** at `public/gantt/` → `app.fastinsights.io/gantt`, opened by a top-right button on the Landing (login-gated, session-only).
 
 ## Stack
 - **Framework:** React 18 + TypeScript + Vite 5 (SPA, client-side `react-router-dom` v7).
@@ -18,7 +18,8 @@ _Last updated: 2026-06-24_
 - `src/lib/` - domain logic: `recon.ts`, `aging.ts`, `kpis.ts`, `badDebt.ts`, `scenario.ts`, `parse.ts`, `detect.ts`, `lockedPeriod.tsx`, `workflow.ts`, `supabase.ts`, `dataStore.tsx`.
 - `src/types/` - data/recon/kpi/scenario/audit/workflow types.
 - `src/styles/` - `glass.css`, `globals.css`, `tokens.css`, `print.css`.
-- `vercel.json` - SPA rewrites + `/revrec` and `/cashflow` proxies (MODIFIED in working tree).
+- `vercel.json` - SPA rewrites + per-tool proxies + a `/gantt → /gantt/` redirect.
+- `public/gantt/index.html` - **bundled static Launch Gantt** (self-contained; canonical source for the `/gantt` tool — edit here + push to update).
 - `index.html` - sets theme pre-paint (defaults dark); `vite.config.ts` (config) + generated `vite.config.js`/`.d.ts` (gitignored).
 
 ## Commands

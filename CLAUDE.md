@@ -9,7 +9,9 @@ Generic workflow rules live in `~/.claude/CLAUDE.md` (they apply to every repo).
   statements, customers) via CSV/JSON upload, built-in sample data, or a Supabase cloud project,
   then runs reconciliation, aging, KPIs, bad-debt and scenario analysis with an ICFR-style audit
   trail. This repo is the multi-tool host: AR tool at `/ar`, Landing tool-picker at `/`, plus
-  proxies for `/revrec` and `/cashflow` to sibling Vercel projects.
+  proxies for the finance tools to sibling Vercel projects. Also serves a **bundled static Launch
+  Gantt** at `public/gantt/index.html` (route `/gantt`, opened by a top-right button on the Landing;
+  login-gated) — edit that file + `git push` to update it.
 - **Package manager / framework:** **npm** (`package-lock.json`). **React 18 + TypeScript + Vite 5**
   SPA with `react-router-dom` v7. Key deps: `@supabase/supabase-js`, `papaparse`, `xlsx-js-style`,
   `recharts`, `lucide-react`.

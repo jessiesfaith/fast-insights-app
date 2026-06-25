@@ -3,7 +3,7 @@
 _Last updated: 2026-06-24_
 
 ## Active request status
-**COMPLETE** - investigation/Q&A session only (Supabase + email-notifications). No app code change.
+**COMPLETE & handed off (2026-06-24).** Added the **Launch Gantt** module — a self-contained Gantt at `public/gantt/index.html`, opened via a top-right **button** on the Landing (no grid tile), login-gated (`fastinsights`/`fastinsights`, session-only). Live at app.fastinsights.io/gantt (verified 200; button present in the deployed bundle). Working tree clean; nothing mid-flight.
 
 ## Completed this session
 - Answered "is Fast Insights on Supabase?" -> **Yes.** Main app already uses the **"ar-recon"** Supabase project via `@supabase/supabase-js` (read-only AR data load in `src/lib/supabase.ts`). Cashflow Tool has its own Supabase backend (migrations).
@@ -27,7 +27,7 @@ _Last updated: 2026-06-24_
 - **Not running.** Start: `npm run dev` -> Vite (default http://localhost:5173).
 
 ## Deployment state
-- **origin/main == local HEAD == `af3bea4`** (2026-06-19, "Add Corporate Tax Study (cpa-dashboard) tile + proxy"). Production auto-deploys from `main`, so prod tracks `af3bea4`. **Not independently re-verified via Vercel this session** - last MCP-verified deploy was `14e14aa` on 2026-06-06.
+- **origin/main == local HEAD == `c34e345`** (2026-06-24, Launch Gantt top-right button). Production auto-deploys from `main`. **Verified live this session:** app.fastinsights.io = 200, `/gantt` = 200, and the "Launch Gantt" button is present in the deployed JS bundle.
 
 ## Obsidian sync state
 - Vault = the Builder_OS folder. Target `01 Projects/Fast Insights/00 Command Center/Agent State/AR Tool-Beta/`. Notes still not created (lazy).
