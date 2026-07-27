@@ -2,6 +2,29 @@
 
 Newest first. Keep entries to a few bullets - no long logs.
 
+## 2026-07-07 - Real auth: account creation + NDA + login (2FA) + password reset + delete procedure
+- **What:** Supabase-Auth-backed private-preview login for the whole app shell — port of the
+  Scout Quest pattern (login.html / sq-idle.js / auth SQL). Signup collects legal name/org/role,
+  gates on opening the NDA (checkbox locked until the /nda link is clicked) + identity confirmation;
+  sign-in = password then an emailed one-time code; password reset = two-click token_hash flow;
+  account deletion = email info@fastinsights.io (admin deletes in Supabase dashboard, cascade cleans
+  profile/NDA rows).
+- **Files:** new `src/pages/AuthPage.tsx` (/login, all five views), `src/pages/NDAPage.tsx` (/nda),
+  `src/lib/auth.tsx` (RequireAuth guard: localStorage `fi_authed`/`fi_email`/`fi_last_activity`,
+  20-min idle, signOut, access_audit logger), `public/fi-idle.js` (same guard for static pages);
+  modified `src/App.tsx` (routes: /login + /nda public, / and /ar gated), `src/pages/Landing.tsx`
+  (email chip + Sign out + delete-procedure footer), `src/lib/supabase.ts` (shared client w/ PKCE
+  auth opts), `public/gantt/index.html` (cosmetic fastinsights/fastinsights gate REPLACED by
+  /fi-idle.js — old `fi_gantt_auth` sessionStorage gate is gone).
+- **Backend:** `supabase/fastinsights_auth_setup.sql` (preview_profiles + nda_acceptances +
+  access_audit, RLS, signup trigger) and `fastinsights_activity_setup.sql` (registration_activity
+  funnel) for the ar-recon project; **`supabase/AUTH_SETUP_RUNBOOK.md` = the dashboard steps
+  (SQL, confirm-email OFF, OTP template with {{ .Token }}, recovery template, redirect URLs)**.
+- **⚠️ Deploy gate:** do NOT `git push` until the runbook steps 1–4 are done in Supabase —
+  the login screen deploys with the push and nobody can sign in until Auth is configured.
+- **Verified:** `npm run build` + all 100 vitest tests pass; browser-verified locally: gate
+  redirects (required/idle reasons + from-path), NDA open-to-enable gate, reset-link confirm view,
+  signed-in landing chip, sign-out, gantt guard both states.
 ## 2026-06-24 - Add Launch Gantt module at /gantt (bundled static page) + top-right button
 - **Files:** new `public/gantt/index.html` (self-contained Gantt — same engine as the Soundwiserx Gantt, reskinned to FI brand black/green, cosmetic login gate, seeded with the LinkedIn launch plan); `src/pages/Landing.tsx` (green "Launch Gantt" button top-right next to the Dark toggle → opens /gantt in a new tab; no grid tile); `vercel.json` (`/gantt → /gantt/` redirect).
 - **Why bundled (not a separate repo/Vercel project):** rides this host's existing git-push auto-deploy; Vercel serves the static `public/gantt/` before the SPA catch-all, so `/gantt/` resolves.

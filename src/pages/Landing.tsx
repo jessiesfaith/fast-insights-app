@@ -6,11 +6,12 @@
 // with the AR Tool dashboard.
 
 import { useState, type MouseEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, LogOut, PieChart, Scale, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import { authedEmail, signOut } from '../lib/auth';
 
 // Tools are proxied under the production host (see vercel.json). Copied links
 // always point here — never a preview/localhost origin — so they're safe to
@@ -134,8 +135,15 @@ const TOOLS: ToolEntry[] = [
 ];
 
 export default function Landing() {
+  const navigate = useNavigate();
   // Tracks which tool's link was just copied, so the button can flash "Copied".
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const email = authedEmail();
+
+  const onSignOut = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
+  };
 
   const copyLink = (e: MouseEvent<HTMLButtonElement>, tool: ToolEntry) => {
     // The card itself is a link (stretched overlay) — keep the copy click from
@@ -207,7 +215,23 @@ export default function Landing() {
             <Sparkles size={14} />
             <span>FAST Insights</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {email && (
+              <span
+                title="Signed in"
+                style={{ fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}
+              >
+                {email}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onSignOut}
+              aria-label="Sign out of the FAST Insights private preview"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border-strong)', borderRadius: 999, padding: '7px 14px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+            >
+              <LogOut size={15} /> Sign out
+            </button>
             <a
               href="/gantt"
               target="_blank"
@@ -396,7 +420,9 @@ export default function Landing() {
           fontSize: 12,
         }}
       >
-        © FAST Insights — secure SOX/ICFR-aware finance tooling.
+        © FAST Insights — secure SOX/ICFR-aware finance tooling. Want your account or data
+        deleted? Email <a href="mailto:info@fastinsights.io" style={{ color: 'var(--text-secondary)' }}>info@fastinsights.io</a>{' '}
+        and we&rsquo;ll remove your access (some records may be retained for legal/audit purposes).
       </footer>
     </div>
   );

@@ -6,13 +6,18 @@
 <title>Fast Insights · Launch Gantt</title>
 <meta name="description" content="Fast Insights launch Gantt — phases, tasks, milestones and progress on one timeline for the LinkedIn launch plan.">
 
+<!-- Real login guard: requires the account sign-in at /login (Supabase-backed,
+     shared with the app shell) + 20-minute idle timeout. First script on purpose
+     so a signed-out visitor is redirected before anything renders. -->
+<script src="/fi-idle.js"></script>
+
 <!-- Fonts + favicon (matches the rest of the platform) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Geist+Mono:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2300c805'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' text-anchor='middle' fill='%230a0a0a' font-family='Arial'%3EF%3C/text%3E%3C/svg%3E">
 
-<!-- Theme bootstrap (shared light/lavender themes; no auth gate — internal tool) -->
+<!-- Theme bootstrap (shared light/lavender themes) -->
 <script>
   document.documentElement.setAttribute('data-theme', localStorage.getItem('fi_gantt_theme') || 'dark');
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -257,46 +262,9 @@ footer.foot a{font-family:'Geist Mono';font-size:13px}
   .gx-card{box-shadow:none;border:1px solid #999}
   body{background:#fff}
 }
-  /* ===== Login gate (cosmetic, like the Trust module) ===== */
-  .login-gate{position:fixed;inset:0;z-index:1000;background:#0a0a0a;display:flex;align-items:center;justify-content:center;padding:20px}
-  .login-card{background:#161618;border:1px solid #2a2a2e;border-radius:16px;padding:30px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6)}
-  .login-card .login-logo{width:48px;height:48px;border-radius:12px;background:#00c805;color:#0a0a0a;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-family:'Geist Mono',ui-monospace,monospace}
-  .login-card h2{color:#fafaf7;font-family:'Fraunces',Georgia,serif;font-style:italic}
-  .login-card input{width:100%;font-family:'Nunito',system-ui,sans-serif;font-size:14px;color:#fafaf7;background:#0f0f10;border:1px solid #2a2a2e;border-radius:10px;padding:10px 12px;margin:6px 0}
-  .login-card input:focus{outline:2px solid #00c805;border-color:#00c805}
-  .login-card .lg-err{color:#f87171;font-size:13px;min-height:18px;margin:4px 0}
 </style>
 </head>
 <body>
-
-<!-- Cosmetic login gate (NOT real security) -->
-<div class="login-gate" id="loginGate">
-  <form class="login-card" onsubmit="return fiLogin(event)">
-    <div class="login-logo">FI</div>
-    <h2 style="margin:0 0 4px;font-size:22px">Fast Insights · Launch Gantt</h2>
-    <p style="margin:0 0 14px;color:#8a8f98;font-size:13px">Private — please sign in.</p>
-    <input id="lg_user" type="text" placeholder="Username" autocomplete="username">
-    <input id="lg_pass" type="password" placeholder="Password" autocomplete="current-password">
-    <div class="lg-err" id="lg_err"></div>
-    <button type="submit" class="btn primary" style="width:100%;justify-content:center">Sign in</button>
-    <div style="margin-top:10px;color:#8a8f98;font-size:12px">Private demo — access limited.</div>
-  </form>
-</div>
-<script>
-// Stay signed in for this tab session only; cleared when the page/tab is closed -> login again.
-(function(){ try{ if(sessionStorage.getItem('fi_gantt_auth')==='1'){ var g=document.getElementById('loginGate'); if(g) g.style.display='none'; } }catch(e){} })();
-function fiLogin(e){ if(e&&e.preventDefault) e.preventDefault();
-  var u=document.getElementById('lg_user').value, p=document.getElementById('lg_pass').value;
-  var CRED=[102,97,115,116,105,110,115,105,103,104,116,115].map(function(c){return String.fromCharCode(c);}).join(''); // fastinsights
-  if(u.trim().toLowerCase()===CRED && p===CRED){
-    try{ sessionStorage.setItem('fi_gantt_auth','1'); }catch(e){}
-    document.getElementById('loginGate').style.display='none';
-  } else {
-    document.getElementById('lg_err').textContent='Incorrect username or password.';
-  }
-  return false;
-}
-</script>
 
 <header class="hub-bar">
   <div class="bar-left">

@@ -1,6 +1,6 @@
 // Supabase client for loading AR data from the cloud.
 //
-// Fetches all six datasets from the ar-recon Supabase project and maps them
+// Fetches all six datasets from the Fast Insights Supabase project and maps them
 // to the same ARData shape used by the CSV/JSON ingestion paths. Supports
 // additive loading — new rows are merged without creating duplicates.
 
@@ -34,10 +34,27 @@ function getClient(): SupabaseClient {
         'Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
       );
     }
-    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Auth options match the Scout Quest preview-login setup: the session is
+    // persisted + auto-refreshed by supabase-js, PKCE for email links, and
+    // detectSessionInUrl so legacy password-reset links exchange on load.
+    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+      },
+    });
   }
   return _client;
 }
+
+/** Shared client — auth (login/signup/reset) and data loads use one instance. */
+export function getSupabaseClient(): SupabaseClient {
+  return getClient();
+}
+
+export { SUPABASE_URL, SUPABASE_ANON_KEY };
 
 /** Returns true if the env vars are configured. */
 export function isSupabaseConfigured(): boolean {

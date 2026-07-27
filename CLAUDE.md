@@ -32,9 +32,19 @@ Generic workflow rules live in `~/.claude/CLAUDE.md` (they apply to every repo).
 - **Production:** https://app.fastinsights.io (AR Tool at **/ar**, Landing at **/**). Vercel project
   `fast-insights-app` (`prj_iuzFgsyyAuGSMYHNiqtgVYxmQM42`, team `team_nctazuLdYORXTnrDm0PWCIJg`).
   Aliases: ar-tool-seven.vercel.app, fast-insights-app-jessica-dougherty-s-projects.vercel.app.
-- **Env:** Supabase is **optional** -- `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (the "ar-recon"
-  Supabase project), in `.env.local` (gitignored) for dev + Vercel env for prod. Without them the
-  cloud-load path throws a clear error; the app still works via upload/sample data.
+- **Env:** Supabase is **optional for data, required for login** -- `VITE_SUPABASE_URL` +
+  `VITE_SUPABASE_ANON_KEY` (Supabase project ref `vsdvqzbffbjyaemnimje`; the old "ar-recon"
+  `pikdtkqjhsektckwrkkb` ref died 2026-07 — env rewired in `.env.local` + Vercel prod),
+  in `.env.local` (gitignored) for dev + Vercel env for prod. Without them the cloud-load path throws a clear error and the login page
+  shows "Sign-in isn't connected yet".
+- **Auth (added 2026-07-07, Scout Quest pattern):** the whole shell is login-gated. `/login`
+  (`src/pages/AuthPage.tsx`: signup w/ NDA open-to-enable gate, password sign-in + emailed OTP code,
+  two-click password reset) and `/nda` (`src/pages/NDAPage.tsx`, NDA v1) are public; `/` and `/ar`
+  sit behind `RequireAuth` (`src/lib/auth.tsx`: localStorage keys `fi_authed`/`fi_email`/
+  `fi_last_activity`, 20-min idle timeout). Static pages use the same guard via `public/fi-idle.js`
+  (the Gantt does). Supabase-side setup lives in `supabase/` — SQL x2 + `AUTH_SETUP_RUNBOOK.md`
+  (run before deploying auth changes). Account deletion = user emails info@fastinsights.io, admin
+  deletes in Supabase dashboard (cascades). Proxied sibling tools (/revrec etc.) are NOT gated.
 
 ## agent-state/ files (durable memory)
 `CURRENT_STATE.md` | `ACTIVE_REQUEST.md` | `VERIFICATION_STATUS.md` | `DEPLOYMENT_STATUS.md` |
