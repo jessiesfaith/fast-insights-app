@@ -8,7 +8,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -24,6 +24,8 @@ interface ToolEntry {
   href: string;
   icon: typeof BarChart3;
   status: 'live' | 'coming-soon';
+  /** True when href is a full URL on another host (not proxied under SITE_ORIGIN). */
+  external?: boolean;
 }
 
 const TOOLS: ToolEntry[] = [
@@ -92,6 +94,15 @@ const TOOLS: ToolEntry[] = [
     status: 'live',
   },
   {
+    id: 'transit-guard',
+    name: 'Transit Guard',
+    tagline: 'Chain-of-custody shipment tracking — agents route and reroute inside policy guardrails, carrier marketplace, customs documentation, and audit-ready custody evidence on one transaction ID.',
+    href: 'https://transit-guard.vercel.app',
+    icon: Truck,
+    status: 'live',
+    external: true,
+  },
+  {
     id: 'equity-management',
     name: 'Equity Management',
     tagline: 'Cap table + stock-based comp (ISOs, RSUs, ESPP, warrants) with Black-Scholes & ASC 718, bond and term-debt amortization, income statement with basic & diluted EPS, plus a ledger→subledger→GL reconciliation. Workflow only; not accounting, tax, or investment advice.',
@@ -143,7 +154,7 @@ export default function Landing() {
     e.preventDefault();
     e.stopPropagation();
 
-    const url = `${SITE_ORIGIN}${tool.href}`;
+    const url = tool.external ? tool.href : `${SITE_ORIGIN}${tool.href}`;
     const flash = () => {
       setCopiedId(tool.id);
       window.setTimeout(() => setCopiedId((cur) => (cur === tool.id ? null : cur)), 1600);
@@ -276,7 +287,16 @@ export default function Landing() {
             >
               {/* Stretched link: the whole card opens the tool, while the copy
                   button (raised z-index, below) stays independently clickable. */}
-              {live && (
+              {live && (tool.external ? (
+                <a
+                  href={tool.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${tool.name} in a new tab`}
+                  onClick={() => track('tool_open', { tool: tool.id })}
+                  style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 'inherit' }}
+                />
+              ) : (
                 <Link
                   to={tool.href}
                   target="_blank"
@@ -285,7 +305,7 @@ export default function Landing() {
                   onClick={() => track('tool_open', { tool: tool.id })}
                   style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 'inherit' }}
                 />
-              )}
+              ))}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div
