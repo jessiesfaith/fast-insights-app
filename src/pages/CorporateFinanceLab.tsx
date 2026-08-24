@@ -23,6 +23,7 @@ import {
   Briefcase,
   Calculator,
   ClipboardCheck,
+  Cog,
   Compass,
   GraduationCap,
   Handshake,
@@ -103,19 +104,37 @@ import {
   projectDials,
   shortCyclePhase,
 } from '../lib/marketAnalysis';
+import {
+  DALIO_RULES,
+  EQ_STATUS_LABEL,
+  EquilibriumRead,
+  MachinePoint,
+  equilibriumReads,
+  leverInterplay,
+  leverWatch,
+  machineCurve,
+} from '../lib/economicMachine';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
 // ---------------------------------------------------------------------------
 
-type TabId = 'capital' | 'credit' | 'treasury' | 'analysis';
+type TabId = 'capital' | 'credit' | 'treasury' | 'analysis' | 'machine';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
   { id: 'credit', label: '2 · Customer credit', icon: ShieldCheck },
   { id: 'treasury', label: '3 · Treasury & hedging', icon: Umbrella },
   { id: 'analysis', label: '4 · Market analysis', icon: Activity },
+  { id: 'machine', label: '5 · The economic machine', icon: Cog },
 ];
+
+const EQ_STATUS_TONE: Record<EquilibriumRead['status'], string> = {
+  balanced: 'var(--pos)',
+  above: 'var(--severity-medium)',
+  below: 'var(--severity-medium)',
+  torn: 'var(--neg)',
+};
 
 /** Display names for the dials, matching the scenario picker. */
 const DIAL_NAME: Record<keyof MacroFactors, string> = {
@@ -390,6 +409,12 @@ export default function CorporateFinanceLab() {
   const debtReads = useMemo(() => debtPlaybook(factors), [factors]);
   const trend = useMemo(() => projectDials(factors), [factors]);
 
+  // Tab 5 state (also derived from the shared scenario).
+  const machineData = useMemo(() => machineCurve(), []);
+  const eqReads = useMemo(() => equilibriumReads(factors, effInputs.riskFree), [factors, effInputs]);
+  const levers = useMemo(() => leverWatch(factors), [factors]);
+  const interplay = useMemo(() => leverInterplay(factors), [factors]);
+
   const scenarioName =
     scenarioId === TODAY_SCENARIO_ID
       ? "Today's market"
@@ -434,10 +459,11 @@ export default function CorporateFinanceLab() {
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 600, margin: 0, letterSpacing: '-0.02em' }}>Corporate Finance Lab</h1>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720, lineHeight: 1.6 }}>
-          Four ways to run the numbers: decide <strong>your company's next move</strong> under real
+          Five ways to run the numbers: decide <strong>your company's next move</strong> under real
           market conditions, <strong>underwrite a customer</strong> before extending them credit,
-          pick the right <strong>treasury &amp; hedging tools</strong> for the environment, and read
-          the <strong>market itself</strong> — ranges, cross-effects, and the debt cycles.{' '}
+          pick the right <strong>treasury &amp; hedging tools</strong> for the environment, read
+          the <strong>market itself</strong> — ranges, cross-effects, and the debt cycles — and
+          study <strong>the economic machine</strong>: Dalio's cycles, equilibriums, and levers.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginTop: 18 }}>
@@ -871,6 +897,146 @@ export default function CorporateFinanceLab() {
               </StepCard>
             </>
           )}
+
+          {tab === 'machine' && (
+            <>
+              <StepCard n="A" icon={<Compass size={17} />} title="Market conditions">
+                <p style={hintStyle}>
+                  Ray Dalio's economic machine, made interactive. Set the dials — the equilibrium
+                  readings and the lever watch below respond live.
+                </p>
+                <ScenarioPicker scenarioId={scenarioId} factors={factors} onToday={pickToday} onPreset={pickPreset} onDial={setDial} />
+              </StepCard>
+
+              <StepCard n="B" icon={<Cog size={17} />} title="How the market cycles">
+                <p style={hintStyle}>
+                  Three forces stacked on each other: <strong>productivity growth</strong> (slow,
+                  powerful, always up over time), the <strong>short-term debt cycle</strong> (~
+                  7–10 years — the business cycle you feel), and the <strong>long-term debt
+                  cycle</strong> (~50–75 years — leverage building above the trend, then the
+                  deleveraging below it). The economy you live in is the sum of all three.
+                </p>
+                <MachineChart data={machineData} />
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-elevated-2)',
+                    border: '1px solid var(--accent)',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    marginTop: 10,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', fontWeight: 700, marginRight: 6 }}>
+                    Where your dials sit in the short cycle
+                  </span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{cyclePhase.name}.</strong> {cyclePhase.desc}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, margin: '14px 0 4px' }}>
+                  Dalio's three rules of thumb
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {DALIO_RULES.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              </StepCard>
+
+              <StepCard n="C" icon={<Activity size={17} />} title={`The three equilibriums — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The machine is always pulling toward three equilibriums. When one is out, the
+                  forces that restore it ARE the market moves you experience — so the readings
+                  below are the watch list.
+                </p>
+                <div className="col" style={{ gap: 12 }}>
+                  {eqReads.map((eq) => {
+                    const tone = EQ_STATUS_TONE[eq.status];
+                    return (
+                      <GlassCard key={eq.id} variant="nested" padding={16}>
+                        <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {eq.n}. {eq.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: tone,
+                              border: `1px solid ${tone}`,
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {EQ_STATUS_LABEL[eq.status]}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 }}>
+                          <em>The rule:</em> {eq.rule}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                          <strong style={{ color: tone }}>Right now:</strong> {eq.read}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 6 }}>
+                          <strong style={{ color: 'var(--text-primary)' }}>How it restores:</strong> {eq.restore}
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+              </StepCard>
+
+              <StepCard n="D" icon={<Landmark size={17} />} title="Watching the two levers">
+                <p style={hintStyle}>
+                  Everything above is steered by just two levers — <strong>monetary</strong> (the
+                  Fed) and <strong>fiscal</strong> (the government). Watch the concrete changes
+                  below; each one is a dial move you can see coming.
+                </p>
+                <div
+                  className="row"
+                  style={{
+                    alignItems: 'baseline',
+                    gap: 10,
+                    border: '1px solid var(--accent)',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--accent-soft)',
+                    padding: '10px 14px',
+                    flexWrap: 'wrap',
+                    marginBottom: 12,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', whiteSpace: 'nowrap' }}>{interplay.name}</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{interplay.desc}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                  {levers.map((lv) => (
+                    <GlassCard key={lv.id} variant="nested" padding={16}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{lv.name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '2px 0 8px' }}>{lv.holder}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                        <strong style={{ color: 'var(--accent)' }}>Position now:</strong> {lv.position}
+                      </div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '10px 0 4px' }}>
+                        Watch for
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        {lv.watchFor.map((w) => (
+                          <li key={w}>{w}</li>
+                        ))}
+                      </ul>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 8 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>Transmission:</strong> {lv.transmission}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </StepCard>
+            </>
+          )}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} />
@@ -1151,6 +1317,51 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
   );
 }
 
+const MACHINE_LINE_LABEL: Record<string, string> = {
+  productivity: 'Productivity growth',
+  shortTerm: '+ short-term debt cycle',
+  economy: '+ long-term debt cycle (the economy)',
+};
+
+function MachineChart({ data }: { data: MachinePoint[] }) {
+  useThemeVersion();
+  const accent = resolveCSSVar('var(--accent)');
+  const mid = resolveCSSVar('var(--severity-medium)');
+  const pos = resolveCSSVar('var(--pos)');
+  return (
+    <div style={{ height: 260 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="year"
+            ticks={[0, 10, 20, 30, 40, 50, 60, 70]}
+            tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }}
+            axisLine={{ stroke: 'var(--border)' }}
+            tickLine={false}
+            tickFormatter={(v) => `yr ${v}`}
+          />
+          <YAxis tick={false} axisLine={{ stroke: 'var(--border)' }} tickLine={false} width={10} />
+          <Tooltip
+            contentStyle={{
+              background: 'var(--bg-elevated-2)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 10,
+              color: 'var(--text-primary)',
+            }}
+            labelFormatter={(label) => `Year ${label}`}
+            formatter={(value: number, name: string) => [String(value), MACHINE_LINE_LABEL[name] ?? name]}
+          />
+          <Legend formatter={(value) => MACHINE_LINE_LABEL[value] ?? value} wrapperStyle={{ fontSize: 12 }} />
+          <Line type="monotone" dataKey="productivity" stroke={accent} strokeWidth={2} strokeDasharray="6 4" dot={false} />
+          <Line type="monotone" dataKey="shortTerm" stroke={mid} strokeWidth={1.5} dot={false} />
+          <Line type="monotone" dataKey="economy" stroke={pos} strokeWidth={2.5} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function SecurityLadderSection({ ladder, requested }: { ladder: SecurityLadder; requested: number }) {
   const tone = KIND_TONE[ladder.classification];
   return (
@@ -1362,7 +1573,8 @@ function GuidePane({
           {tab === 'capital' && 'Deciding your own move: cost of capital → hurdle → spread → NPV.'}
           {tab === 'credit' && 'Underwriting a customer: ratios → score → sized credit limit.'}
           {tab === 'treasury' && 'Picking treasury tools: what each instrument does and when it fits.'}
-          {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}{' '}
+          {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}
+          {tab === 'machine' && "Dalio's economic machine: how it cycles, the three equilibriums, the two levers."}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -1535,6 +1747,45 @@ function GuidePane({
               (inflation even erodes fixed debt in real terms), while a cutting cycle rewards
               floating and strands old high-coupon fixed. Tab 3's pay-fixed swap is the tool that
               moves debt from one column to the other without reissuing it.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'machine' && (
+          <>
+            <GuideSection n="A" title="What to do">
+              Set the dials, then read down: the cycle chart shows the three stacked forces, the
+              equilibrium cards score where the machine is out of balance, and the lever cards tell
+              you which policy changes to watch for next. Everything recomputes as you move a dial.
+            </GuideSection>
+            <GuideSection n="B" title="The machine in one paragraph">
+              The economy is the sum of transactions, and <em>credit</em> is the biggest, most
+              volatile part — one person's spending is another's income, so credit amplifies both
+              directions. Stack three forces: productivity (the trend), the short-term debt cycle
+              (~7–10 yrs of credit expanding and contracting), and the long-term debt cycle
+              (~50–75 yrs of leverage ratcheting up until deleveraging). Most of what feels like
+              news is just where you sit on those two waves.
+            </GuideSection>
+            <GuideSection n="C" title="The three equilibriums">
+              <Eq>1. debt growth ≈ income growth{'\n'}2. operating rate: not too hot, not too cold{'\n'}3. equities &gt; bonds &gt; cash, by fair premiums</Eq>
+              The machine constantly pulls toward all three; the pull IS the market move. An
+              out-of-balance reading is not a prediction — it's a direction: it tells you what
+              forces (Fed moves, repricing, deleveraging) are being summoned to restore it.
+            </GuideSection>
+            <GuideSection n="D" title="The two levers">
+              Monetary (the Fed: rates + QE/QT) and fiscal (taxes + spending) are the only steering
+              inputs — everything else is the machine responding. Watch them together, not
+              separately: pushing the same way is maximum force (2020), opposed is an offset that
+              distorts (2022), and both idle means the cycle runs free. The lever positions are
+              your dials — which is the point: this whole page is those two levers plus their
+              consequences.
+            </GuideSection>
+            <GuideSection n="E" title="Why this matters for tabs 1–4">
+              The equilibriums price everything upstream: equilibrium 3 sets your WACC inputs (tab
+              1), equilibrium 1 decides how easily your customer refinances (tab 2), and the levers
+              drive every hedge verdict (tab 3) and trend (tab 4). Dalio's frame: you don't need to
+              predict the machine — you need to know where it is and build positions that survive
+              every phase.
             </GuideSection>
           </>
         )}
