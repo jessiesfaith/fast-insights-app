@@ -145,7 +145,7 @@ const TOOLS: ToolEntry[] = [
   {
     id: 'corporate-finance',
     name: 'Corporate Finance Lab',
-    tagline: 'Five scenario-driven analyses: which capital move clears its hurdle (M&A, new product, capacity, AI, debt paydown) with a pro-forma WACC, underwrite a customer\'s financials to size a trade-credit line with a security & guarantee ladder, a treasury playbook for money market, swaps, and derivatives, a market analysis tab — dial ranges, cross-effects, trends, and the debt cycles — and Dalio\'s economic machine: how it cycles, the three equilibriums, and the two policy levers, live. Education only; not investment or credit advice.',
+    tagline: 'Six scenario-driven analyses: which capital move clears its hurdle (M&A, new product, capacity, AI, debt paydown) with a pro-forma WACC, underwrite a customer\'s financials to size a trade-credit line with a security & guarantee ladder and industry backdrop, a treasury playbook for money market, swaps, and derivatives, a market analysis tab — dial ranges, cross-effects, industry & asset trend charts, and the debt cycles — Dalio\'s economic machine (cycles, three equilibriums, two levers, live), and a formula reference tying every equation to its decision, with a full glossary. Education only; not investment or credit advice.',
     href: '/corporate-finance',
     icon: Briefcase,
     status: 'live',

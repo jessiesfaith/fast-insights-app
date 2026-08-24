@@ -15,7 +15,7 @@
 // All ranges and effects are illustrative teaching values, not forecasts.
 // Education only; not investment, credit, or tax advice.
 
-import { MacroFactors } from './macroModel';
+import { ImpactTarget, MacroFactors, impactPct } from './macroModel';
 
 // ---------------------------------------------------------------------------
 // 1. The dials in real numbers
@@ -216,6 +216,68 @@ export function projectDials(f: MacroFactors, quarters = 8): TrendPoint[] {
     out.push({ quarter: `Q${q}`, ...cur });
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// 2b. Market & industry trends along the projected path
+// ---------------------------------------------------------------------------
+
+export interface ImpactTrendPoint {
+  quarter: string;
+  /** One modeled 12-month impact %, keyed by target id, per selected target. */
+  [targetId: string]: number | string;
+}
+
+/**
+ * Run the Market Scenarios sensitivities along the projected dial path: for
+ * each future quarter, each target's modeled 12-month impact under THOSE
+ * conditions. Turns the static impact table into a trend — how the backdrop
+ * for an industry or asset class evolves as the feedback loops play out.
+ * Same caveat as the projection itself: direction of travel, not a forecast.
+ */
+export function impactTrend(
+  targets: ImpactTarget[],
+  f: MacroFactors,
+  quarters = 8,
+): ImpactTrendPoint[] {
+  return projectDials(f, quarters).map((p) => {
+    const row: ImpactTrendPoint = { quarter: p.quarter };
+    const factors: MacroFactors = { growth: p.growth, inflation: p.inflation, policy: p.policy, fiscal: p.fiscal };
+    for (const t of targets) row[t.id] = impactPct(t.sens, factors);
+    return row;
+  });
+}
+
+export type BackdropLevel = 'tailwind' | 'neutral' | 'headwind';
+
+export interface IndustryBackdrop {
+  level: BackdropLevel;
+  /** Modeled 12-month impact under today's dials, %. */
+  now: number;
+  /** Modeled impact at the end of the projected path, %. */
+  later: number;
+  note: string;
+}
+
+/**
+ * The credit-underwriting read of an industry trend: is the customer's
+ * industry facing a tailwind or a headwind? Advisory context only — it does
+ * not change the credit score, it tells you how skeptically to read it.
+ */
+export function industryBackdrop(target: ImpactTarget, f: MacroFactors): IndustryBackdrop {
+  const trend = impactTrend([target], f);
+  const now = trend[0][target.id] as number;
+  const later = trend[trend.length - 1][target.id] as number;
+  const level: BackdropLevel = now >= 2 ? 'tailwind' : now <= -2 ? 'headwind' : 'neutral';
+  const drift =
+    later > now + 1 ? ' The projected path improves from here.' : later < now - 1 ? ' The projected path deteriorates from here.' : '';
+  const note =
+    level === 'headwind'
+      ? `Modeled ${now}% backdrop: their revenue engine is fighting the environment — read the watch-band ratios skeptically, prefer shorter terms, and weight security higher.${drift}`
+      : level === 'tailwind'
+        ? `Modeled +${now}% backdrop: the environment is helping their sales — good ratios are more believable, but do not let a tailwind excuse weak ones.${drift}`
+        : `Modeled ${now >= 0 ? '+' : ''}${now}% backdrop: the environment is roughly neutral for this industry — the ratios speak for themselves.${drift}`;
+  return { level, now, later, note };
 }
 
 // ---------------------------------------------------------------------------

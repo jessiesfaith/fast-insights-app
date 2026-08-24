@@ -64,7 +64,7 @@ import {
 } from '../components/ui/StepKit';
 import { resolveCSSVar } from '../lib/uiColors';
 import { fmtMoney } from '../lib/format';
-import { CUSTOM_SCENARIO_ID, MacroFactors, SCENARIOS } from '../lib/macroModel';
+import { ASSET_CLASSES, CUSTOM_SCENARIO_ID, INDUSTRIES, MacroFactors, SCENARIOS } from '../lib/macroModel';
 import { MARKET_SNAPSHOT, TODAY_SCENARIO_ID } from '../lib/marketSnapshot';
 import {
   Band,
@@ -100,10 +100,13 @@ import {
   TrendPoint,
   debtPlaybook,
   dialPressures,
+  impactTrend,
+  industryBackdrop,
   levelFor,
   projectDials,
   shortCyclePhase,
 } from '../lib/marketAnalysis';
+import { FORMULA_GROUPS, GLOSSARY } from '../lib/formulaReference';
 import {
   DALIO_RULES,
   EQ_STATUS_LABEL,
@@ -119,7 +122,7 @@ import {
 // Small local pieces
 // ---------------------------------------------------------------------------
 
-type TabId = 'capital' | 'credit' | 'treasury' | 'analysis' | 'machine';
+type TabId = 'capital' | 'credit' | 'treasury' | 'analysis' | 'machine' | 'formulas';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -127,7 +130,19 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'treasury', label: '3 · Treasury & hedging', icon: Umbrella },
   { id: 'analysis', label: '4 · Market analysis', icon: Activity },
   { id: 'machine', label: '5 · The economic machine', icon: Cog },
+  { id: 'formulas', label: '6 · Formulas & decisions', icon: Calculator },
 ];
+
+const BACKDROP_META: Record<'tailwind' | 'neutral' | 'headwind', { label: string; tone: string }> = {
+  tailwind: { label: 'Tailwind', tone: 'var(--pos)' },
+  neutral: { label: 'Neutral backdrop', tone: 'var(--severity-medium)' },
+  headwind: { label: 'Headwind', tone: 'var(--neg)' },
+};
+
+const TREND_DEFAULTS: Record<'industries' | 'assets', string[]> = {
+  industries: ['tech', 'financials', 'staples', 'energy'],
+  assets: ['stocks', 'bonds-long', 'gold', 'real-estate'],
+};
 
 const EQ_STATUS_TONE: Record<EquilibriumRead['status'], string> = {
   balanced: 'var(--pos)',
@@ -382,6 +397,7 @@ export default function CorporateFinanceLab() {
     setSampleId('custom');
     setFin((f) => ({ ...f, [key]: v }));
   };
+  const [custIndustryId, setCustIndustryId] = useState<string | null>(null);
 
   const proRead = useMemo(() => readProforma(proforma), [proforma]);
   // When the pro forma is on, its ratio-derived spread replaces the chip.
@@ -408,6 +424,25 @@ export default function CorporateFinanceLab() {
   const cyclePhase = useMemo(() => shortCyclePhase(factors), [factors]);
   const debtReads = useMemo(() => debtPlaybook(factors), [factors]);
   const trend = useMemo(() => projectDials(factors), [factors]);
+  const [trendGroup, setTrendGroup] = useState<'industries' | 'assets'>('industries');
+  const [trendSel, setTrendSel] = useState<Record<'industries' | 'assets', string[]>>(TREND_DEFAULTS);
+  const toggleTrendSel = (id: string) =>
+    setTrendSel((s) => {
+      const cur = s[trendGroup];
+      const next = cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id];
+      return { ...s, [trendGroup]: next };
+    });
+  const trendTargets = trendGroup === 'industries' ? INDUSTRIES : ASSET_CLASSES;
+  const marketTrend = useMemo(() => impactTrend(trendTargets, factors), [trendTargets, factors]);
+  const custIndustry = INDUSTRIES.find((i) => i.id === custIndustryId) ?? null;
+  const backdrop = useMemo(
+    () => (custIndustry ? industryBackdrop(custIndustry, factors) : null),
+    [custIndustry, factors],
+  );
+  const backdropTrend = useMemo(
+    () => (custIndustry ? impactTrend([custIndustry], factors) : null),
+    [custIndustry, factors],
+  );
 
   // Tab 5 state (also derived from the shared scenario).
   const machineData = useMemo(() => machineCurve(), []);
@@ -459,11 +494,13 @@ export default function CorporateFinanceLab() {
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 600, margin: 0, letterSpacing: '-0.02em' }}>Corporate Finance Lab</h1>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720, lineHeight: 1.6 }}>
-          Five ways to run the numbers: decide <strong>your company's next move</strong> under real
+          Six ways to run the numbers: decide <strong>your company's next move</strong> under real
           market conditions, <strong>underwrite a customer</strong> before extending them credit,
           pick the right <strong>treasury &amp; hedging tools</strong> for the environment, read
-          the <strong>market itself</strong> — ranges, cross-effects, and the debt cycles — and
-          study <strong>the economic machine</strong>: Dalio's cycles, equilibriums, and levers.{' '}
+          the <strong>market itself</strong> — ranges, cross-effects, industry trends, and the debt
+          cycles — study <strong>the economic machine</strong>: Dalio's cycles, equilibriums, and
+          levers — and keep the <strong>formula reference</strong> with every equation, decision
+          flow, and acronym.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginTop: 18 }}>
@@ -694,6 +731,54 @@ export default function CorporateFinanceLab() {
                 </p>
                 <SecurityLadderSection ladder={ladder} requested={requested} />
               </StepCard>
+
+              <StepCard n="E" icon={<Activity size={17} />} title="The industry backdrop — what kind of customer is this?">
+                <p style={hintStyle}>
+                  The same customer numbers read differently in different industries and markets.
+                  Pick the customer's industry to see its modeled trend under the current scenario
+                  (from the Market Scenarios sensitivities) — advisory context, it does not change
+                  the score.
+                </p>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 12 }}>
+                  {INDUSTRIES.map((i) => (
+                    <Chip key={i.id} active={custIndustryId === i.id} onClick={() => setCustIndustryId(custIndustryId === i.id ? null : i.id)}>
+                      {i.name}
+                    </Chip>
+                  ))}
+                </div>
+                {custIndustry && backdrop && backdropTrend ? (
+                  <GlassCard variant="nested" padding={16}>
+                    <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{custIndustry.name}</span>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          color: BACKDROP_META[backdrop.level].tone,
+                          border: `1px solid ${BACKDROP_META[backdrop.level].tone}`,
+                          borderRadius: 999,
+                          padding: '3px 10px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {BACKDROP_META[backdrop.level].label}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 }}>{custIndustry.driver}</div>
+                    <ImpactTrendChart data={backdropTrend} series={[{ id: custIndustry.id, label: custIndustry.name }]} height={170} />
+                    <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 8 }}>
+                      <strong style={{ color: BACKDROP_META[backdrop.level].tone }}>For underwriting:</strong> {backdrop.note}
+                    </div>
+                  </GlassCard>
+                ) : (
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>
+                    No industry selected — pick one above, or compare several at once on tab 4's
+                    market &amp; industry trends chart.
+                  </p>
+                )}
+              </StepCard>
             </>
           )}
 
@@ -803,7 +888,39 @@ export default function CorporateFinanceLab() {
                 </div>
               </StepCard>
 
-              <StepCard n="D" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
+              <StepCard n="D" icon={<BarChart3 size={17} />} title={`Market & industry trends — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The Market Scenarios sensitivities run along the projected path above: each line is
+                  one industry or asset class's modeled 12-month impact as the environment evolves.
+                  Use it to see which <strong>customer types</strong> face tailwinds or headwinds —
+                  and pick your customer's industry on tab 2 to pull it into the credit read.
+                </p>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                  <Chip active={trendGroup === 'industries'} onClick={() => setTrendGroup('industries')}>
+                    Industries
+                  </Chip>
+                  <Chip active={trendGroup === 'assets'} onClick={() => setTrendGroup('assets')}>
+                    Asset classes
+                  </Chip>
+                </div>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
+                  {trendTargets.map((t) => (
+                    <Chip key={t.id} active={trendSel[trendGroup].includes(t.id)} onClick={() => toggleTrendSel(t.id)}>
+                      {t.name}
+                    </Chip>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 4px' }}>
+                  Pick up to 4 to compare. {trendSel[trendGroup].length === 0 ? 'Nothing selected yet.' : ''}
+                </p>
+                <ImpactTrendChart
+                  data={marketTrend}
+                  series={trendTargets.filter((t) => trendSel[trendGroup].includes(t.id)).map((t) => ({ id: t.id, label: t.name }))}
+                  height={260}
+                />
+              </StepCard>
+
+              <StepCard n="E" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
                 <p style={hintStyle}>
                   Dalio's frame: the economy runs on two debt cycles stacked on productivity growth.
                   The short one is the business cycle you feel; the long one decides what tools are
@@ -854,7 +971,7 @@ export default function CorporateFinanceLab() {
                 </div>
               </StepCard>
 
-              <StepCard n="E" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
+              <StepCard n="F" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
                 <p style={hintStyle}>
                   The same cycle, seen from your own balance sheet: floating debt reprices with the
                   Fed within days, while long-term fixed debt locks today's rate until the
@@ -1035,6 +1152,79 @@ export default function CorporateFinanceLab() {
                   ))}
                 </div>
               </StepCard>
+            </>
+          )}
+
+          {tab === 'formulas' && (
+            <>
+              <StepCard n="A" icon={<Calculator size={17} />} title="How the whole Lab computes — the decision map">
+                <p style={hintStyle}>
+                  Every formula in the Lab, grouped by the <strong>decision it serves</strong>. Read
+                  each group left to right along its flow line: the output of one equation is the
+                  input of the next, and the last output is the decision. Acronym unfamiliar? The
+                  glossary in the guide on the right defines every one.
+                </p>
+                <div className="col" style={{ gap: 8 }}>
+                  {FORMULA_GROUPS.map((g) => (
+                    <div
+                      key={g.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '220px 1fr',
+                        gap: 10,
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        background: 'var(--bg-elevated-2)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{g.decision}</span>
+                      <span className="num" style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5, textAlign: 'left' }}>{g.flow}</span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '10px 0 0' }}>
+                  And the big loop that ties the groups together: the <strong>machine</strong> (tabs
+                  4–5) sets rates and premiums → which set your <strong>WACC and hurdles</strong>{' '}
+                  (tab 1) → which decide what you build or buy → your customers live in the same
+                  machine, so it also sets their <strong>credit backdrop</strong> (tab 2) → and the
+                  exposures left over are what you <strong>hedge</strong> (tab 3).
+                </p>
+              </StepCard>
+
+              {FORMULA_GROUPS.map((g, gi) => (
+                <StepCard key={g.id} n={String.fromCharCode(66 + gi)} icon={<Calculator size={17} />} title={`${g.decision}`}>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '0 0 6px' }}>{g.tab}</p>
+                  <div
+                    className="num"
+                    style={{
+                      fontSize: 11.5,
+                      color: 'var(--accent)',
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: 8,
+                      padding: '7px 10px',
+                      marginBottom: 12,
+                      lineHeight: 1.5,
+                      textAlign: 'left',
+                    }}
+                  >
+                    {g.flow}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                    {g.formulas.map((f) => (
+                      <GlassCard key={f.name} variant="nested" padding={14}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{f.name}</div>
+                        <Eq>{f.eq}</Eq>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{f.plain}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 6 }}>
+                          <strong style={{ color: 'var(--accent)' }}>Feeds:</strong> {f.feeds}
+                        </div>
+                      </GlassCard>
+                    ))}
+                  </div>
+                </StepCard>
+              ))}
             </>
           )}
         </div>
@@ -1317,6 +1507,57 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
   );
 }
 
+function ImpactTrendChart({
+  data,
+  series,
+  height,
+}: {
+  data: { quarter: string; [k: string]: number | string }[];
+  series: { id: string; label: string }[];
+  height: number;
+}) {
+  useThemeVersion();
+  const palette = [
+    resolveCSSVar('var(--accent)'),
+    resolveCSSVar('var(--pos)'),
+    resolveCSSVar('var(--neg)'),
+    resolveCSSVar('var(--severity-medium)'),
+  ];
+  const labelOf = Object.fromEntries(series.map((s) => [s.id, s.label]));
+  if (series.length === 0) return null;
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis dataKey="quarter" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+          <YAxis
+            tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }}
+            axisLine={{ stroke: 'var(--border)' }}
+            tickLine={false}
+            width={42}
+            tickFormatter={(v) => `${v > 0 ? '+' : ''}${v}%`}
+          />
+          <ReferenceLine y={0} stroke="var(--border-strong)" />
+          <Tooltip
+            contentStyle={{
+              background: 'var(--bg-elevated-2)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 10,
+              color: 'var(--text-primary)',
+            }}
+            formatter={(value: number, name: string) => [`${value > 0 ? '+' : ''}${value}%`, labelOf[name] ?? name]}
+          />
+          {series.length > 1 && <Legend formatter={(value) => labelOf[value] ?? value} wrapperStyle={{ fontSize: 12 }} />}
+          {series.map((s, i) => (
+            <Line key={s.id} type="monotone" dataKey={s.id} stroke={palette[i % palette.length]} strokeWidth={2} dot={false} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 const MACHINE_LINE_LABEL: Record<string, string> = {
   productivity: 'Productivity growth',
   shortTerm: '+ short-term debt cycle',
@@ -1574,7 +1815,8 @@ function GuidePane({
           {tab === 'credit' && 'Underwriting a customer: ratios → score → sized credit limit.'}
           {tab === 'treasury' && 'Picking treasury tools: what each instrument does and when it fits.'}
           {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}
-          {tab === 'machine' && "Dalio's economic machine: how it cycles, the three equilibriums, the two levers."}{' '}
+          {tab === 'machine' && "Dalio's economic machine: how it cycles, the three equilibriums, the two levers."}
+          {tab === 'formulas' && 'The reference: every formula, grouped by the decision it serves, plus the full glossary.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -1692,6 +1934,13 @@ function GuidePane({
               the cash conversion cycle ask <em>"how long is my money inside their business?"</em> —
               the requested {fmtMoney(requested, 0)} is your inventory riding on their answers.
             </GuideSection>
+            <GuideSection n="F" title="The industry backdrop">
+              Ratios are a photo; the industry trend is the weather. Pick the customer's industry
+              and the model shows its projected backdrop under your scenario — a headwind means the
+              same "watch" ratios deserve more skepticism, shorter terms, and heavier security; a
+              tailwind makes good ratios more believable. It never changes the score: it changes
+              how much you trust it.
+            </GuideSection>
           </>
         )}
 
@@ -1741,7 +1990,14 @@ function GuidePane({
               out — it pushes but isn't pushed, because budgets are political choices, not market
               consequences.
             </GuideSection>
-            <GuideSection n="D" title="Short-term vs. long-term debt (yours)">
+            <GuideSection n="D" title="Reading the market & industry trends">
+              Each line is one industry or asset class's modeled 12-month impact, recomputed at
+              every projected quarter — the static impact table from Market Scenarios, set in
+              motion. Compare up to four at once (industries or asset classes), and use the
+              industry view as a customer-type screen: a line sliding below zero is a customer
+              segment whose credit you should be re-reading on tab 2.
+            </GuideSection>
+            <GuideSection n="E" title="Short-term vs. long-term debt (yours)">
               Rule of thumb: <strong>floating debt reprices in days; fixed debt reprices at
               refinancing.</strong> So a hiking cycle punishes floating and protects fixed
               (inflation even erodes fixed debt in real terms), while a cutting cycle rewards
@@ -1789,6 +2045,45 @@ function GuidePane({
             </GuideSection>
           </>
         )}
+
+        {tab === 'formulas' && (
+          <>
+            <GuideSection n="A" title="What this tab is for">
+              A single reference: every equation the Lab uses, grouped by decision, each with the
+              formula, what it says in words, and what its output feeds. Use it two ways — look up
+              one formula when a tab surprises you, or read a whole group top to bottom to see how
+              a decision is actually assembled.
+            </GuideSection>
+            <GuideSection n="B" title="How the groups connect">
+              <Eq>machine → rates & premiums → WACC → hurdles → your moves{'\n'}machine → customer's backdrop → ratios → score → limit{'\n'}what's left exposed → the hedging playbook</Eq>
+              No formula stands alone: the same four dials sit under every group, which is why one
+              scenario change ripples through every tab at once. Practicing that ripple — move a
+              dial, predict which numbers change, then check — is the fastest way to learn the
+              system.
+            </GuideSection>
+            <GuideSection n="C" title="Where the numbers come from">
+              Fixed teaching assumptions (ERP 5.5%, 25% tax, 70/30 mix, the band thresholds, the
+              sensitivities) are deliberately visible and deliberately simple — the point is the
+              mechanism. Every threshold appears in the formula cards, so you can challenge any of
+              them: "why 30% of free cash flow?" is exactly the right question.
+            </GuideSection>
+          </>
+        )}
+
+        <details style={{ marginBottom: 14 }}>
+          <summary style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}>
+            Glossary — every acronym in the Lab
+          </summary>
+          <div className="col" style={{ gap: 6, marginTop: 8 }}>
+            {GLOSSARY.map((g) => (
+              <div key={g.term} style={{ fontSize: 11.5, lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>{g.term}</strong>{' '}
+                <span style={{ color: 'var(--text-tertiary)' }}>— {g.full}.</span>{' '}
+                <span style={{ color: 'var(--text-secondary)' }}>{g.def}</span>
+              </div>
+            ))}
+          </div>
+        </details>
 
         <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
           Illustrative teaching assumptions throughout. Education only; not investment, credit, or

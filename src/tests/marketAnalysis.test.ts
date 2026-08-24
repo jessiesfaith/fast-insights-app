@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { MacroFactors, SCENARIOS } from '../lib/macroModel';
+import { ASSET_CLASSES, INDUSTRIES, MacroFactors, SCENARIOS, impactPct } from '../lib/macroModel';
 import {
   CROSS_EFFECTS,
   DIAL_PROFILES,
   debtPlaybook,
   dialPressures,
+  impactTrend,
+  industryBackdrop,
   levelFor,
   projectDials,
   shortCyclePhase,
@@ -100,6 +102,47 @@ describe('projected trends', () => {
       expect(row.inflation).toBe(0);
       expect(row.policy).toBe(0);
     }
+  });
+});
+
+describe('market & industry trends', () => {
+  it('runs every industry and asset class along the projected path', () => {
+    for (const targets of [INDUSTRIES, ASSET_CLASSES]) {
+      const t = impactTrend(targets, scenario('overheating'));
+      expect(t).toHaveLength(9);
+      for (const target of targets) {
+        for (const row of t) expect(typeof row[target.id]).toBe('number');
+      }
+    }
+  });
+
+  it('quarter zero matches the static impact table', () => {
+    const f = scenario('stagflation');
+    const t = impactTrend(INDUSTRIES, f);
+    for (const target of INDUSTRIES) expect(t[0][target.id]).toBe(impactPct(target.sens, f));
+  });
+
+  it('the trend moves as the feedback loop plays out (tech recovers as hikes bite growth back)', () => {
+    const t = impactTrend(INDUSTRIES, scenario('overheating'));
+    const first = t[0]['tech'] as number;
+    const last = t[t.length - 1]['tech'] as number;
+    expect(last).not.toBe(first);
+  });
+
+  it('classifies the customer backdrop: discretionary struggles in stagflation, staples hold up', () => {
+    const f = scenario('stagflation');
+    const disc = industryBackdrop(INDUSTRIES.find((i) => i.id === 'discretionary')!, f);
+    expect(disc.level).toBe('headwind');
+    expect(disc.note).toMatch(/skeptic|shorter terms/i);
+    const staples = industryBackdrop(INDUSTRIES.find((i) => i.id === 'staples')!, f);
+    expect(staples.level).not.toBe('headwind');
+  });
+
+  it('a boom scenario reads as a tailwind for cyclicals — with the do-not-over-trust warning', () => {
+    const f: MacroFactors = { growth: 2, inflation: 0, policy: -1, fiscal: 1 };
+    const b = industryBackdrop(INDUSTRIES.find((i) => i.id === 'discretionary')!, f);
+    expect(b.level).toBe('tailwind');
+    expect(b.note).toMatch(/do not let a tailwind excuse/i);
   });
 });
 
