@@ -145,7 +145,7 @@ const TOOLS: ToolEntry[] = [
   {
     id: 'corporate-finance',
     name: 'Corporate Finance Lab',
-    tagline: 'Three scenario-driven analyses: which capital move clears its hurdle (M&A, new product, capacity, AI, debt paydown), underwrite a customer\'s financials to size a trade-credit line, and a treasury playbook for money market, swaps, and derivatives. Education only; not investment or credit advice.',
+    tagline: 'Four scenario-driven analyses: which capital move clears its hurdle (M&A, new product, capacity, AI, debt paydown) with a pro-forma WACC, underwrite a customer\'s financials to size a trade-credit line with a security & guarantee ladder, a treasury playbook for money market, swaps, and derivatives, and a market analysis tab — dial ranges, cross-effects, trends, and the debt cycles. Education only; not investment or credit advice.',
     href: '/corporate-finance',
     icon: Briefcase,
     status: 'live',

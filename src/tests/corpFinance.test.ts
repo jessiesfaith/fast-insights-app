@@ -2,15 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { MacroFactors, SCENARIOS } from '../lib/macroModel';
 import {
   CAPITAL_OPTIONS,
+  DEFAULT_PROFORMA,
   DEFAULT_WACC_INPUTS,
   SAMPLE_CUSTOMERS,
   TREASURY_INSTRUMENTS,
   assessCredit,
+  buildSecurityLadder,
   computeCreditMetrics,
   computeWacc,
   creditScore,
   evaluateAllOptions,
   optionNpv,
+  readProforma,
 } from '../lib/corpFinance';
 
 const NEUTRAL: MacroFactors = { growth: 0, inflation: 0, policy: 0, fiscal: 0 };
@@ -129,6 +132,98 @@ describe('trade-credit underwriting', () => {
     expect(m.find((x) => x.id === 'leverage')!.band).toBe('risk');
     expect(creditScore(m)).toBeLessThan(45);
     expect(assessCredit(1_000_000, 30, broke).decision).toBe('decline');
+  });
+});
+
+describe('company pro forma → borrowing spread', () => {
+  it('default pro forma: pension tips a strong balance sheet into average', () => {
+    const r = readProforma(DEFAULT_PROFORMA);
+    expect(r.adjustedDebt).toBe(10_000_000); // 8M debt + 2M pension
+    expect(r.leverage).toBeCloseTo(2.5, 2);
+    expect(r.coverage).toBeCloseTo(4_000_000 / 600_000, 2);
+    expect(r.tier).toBe('average');
+    expect(r.spread).toBe(3);
+    expect(r.notes.join(' ')).toMatch(/pension/i);
+    // without the pension it would price strong — the note says so
+    expect(r.notes.join(' ')).toMatch(/would price as strong/i);
+  });
+
+  it('fully funded plan: same company prices strong', () => {
+    const r = readProforma({ ...DEFAULT_PROFORMA, pension: 0 });
+    expect(r.leverage).toBeCloseTo(2.0, 2);
+    expect(r.tier).toBe('strong');
+    expect(r.spread).toBe(2);
+  });
+
+  it('the weaker ratio governs: fine leverage but thin coverage is stretched', () => {
+    const r = readProforma({ ...DEFAULT_PROFORMA, pension: 0, interest: 2_000_000 });
+    expect(r.coverage).toBeCloseTo(2.0, 2); // < 2.5
+    expect(r.tier).toBe('stretched');
+    expect(r.spread).toBe(5);
+  });
+
+  it('zero EBITDA never crashes and reads stretched', () => {
+    const r = readProforma({ ...DEFAULT_PROFORMA, ebitda: 0 });
+    expect(r.tier).toBe('stretched');
+    expect(r.spread).toBe(5);
+  });
+});
+
+describe('security & guarantee ladder', () => {
+  const rung = (l: ReturnType<typeof buildSecurityLadder>, id: string) =>
+    l.rungs.find((r) => r.id === id)!;
+
+  it('strong customer classifies unsecured and needs no security for the $1M', () => {
+    const l = buildSecurityLadder(1_000_000, 30, sample('strong'));
+    expect(l.classification).toBe('unsecured');
+    expect(rung(l, 'unsecured').available).toBe(true);
+    expect(rung(l, 'unsecured').supportedLimit).toBe(1_000_000);
+    expect(rung(l, 'deposit').requirement).toMatch(/No deposit needed/);
+  });
+
+  it('average customer classifies secured: no unsecured terms, guarantee unlocks the full cap', () => {
+    const credit = assessCredit(1_000_000, 30, sample('average'));
+    const l = buildSecurityLadder(1_000_000, 30, sample('average'));
+    expect(l.classification).toBe('secured');
+    expect(rung(l, 'unsecured').available).toBe(false);
+    expect(rung(l, 'unsecured').supportedLimit).toBe(0);
+    // guarantee doubles the conditional half-cap back to the full computed cap…
+    expect(rung(l, 'guarantee').available).toBe(true);
+    expect(rung(l, 'guarantee').supportedLimit).toBeGreaterThan(credit.limit);
+    // …but never past the caps themselves
+    expect(rung(l, 'guarantee').supportedLimit).toBeLessThanOrEqual(
+      Math.min(credit.cashCap, credit.liquidityCap) + 12_500, // 25k rounding
+    );
+    // collateral covers the gap to the full request
+    expect(rung(l, 'deposit').supportedLimit).toBe(1_000_000);
+    expect(rung(l, 'deposit').requirement).toContain((1_000_000 - credit.limit).toLocaleString('en-US'));
+  });
+
+  it('risky customer classifies prepay: guarantee refused, collateral or prepay only', () => {
+    const l = buildSecurityLadder(1_000_000, 30, sample('risky'));
+    expect(l.classification).toBe('prepay');
+    expect(rung(l, 'unsecured').available).toBe(false);
+    expect(rung(l, 'guarantee').available).toBe(false);
+    expect(rung(l, 'guarantee').supportedLimit).toBe(0);
+    // a deposit/LC must cover the entire request when nothing is approved on open terms
+    expect(rung(l, 'deposit').requirement).toContain((1_000_000).toLocaleString('en-US'));
+    expect(rung(l, 'loc').supportedLimit).toBe(1_000_000);
+  });
+
+  it('prepay is always available for the full ask, at every score', () => {
+    for (const id of ['strong', 'average', 'risky'] as const) {
+      const l = buildSecurityLadder(1_000_000, 30, sample(id));
+      expect(rung(l, 'prepay').available).toBe(true);
+      expect(rung(l, 'prepay').supportedLimit).toBe(1_000_000);
+    }
+  });
+
+  it('longer terms shrink what a guarantee can unlock (caps scale down)', () => {
+    const net30 = buildSecurityLadder(1_000_000, 30, sample('average'));
+    const net90 = buildSecurityLadder(1_000_000, 90, sample('average'));
+    expect(rung(net90, 'guarantee').supportedLimit).toBeLessThanOrEqual(
+      rung(net30, 'guarantee').supportedLimit,
+    );
   });
 });
 

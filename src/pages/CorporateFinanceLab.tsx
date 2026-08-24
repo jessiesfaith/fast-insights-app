@@ -17,6 +17,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
 import {
+  Activity,
   ArrowLeft,
   BarChart3,
   Briefcase,
@@ -24,6 +25,9 @@ import {
   ClipboardCheck,
   Compass,
   GraduationCap,
+  Handshake,
+  Landmark,
+  RefreshCcw,
   ShieldCheck,
   Sparkles,
   Umbrella,
@@ -34,6 +38,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -60,33 +67,69 @@ import { CUSTOM_SCENARIO_ID, MacroFactors, SCENARIOS } from '../lib/macroModel';
 import { MARKET_SNAPSHOT, TODAY_SCENARIO_ID } from '../lib/marketSnapshot';
 import {
   Band,
+  CompanyProforma,
   CreditResult,
   CustomerFinancials,
   DEBT_WEIGHT,
+  DEFAULT_PROFORMA,
   DEFAULT_WACC_INPUTS,
   ERP,
+  ProformaRead,
   OptionResult,
   SAMPLE_CUSTOMERS,
+  SECURITY_KIND_LABEL,
+  SecurityKind,
+  SecurityLadder,
   TAX_RATE,
   TREASURY_INSTRUMENTS,
   WaccInputs,
   assessCredit,
+  buildSecurityLadder,
   computeCreditMetrics,
   computeWacc,
   evaluateAllOptions,
+  readProforma,
 } from '../lib/corpFinance';
+import {
+  CROSS_EFFECTS,
+  DIAL_PROFILES,
+  DebtRead,
+  DialPressure,
+  LONG_CYCLE,
+  TrendPoint,
+  debtPlaybook,
+  dialPressures,
+  levelFor,
+  projectDials,
+  shortCyclePhase,
+} from '../lib/marketAnalysis';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
 // ---------------------------------------------------------------------------
 
-type TabId = 'capital' | 'credit' | 'treasury';
+type TabId = 'capital' | 'credit' | 'treasury' | 'analysis';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
   { id: 'credit', label: '2 · Customer credit', icon: ShieldCheck },
   { id: 'treasury', label: '3 · Treasury & hedging', icon: Umbrella },
+  { id: 'analysis', label: '4 · Market analysis', icon: Activity },
 ];
+
+/** Display names for the dials, matching the scenario picker. */
+const DIAL_NAME: Record<keyof MacroFactors, string> = {
+  growth: 'Growth',
+  inflation: 'Inflation',
+  policy: 'The Fed',
+  fiscal: "Gov't",
+};
+
+const STANCE_META: Record<DebtRead['stance'], { label: string; tone: string }> = {
+  tailwind: { label: 'Tailwind', tone: 'var(--pos)' },
+  neutral: { label: 'Neutral', tone: 'var(--severity-medium)' },
+  pressure: { label: 'Pressure', tone: 'var(--neg)' },
+};
 
 const BAND_TONE: Record<Band, string> = {
   good: 'var(--pos)',
@@ -99,6 +142,17 @@ const VERDICT_META: Record<OptionResult['verdict'], { label: string; tone: strin
   go: { label: 'Clears the hurdle', tone: 'var(--pos)' },
   marginal: { label: 'Borderline', tone: 'var(--severity-medium)' },
   no: { label: "Doesn't clear", tone: 'var(--neg)' },
+};
+
+const KIND_TONE: Record<SecurityKind, string> = {
+  unsecured: 'var(--pos)',
+  secured: 'var(--severity-medium)',
+  prepay: 'var(--neg)',
+};
+const KIND_CHIP: Record<SecurityKind, string> = {
+  unsecured: 'Unsecured',
+  secured: 'Secured',
+  prepay: 'Prepay',
 };
 
 const FIT_META: Record<string, { label: string; tone: string }> = {
@@ -289,6 +343,10 @@ export default function CorporateFinanceLab() {
   // Tab 1 state.
   const [capital, setCapital] = useState(1_000_000);
   const [waccInputs, setWaccInputs] = useState<WaccInputs>(DEFAULT_WACC_INPUTS);
+  const [proformaOn, setProformaOn] = useState(false);
+  const [proforma, setProforma] = useState<CompanyProforma>(DEFAULT_PROFORMA);
+  const setProformaField = (key: keyof CompanyProforma, v: number) =>
+    setProforma((p) => ({ ...p, [key]: v }));
 
   // Tab 2 state.
   const [requested, setRequested] = useState(1_000_000);
@@ -306,13 +364,31 @@ export default function CorporateFinanceLab() {
     setFin((f) => ({ ...f, [key]: v }));
   };
 
-  const wacc = useMemo(() => computeWacc(waccInputs), [waccInputs]);
-  const options = useMemo(
-    () => evaluateAllOptions(waccInputs, factors, capital),
-    [waccInputs, factors, capital],
+  const proRead = useMemo(() => readProforma(proforma), [proforma]);
+  // When the pro forma is on, its ratio-derived spread replaces the chip.
+  const effInputs = useMemo<WaccInputs>(
+    () => (proformaOn ? { ...waccInputs, creditSpread: proRead.spread } : waccInputs),
+    [proformaOn, waccInputs, proRead],
   );
+  const wacc = useMemo(() => computeWacc(effInputs), [effInputs]);
+  const options = useMemo(
+    () => evaluateAllOptions(effInputs, factors, capital),
+    [effInputs, factors, capital],
+  );
+  // Neutral-market baseline, for tracking how the scenario moves each NPV.
+  const neutralNpvById = useMemo(() => {
+    const rows = evaluateAllOptions(effInputs, { growth: 0, inflation: 0, policy: 0, fiscal: 0 }, capital);
+    return Object.fromEntries(rows.map((r) => [r.id, r.npv]));
+  }, [effInputs, capital]);
   const metrics = useMemo(() => computeCreditMetrics(fin), [fin]);
   const credit = useMemo(() => assessCredit(requested, termsDays, fin), [requested, termsDays, fin]);
+  const ladder = useMemo(() => buildSecurityLadder(requested, termsDays, fin), [requested, termsDays, fin]);
+
+  // Tab 4 state (all derived from the shared scenario).
+  const pressures = useMemo(() => dialPressures(factors), [factors]);
+  const cyclePhase = useMemo(() => shortCyclePhase(factors), [factors]);
+  const debtReads = useMemo(() => debtPlaybook(factors), [factors]);
+  const trend = useMemo(() => projectDials(factors), [factors]);
 
   const scenarioName =
     scenarioId === TODAY_SCENARIO_ID
@@ -358,9 +434,10 @@ export default function CorporateFinanceLab() {
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 600, margin: 0, letterSpacing: '-0.02em' }}>Corporate Finance Lab</h1>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720, lineHeight: 1.6 }}>
-          Three ways to run the numbers: decide <strong>your company's next move</strong> under real
-          market conditions, <strong>underwrite a customer</strong> before extending them credit, and
-          pick the right <strong>treasury &amp; hedging tools</strong> for the environment.{' '}
+          Four ways to run the numbers: decide <strong>your company's next move</strong> under real
+          market conditions, <strong>underwrite a customer</strong> before extending them credit,
+          pick the right <strong>treasury &amp; hedging tools</strong> for the environment, and read
+          the <strong>market itself</strong> — ranges, cross-effects, and the debt cycles.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginTop: 18 }}>
@@ -434,17 +511,29 @@ export default function CorporateFinanceLab() {
                   </div>
                   <div className="col" style={{ gap: 6 }}>
                     <span style={labelStyle}>Borrowing spread</span>
-                    <div className="row gap-2">
+                    <div className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                      <Chip active={proformaOn} onClick={() => setProformaOn(true)}>
+                        From my pro forma
+                      </Chip>
                       {[{ l: 'Strong · +2%', v: 2 }, { l: 'Average · +3%', v: 3 }, { l: 'Stretched · +5%', v: 5 }].map((b) => (
-                        <Chip key={b.v} active={waccInputs.creditSpread === b.v} onClick={() => setWaccInputs((w) => ({ ...w, creditSpread: b.v }))}>
+                        <Chip
+                          key={b.v}
+                          active={!proformaOn && waccInputs.creditSpread === b.v}
+                          onClick={() => {
+                            setProformaOn(false);
+                            setWaccInputs((w) => ({ ...w, creditSpread: b.v }));
+                          }}
+                        >
                           {b.l}
                         </Chip>
                       ))}
                     </div>
                   </div>
                 </div>
+                {proformaOn && <ProformaSection proforma={proforma} read={proRead} onField={setProformaField} />}
                 <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 16 }}>
                   <StatPill label="Cost of equity" value={`${wacc.costEquity}%`} />
+                  {proformaOn && <StatPill label="Spread (from ratios)" value={`+${proRead.spread}% · ${proRead.tier}`} />}
                   <StatPill label="Cost of debt (after tax)" value={`${wacc.costDebtAfterTax}%`} />
                   <StatPill label="Your WACC" value={`${wacc.wacc}%`} strong />
                 </div>
@@ -464,7 +553,7 @@ export default function CorporateFinanceLab() {
                   for that option's risk; near-guaranteed uses compare against the risk-free rate
                   instead). Positive spread = the move creates value on your {fmtMoney(capital, 0)}.
                 </p>
-                <OptionsSection rows={options} capital={capital} />
+                <OptionsSection rows={options} capital={capital} neutralNpvById={neutralNpvById} />
               </StepCard>
             </>
           )}
@@ -569,6 +658,16 @@ export default function CorporateFinanceLab() {
                   ))}
                 </div>
               </StepCard>
+
+              <StepCard n="D" icon={<Handshake size={17} />} title="Security & guarantees — the classification ladder">
+                <p style={hintStyle}>
+                  The score decides how this customer may buy: <strong>unsecured</strong> open terms,{' '}
+                  <strong>secured</strong> terms (guarantee, deposit, or letter of credit), or{' '}
+                  <strong>prepay / COD</strong>. Each rung below shows how much of the{' '}
+                  {fmtMoney(requested, 0)} ask that structure supports on Net {termsDays}.
+                </p>
+                <SecurityLadderSection ladder={ladder} requested={requested} />
+              </StepCard>
             </>
           )}
 
@@ -639,9 +738,142 @@ export default function CorporateFinanceLab() {
               </StepCard>
             </>
           )}
+
+          {tab === 'analysis' && (
+            <>
+              <StepCard n="A" icon={<Compass size={17} />} title="Market conditions">
+                <p style={hintStyle}>
+                  The same four dials as everywhere else — set them here and the readings below
+                  translate each one into real numbers, cross-pressures, and a cycle read.
+                </p>
+                <ScenarioPicker scenarioId={scenarioId} factors={factors} onToday={pickToday} onPreset={pickPreset} onDial={setDial} />
+              </StepCard>
+
+              <StepCard n="B" icon={<Activity size={17} />} title="The dials in real numbers">
+                <p style={hintStyle}>
+                  What each setting means in the numbers practitioners watch — and the kinds of
+                  changes that move each dial. Your current setting is highlighted.
+                </p>
+                <DialRangesSection factors={factors} />
+              </StepCard>
+
+              <StepCard n="C" icon={<RefreshCcw size={17} />} title={`How the dials push each other — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The dials are not independent: growth feeds inflation, inflation forces the Fed,
+                  the Fed cools both with a lag, and fiscal policy feeds demand. Given your
+                  settings, here is where each dial is being pushed next.
+                </p>
+                <PressuresSection pressures={pressures} />
+                <div style={{ marginTop: 16 }}>
+                  <span style={labelStyle}>The trend those pushes trace — next 8 quarters</span>
+                  <TrendChart data={trend} />
+                  <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '6px 0 0' }}>
+                    Each quarter, every dial drifts toward where the others are pushing it (the
+                    cross-effects above, damped). Watch the feedback loop work: a boom pulls the Fed
+                    up, the Fed pulls growth and inflation back down. Direction of travel, not a
+                    forecast — and gov't stays where you set it, because budgets are chosen, not
+                    caused.
+                  </p>
+                </div>
+              </StepCard>
+
+              <StepCard n="D" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
+                <p style={hintStyle}>
+                  Dalio's frame: the economy runs on two debt cycles stacked on productivity growth.
+                  The short one is the business cycle you feel; the long one decides what tools are
+                  left when it turns.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                  <GlassCard variant="nested" padding={16}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                      Short-term debt cycle (~7–10 years)
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                      Credit expands → the economy heats up → inflation rises → the Fed brakes →
+                      downturn → cuts → repeat. Spending is amplified by credit on the way up and
+                      strangled by it on the way down.
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        color: 'var(--text-secondary)',
+                        background: 'var(--bg-elevated-2)',
+                        border: '1px solid var(--accent)',
+                        borderRadius: 8,
+                        padding: '8px 10px',
+                        marginTop: 10,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', fontWeight: 700, marginRight: 6 }}>
+                        Your scenario reads as
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{cyclePhase.name}.</strong> {cyclePhase.desc}
+                    </div>
+                  </GlassCard>
+                  <GlassCard variant="nested" padding={16}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                      {LONG_CYCLE.name}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{LONG_CYCLE.desc}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, margin: '10px 0 4px' }}>
+                      What to watch
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      {LONG_CYCLE.watch.map((w) => (
+                        <li key={w}>{w}</li>
+                      ))}
+                    </ul>
+                  </GlassCard>
+                </div>
+              </StepCard>
+
+              <StepCard n="E" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The same cycle, seen from your own balance sheet: floating debt reprices with the
+                  Fed within days, while long-term fixed debt locks today's rate until the
+                  refinancing date.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                  {debtReads.map((d) => {
+                    const meta = STANCE_META[d.stance];
+                    return (
+                      <GlassCard key={d.id} variant="nested" padding={16}>
+                        <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{d.name}</span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: meta.tone,
+                              border: `1px solid ${meta.tone}`,
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 }}>{d.what}</div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                          <strong style={{ color: meta.tone }}>This scenario:</strong> {d.read}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 6 }}>
+                          <strong style={{ color: 'var(--text-primary)' }}>The move:</strong> {d.action}
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+              </StepCard>
+            </>
+          )}
         </div>
 
-        <GuidePane tab={tab} wacc={wacc} waccInputs={waccInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} />
+        <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} />
       </div>
 
       <footer style={{ marginTop: 48, color: 'var(--text-tertiary)', fontSize: 12, lineHeight: 1.6 }}>
@@ -710,7 +942,285 @@ function DecisionBanner({ credit, requested }: { credit: CreditResult; requested
   );
 }
 
-function OptionsSection({ rows, capital }: { rows: OptionResult[]; capital: number }) {
+const PROFORMA_FIELDS: [keyof CompanyProforma, string, string][] = [
+  ['revenue', 'Revenue (annual)', 'Annual sales — the denominator for your margin.'],
+  ['ebitda', 'EBITDA', 'Operating profit before interest, tax, depreciation — the cash engine lenders size everything against.'],
+  ['interest', 'Interest expense', 'Your annual interest bill. Coverage = EBITDA ÷ interest; below 2.5× lenders get nervous.'],
+  ['totalDebt', 'Total debt', 'Balance-sheet borrowings only: loans, bonds, drawn revolver.'],
+  ['pension', 'Pension & lease obligations', 'The field people forget: unfunded pension shortfall + operating leases. Debt-like — lenders and rating agencies ADD it to debt before computing leverage. Enter 0 if your plan is fully funded and you own your sites.'],
+  ['cash', 'Cash & equivalents', 'Nets against debt in negotiations — lenders quote gross leverage but price net.'],
+];
+
+function ProformaSection({
+  proforma,
+  read,
+  onField,
+}: {
+  proforma: CompanyProforma;
+  read: ProformaRead;
+  onField: (key: keyof CompanyProforma, v: number) => void;
+}) {
+  const times = (v: number) => (Number.isFinite(v) ? `${(Math.round(v * 10) / 10).toFixed(1)}×` : 'n/m');
+  return (
+    <GlassCard variant="nested" padding={16} style={{ marginTop: 14 }}>
+      <p style={{ ...hintStyle, marginTop: 0 }}>
+        Your own financials, read the way a lender reads them: pension and lease obligations are
+        added to debt, the <em>weaker</em> of leverage and coverage sets your tier, and the tier
+        sets the borrowing spread that flows into your WACC below.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+        {PROFORMA_FIELDS.map(([key, label, hint]) => (
+          <div key={key} className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>{label}</span>
+            <MoneyInput value={proforma[key]} onChange={(v) => onField(key, v)} width={110} />
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45 }}>{hint}</span>
+          </div>
+        ))}
+      </div>
+      <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 14 }}>
+        <StatPill label="Adjusted debt (incl. pension)" value={fmtMoney(read.adjustedDebt, 0)} />
+        <StatPill label="Leverage (adj. debt / EBITDA)" value={times(read.leverage)} />
+        <StatPill label="Coverage (EBITDA / interest)" value={times(read.coverage)} />
+        <StatPill label="Tier → spread" value={`${read.tier} · +${read.spread}%`} strong />
+      </div>
+      {read.notes.length > 0 && (
+        <ul style={{ margin: '12px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          {read.notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      )}
+    </GlassCard>
+  );
+}
+
+function DialRangesSection({ factors }: { factors: MacroFactors }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+      {DIAL_PROFILES.map((p) => {
+        const current = levelFor(p, factors[p.key]);
+        return (
+          <GlassCard key={p.key} variant="nested" padding={16}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', margin: '2px 0 10px', lineHeight: 1.5 }}>{p.measures}</div>
+            <div className="col" style={{ gap: 4 }}>
+              {p.levels.map((l) => {
+                const active = l.value === current.value;
+                return (
+                  <div
+                    key={l.value}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '120px 1fr',
+                      gap: 8,
+                      padding: '5px 8px',
+                      borderRadius: 8,
+                      border: `1px solid ${active ? 'var(--accent)' : 'transparent'}`,
+                      background: active ? 'var(--accent-soft)' : 'transparent',
+                    }}
+                  >
+                    <span style={{ fontSize: 11.5, fontWeight: active ? 700 : 600, color: active ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                      {l.label}
+                    </span>
+                    <span style={{ fontSize: 11.5, lineHeight: 1.45 }}>
+                      <span className="num" style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600 }}>{l.range}</span>
+                      <span style={{ color: 'var(--text-tertiary)' }}> — {l.meaning}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '10px 0 4px' }}>
+              What moves it
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              {p.levers.map((lv) => (
+                <li key={lv}>{lv}</li>
+              ))}
+            </ul>
+          </GlassCard>
+        );
+      })}
+    </div>
+  );
+}
+
+function PressuresSection({ pressures }: { pressures: DialPressure[] }) {
+  return (
+    <div className="col" style={{ gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        {pressures.map((pr) => {
+          const tone = pr.net > 0 ? 'var(--pos)' : pr.net < 0 ? 'var(--neg)' : 'var(--severity-medium)';
+          const headline =
+            pr.drivers.length === 0
+              ? 'No push from the other dials'
+              : pr.net > 0
+                ? 'Being pushed UP'
+                : pr.net < 0
+                  ? 'Being pushed DOWN'
+                  : 'Crosscurrents cancel out';
+          return (
+            <GlassCard key={pr.to} variant="nested" padding={14}>
+              <div className="between" style={{ gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{DIAL_NAME[pr.to]}</span>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: tone,
+                    border: `1px solid ${tone}`,
+                    borderRadius: 999,
+                    padding: '2px 9px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {headline}
+                </span>
+              </div>
+              {pr.drivers.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                  The other dials are set to neutral, so nothing is leaning on this one.
+                </div>
+              ) : (
+                <div className="col" style={{ gap: 6 }}>
+                  {pr.drivers.map((d) => (
+                    <div key={d.from} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      <span style={{ fontWeight: 700, color: d.push > 0 ? 'var(--pos)' : 'var(--neg)' }}>
+                        {d.push > 0 ? '↑' : '↓'}
+                      </span>{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>{DIAL_NAME[d.from]}</strong>{' '}
+                      <span style={{ color: 'var(--text-tertiary)' }}>({d.lag}):</span> {d.why}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+        Direction and rough lag only — the {CROSS_EFFECTS.length} teaching links here are why "the
+        Fed hiked" in one quarter becomes "growth slowed" a year later, and why no dial stays put
+        while the others move.
+      </div>
+    </div>
+  );
+}
+
+function TrendChart({ data }: { data: TrendPoint[] }) {
+  useThemeVersion();
+  const series: { key: keyof MacroFactors; color: string }[] = [
+    { key: 'growth', color: resolveCSSVar('var(--pos)') },
+    { key: 'inflation', color: resolveCSSVar('var(--neg)') },
+    { key: 'policy', color: resolveCSSVar('var(--accent)') },
+    { key: 'fiscal', color: resolveCSSVar('var(--severity-medium)') },
+  ];
+  return (
+    <div style={{ height: 240, marginTop: 8 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis dataKey="quarter" tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+          <YAxis
+            domain={[-2, 2]}
+            ticks={[-2, -1, 0, 1, 2]}
+            tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }}
+            axisLine={{ stroke: 'var(--border)' }}
+            tickLine={false}
+            width={30}
+          />
+          <ReferenceLine y={0} stroke="var(--border-strong)" />
+          <Tooltip
+            contentStyle={{
+              background: 'var(--bg-elevated-2)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 10,
+              color: 'var(--text-primary)',
+            }}
+            formatter={(value: number, name: string) => [String(value), DIAL_NAME[name as keyof MacroFactors] ?? name]}
+          />
+          <Legend formatter={(value) => DIAL_NAME[value as keyof MacroFactors] ?? value} wrapperStyle={{ fontSize: 12 }} />
+          {series.map((s) => (
+            <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={2} dot={false} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function SecurityLadderSection({ ladder, requested }: { ladder: SecurityLadder; requested: number }) {
+  const tone = KIND_TONE[ladder.classification];
+  return (
+    <div className="col" style={{ gap: 12 }}>
+      <div
+        className="row"
+        style={{
+          alignItems: 'center',
+          gap: 10,
+          border: `1px solid ${tone}`,
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-elevated-2)',
+          padding: '10px 14px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+          This customer's classification
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: tone }}>{SECURITY_KIND_LABEL[ladder.classification]}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        {ladder.rungs.map((r) => {
+          const rungTone = KIND_TONE[r.kind];
+          return (
+            <GlassCard key={r.id} variant="nested" padding={14} style={r.available ? undefined : { opacity: 0.65 }}>
+              <div className="between" style={{ gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{r.name}</span>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: rungTone,
+                    background: 'var(--bg-elevated-2)',
+                    border: `1px solid ${rungTone}`,
+                    borderRadius: 999,
+                    padding: '2px 9px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {KIND_CHIP[r.kind]}
+                </span>
+              </div>
+              <div className="num" style={{ fontSize: 20, fontWeight: 700, color: r.available ? rungTone : 'var(--text-muted)', textAlign: 'left' }}>
+                {r.available ? fmtMoney(r.supportedLimit, 0) : 'Not available'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 6px' }}>
+                {r.available ? `supports of the ${fmtMoney(requested, 0)} ask` : 'for this customer today'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: 6 }}>{r.requirement}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{r.why}</div>
+            </GlassCard>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function OptionsSection({
+  rows,
+  capital,
+  neutralNpvById,
+}: {
+  rows: OptionResult[];
+  capital: number;
+  neutralNpvById: Record<string, number>;
+}) {
   useThemeVersion();
   const pos = resolveCSSVar('var(--pos)');
   const neg = resolveCSSVar('var(--neg)');
@@ -771,9 +1281,10 @@ function OptionsSection({ rows, capital }: { rows: OptionResult[]; capital: numb
           <thead>
             <tr>
               <th style={{ textAlign: 'left' }}>Option</th>
-              <th className="num" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Expected</th>
+              <th className="num" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Expected (IRR)</th>
               <th className="num" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Hurdle</th>
               <th className="num" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>NPV on {fmtMoney(capital, 0)}</th>
+              <th className="num" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Δ NPV vs neutral</th>
               <th style={{ textAlign: 'left' }}>Verdict & why</th>
             </tr>
           </thead>
@@ -786,6 +1297,14 @@ function OptionsSection({ rows, capital }: { rows: OptionResult[]; capital: numb
                   <td className="num" style={{ textAlign: 'right' }}>{r.expReturn}%</td>
                   <td className="num" style={{ textAlign: 'right' }}>{r.hurdle}%</td>
                   <td className="num" style={{ textAlign: 'right', color: toneFor(r.npv), fontWeight: 600 }}>{fmtSignedMoney(r.npv)}</td>
+                  {(() => {
+                    const delta = r.npv - (neutralNpvById[r.id] ?? 0);
+                    return (
+                      <td className="num" style={{ textAlign: 'right', color: delta === 0 ? 'var(--text-tertiary)' : toneFor(delta) }}>
+                        {delta === 0 ? '—' : fmtSignedMoney(delta)}
+                      </td>
+                    );
+                  })()}
                   <td style={{ fontSize: 12.5 }}>
                     <span style={{ color: meta.tone, fontWeight: 700 }}>{meta.label}.</span>{' '}
                     <span style={{ color: 'var(--text-secondary)' }}>{r.driver}</span>
@@ -814,6 +1333,8 @@ function GuidePane({
   requested,
   termsDays,
   fin,
+  proformaOn,
+  proRead,
 }: {
   tab: TabId;
   wacc: ReturnType<typeof computeWacc>;
@@ -824,6 +1345,8 @@ function GuidePane({
   requested: number;
   termsDays: number;
   fin: CustomerFinancials;
+  proformaOn: boolean;
+  proRead: ProformaRead;
 }) {
   const best = options[0];
   const dso = fin.revenue > 0 ? Math.round((fin.ar / fin.revenue) * 365) : 0;
@@ -838,7 +1361,8 @@ function GuidePane({
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           {tab === 'capital' && 'Deciding your own move: cost of capital → hurdle → spread → NPV.'}
           {tab === 'credit' && 'Underwriting a customer: ratios → score → sized credit limit.'}
-          {tab === 'treasury' && 'Picking treasury tools: what each instrument does and when it fits.'}{' '}
+          {tab === 'treasury' && 'Picking treasury tools: what each instrument does and when it fits.'}
+          {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -855,6 +1379,25 @@ function GuidePane({
               </Eq>
               Interest is tax-deductible, so debt's cost is taken after the tax shield. The 70/30
               equity/debt mix is a teaching assumption.
+            </GuideSection>
+            <GuideSection n="A2" title="The pro forma — when to use it">
+              The spread chips are a shortcut. Pick <em>"From my pro forma"</em> instead when you
+              want your own statements to set the spread: lenders read{' '}
+              <Eq>adjusted debt = debt + pension & lease obligations{'\n'}leverage = adjusted debt ÷ EBITDA{'\n'}coverage = EBITDA ÷ interest</Eq>
+              and the <em>weaker</em> ratio sets the tier (≤2× & ≥5× strong · ≤4× & ≥2.5× average ·
+              beyond stretched).{' '}
+              {proformaOn ? (
+                <>
+                  <span style={guideLabel}>Live — your pro forma</span>
+                  <Eq>
+                    leverage {Number.isFinite(proRead.leverage) ? proRead.leverage.toFixed(1) : 'n/m'}× · coverage {Number.isFinite(proRead.coverage) ? proRead.coverage.toFixed(1) : 'n/m'}× → {proRead.tier} → +{proRead.spread}%
+                  </Eq>
+                </>
+              ) : null}
+              <strong>Where pension matters:</strong> an unfunded pension is a debt you owe your own
+              retirees — it has no loan document, but lenders add it to leverage all the same. It
+              becomes an input the moment the plan is underfunded (or you carry big operating
+              leases); leave it 0 otherwise.
             </GuideSection>
             <GuideSection n="B" title="The risk-adjusted hurdle">
               <span style={guideLabel}>The equation</span>
@@ -880,7 +1423,15 @@ function GuidePane({
             <GuideSection n="D" title="NPV vs. IRR (interview-grade)">
               IRR is the rate where NPV = 0 — a <em>percentage</em>. NPV is <em>dollars of value
               created</em>. A tiny project can have a huge IRR and still create little value; when
-              rankings conflict on mutually exclusive choices, trust NPV.
+              rankings conflict on mutually exclusive choices, trust NPV. In this model's flat cash
+              flows the IRR <em>equals</em> the expected return — that's why the table shows one
+              "Expected (IRR)" column, and why NPV flips positive exactly where IRR beats the hurdle.
+            </GuideSection>
+            <GuideSection n="E" title="Tracking Δ NPV">
+              The "Δ NPV vs neutral" column is each project's NPV under YOUR scenario minus its NPV
+              in a neutral market — the dollars the environment itself adds or removes. Change a
+              dial and watch which projects the market giveth and which it taketh away; that delta,
+              not the raw NPV, is what scenario risk means for a capital plan.
             </GuideSection>
           </>
         )}
@@ -914,7 +1465,16 @@ function GuidePane({
               credit, or guarantee); below 45, sell prepay/COD instead. Longer terms scale the caps
               down — Net 60 ×0.75, Net 90 ×0.6 — because your exposure lives longer.
             </GuideSection>
-            <GuideSection n="D" title="Why these six ratios">
+            <GuideSection n="D" title="Security & the classification ladder">
+              The score maps to a classification: <strong style={{ color: 'var(--pos)' }}>≥70 unsecured</strong>,{' '}
+              <strong style={{ color: 'var(--severity-medium)' }}>45–69 secured</strong>,{' '}
+              <strong style={{ color: 'var(--neg)' }}>&lt;45 prepay/COD</strong>. Security moves a
+              customer up the ladder: a <em>guarantee</em> improves recovery, so it unlocks the full
+              computed cap (but adds no cash — it can't rescue a decline); a <em>cash deposit</em> or{' '}
+              <em>standby letter of credit</em> is dollar-for-dollar collateral, so it can support
+              the full {fmtMoney(requested, 0)} at any score. Prepay works for anyone — zero exposure.
+            </GuideSection>
+            <GuideSection n="E" title="Why these six ratios">
               Coverage and leverage ask <em>"can they pay everyone?"</em>; the current ratio asks{' '}
               <em>"can they pay this year?"</em>; margin asks <em>"is there cushion?"</em>; DSO and
               the cash conversion cycle ask <em>"how long is my money inside their business?"</em> —
@@ -944,6 +1504,37 @@ function GuidePane({
               invoices already signed — to buy <strong>certainty</strong>. A hedge with nothing
               behind it is just a market bet with extra paperwork. And keep Dalio's frame: you don't
               need to predict the environment if the position is built to survive every one.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'analysis' && (
+          <>
+            <GuideSection n="A" title="What to do">
+              Set the dials (or load a preset / today's market), then read down: what each setting
+              means in real numbers, where the dials are pushing each other, the projected drift,
+              and what it all means for debt — the economy's and yours.
+            </GuideSection>
+            <GuideSection n="B" title="The ranges are anchors, not lines">
+              The −2…+2 dials abstract real indicators: GDP around a ~2% trend, CPI around the
+              Fed's 2% target, fed funds around a ~3% neutral rate, deficits around ~3% of GDP.
+              The ranges shown are teaching anchors — what matters is <em>vs. expectations</em>:
+              markets move on surprise, not on the level itself.
+            </GuideSection>
+            <GuideSection n="C" title="Why the dials move each other">
+              <span style={guideLabel}>The loop</span>
+              <Eq>growth ↑ → inflation ↑ → Fed ↑ → (12–18 mo) → growth ↓ → inflation ↓ → Fed ↓ → repeat</Eq>
+              That single loop IS the short-term debt cycle. The trend chart just runs it forward:
+              each quarter every dial drifts toward where the others push it. Fiscal is the odd one
+              out — it pushes but isn't pushed, because budgets are political choices, not market
+              consequences.
+            </GuideSection>
+            <GuideSection n="D" title="Short-term vs. long-term debt (yours)">
+              Rule of thumb: <strong>floating debt reprices in days; fixed debt reprices at
+              refinancing.</strong> So a hiking cycle punishes floating and protects fixed
+              (inflation even erodes fixed debt in real terms), while a cutting cycle rewards
+              floating and strands old high-coupon fixed. Tab 3's pay-fixed swap is the tool that
+              moves debt from one column to the other without reissuing it.
             </GuideSection>
           </>
         )}

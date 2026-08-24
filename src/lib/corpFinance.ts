@@ -60,6 +60,92 @@ export function computeWacc(inp: WaccInputs): WaccBreakdown {
 }
 
 // ---------------------------------------------------------------------------
+// 1a-bis. Your company's pro forma → borrowing spread
+// ---------------------------------------------------------------------------
+//
+// Instead of picking a borrowing-spread chip, type your own financials and
+// let the ratios pick it. The one subtlety taught here: DEBT-LIKE obligations.
+// Lenders and rating agencies add unfunded pension shortfalls and operating
+// leases to balance-sheet debt before computing leverage — so a "clean"
+// balance sheet with a big pension hole still borrows like a levered one.
+
+export interface CompanyProforma {
+  /** Annual figures, $. */
+  revenue: number;
+  ebitda: number;
+  interest: number;
+  /** Balance-sheet borrowings: loans, bonds, drawn revolver. */
+  totalDebt: number;
+  /** Unfunded pension shortfall + operating-lease obligations (debt-like). */
+  pension: number;
+  cash: number;
+}
+
+export const DEFAULT_PROFORMA: CompanyProforma = {
+  revenue: 25_000_000,
+  ebitda: 4_000_000,
+  interest: 600_000,
+  totalDebt: 8_000_000,
+  pension: 2_000_000,
+  cash: 2_000_000,
+};
+
+export type SpreadTier = 'strong' | 'average' | 'stretched';
+
+export const TIER_SPREAD: Record<SpreadTier, number> = { strong: 2, average: 3, stretched: 5 };
+
+export interface ProformaRead {
+  /** totalDebt + pension & leases — what lenders actually count. */
+  adjustedDebt: number;
+  /** adjustedDebt ÷ EBITDA (NaN when EBITDA ≤ 0). */
+  leverage: number;
+  /** EBITDA ÷ interest (99 when no interest, NaN when EBITDA ≤ 0 too). */
+  coverage: number;
+  /** EBITDA ÷ revenue, %. */
+  margin: number;
+  tier: SpreadTier;
+  /** The borrowing spread this pro forma supports, pp over risk-free. */
+  spread: number;
+  notes: string[];
+}
+
+/**
+ * Read the pro forma the way a lender would:
+ *   adjusted debt = balance-sheet debt + pension & lease obligations
+ *   leverage      = adjusted debt ÷ EBITDA     (≤2 strong · ≤4 average · above stretched)
+ *   coverage      = EBITDA ÷ interest          (≥5 strong · ≥2.5 average · below stretched)
+ * The WEAKER of the two ratios sets the tier, and the tier sets the spread.
+ */
+export function readProforma(p: CompanyProforma): ProformaRead {
+  const adjustedDebt = p.totalDebt + p.pension;
+  const leverage = p.ebitda > 0 ? adjustedDebt / p.ebitda : NaN;
+  const coverage = p.ebitda > 0 ? (p.interest > 0 ? p.ebitda / p.interest : 99) : NaN;
+  const margin = p.revenue > 0 ? (p.ebitda / p.revenue) * 100 : NaN;
+
+  const levTier: SpreadTier = !Number.isFinite(leverage) || leverage > 4 ? 'stretched' : leverage > 2 ? 'average' : 'strong';
+  const covTier: SpreadTier = !Number.isFinite(coverage) || coverage < 2.5 ? 'stretched' : coverage < 5 ? 'average' : 'strong';
+  const rank: Record<SpreadTier, number> = { strong: 0, average: 1, stretched: 2 };
+  const tier = rank[levTier] >= rank[covTier] ? levTier : covTier;
+
+  const notes: string[] = [];
+  if (p.pension > 0 && p.ebitda > 0) {
+    const bare = p.totalDebt / p.ebitda;
+    const withPension = adjustedDebt / p.ebitda;
+    notes.push(
+      `Pension & leases add ${(withPension - bare).toFixed(1)}× of leverage (${bare.toFixed(1)}× → ${withPension.toFixed(1)}×) — lenders count them as debt even though they sit off the loan schedule.`,
+    );
+    if (levTier !== 'strong' && bare <= 2)
+      notes.push('Without the pension shortfall this balance sheet would price as strong — funding the plan is cheaper than paying the wider spread forever.');
+  }
+  if (p.cash > 0 && Number.isFinite(leverage))
+    notes.push(`Net of ${'$' + p.cash.toLocaleString('en-US')} cash, leverage is ${(Math.max(0, adjustedDebt - p.cash) / p.ebitda).toFixed(1)}× — lenders quote gross, but negotiate net.`);
+  if (tier === 'stretched')
+    notes.push('A stretched profile pays up for debt — and every capital option below must clear that higher WACC.');
+
+  return { adjustedDebt, leverage, coverage, margin, tier, spread: TIER_SPREAD[tier], notes };
+}
+
+// ---------------------------------------------------------------------------
 // 1b. Capital-allocation options
 // ---------------------------------------------------------------------------
 
@@ -388,6 +474,8 @@ export interface CreditResult {
 
 export const TERMS_FACTORS: Record<number, number> = { 30: 1, 60: 0.75, 90: 0.6 };
 
+const round25k = (v: number) => Math.round(v / 25_000) * 25_000;
+
 /**
  * Size the credit line two ways and take the smaller:
  *   cash-flow cap  = 30% × (EBITDA − interest) × terms factor
@@ -410,7 +498,6 @@ export function assessCredit(
     0.2 * (fin.currentAssets - fin.currentLiabilities + fin.cash) * termsFactor,
   );
   const cap = Math.min(cashCap, liquidityCap);
-  const round25k = (v: number) => Math.round(v / 25_000) * 25_000;
 
   const reasons: string[] = [];
   let decision: CreditDecision;
@@ -503,6 +590,140 @@ export const SAMPLE_CUSTOMERS: SampleCustomer[] = [
     },
   },
 ];
+
+// ---------------------------------------------------------------------------
+// 2b. Security & guarantees — the classification ladder
+// ---------------------------------------------------------------------------
+//
+// The score gates what UNSECURED credit supports. Security changes the
+// question: a guarantee improves recovery if things go wrong (it unlocks the
+// full computed cap, but adds no cash, so it cannot fix a decline), while
+// cash collateral — a deposit or a standby letter of credit — replaces the
+// customer's credit with money or a bank's promise, so it can support the
+// full request at any score. Prepay/COD removes credit risk entirely.
+
+/** Customer classification: how they may buy from you. */
+export type SecurityKind = 'unsecured' | 'secured' | 'prepay';
+
+export const SECURITY_KIND_LABEL: Record<SecurityKind, string> = {
+  unsecured: 'Unsecured — open terms on signature',
+  secured: 'Secured — open terms only with security',
+  prepay: 'Prepay / COD — no open terms',
+};
+
+export interface SecurityRung {
+  id: 'unsecured' | 'guarantee' | 'deposit' | 'loc' | 'prepay';
+  name: string;
+  kind: SecurityKind;
+  /** Can this customer use this structure right now? */
+  available: boolean;
+  /** $ of the request this structure supports (0 when unavailable). */
+  supportedLimit: number;
+  /** What the customer must provide. */
+  requirement: string;
+  why: string;
+}
+
+export interface SecurityLadder {
+  /** The customer's baseline classification from the score gate. */
+  classification: SecurityKind;
+  rungs: SecurityRung[];
+}
+
+/**
+ * The classification ladder for one customer and one ask. Each rung answers:
+ * with THIS structure, how much of the request could you safely support?
+ *   - Unsecured open terms: score ≥70 only; the score-gated limit.
+ *   - Guarantee (personal/corporate): score ≥45; unlocks the FULL computed
+ *     cap instead of the conditional half — better recovery, but no new cash,
+ *     so it never exceeds the caps and cannot rescue a decline.
+ *   - Cash deposit / standby letter of credit: any score; collateral covers
+ *     the gap between the open-terms limit and the request.
+ *   - Prepay / COD: always available; zero credit exposure.
+ */
+export function buildSecurityLadder(
+  requested: number,
+  termsDays: number,
+  fin: CustomerFinancials,
+): SecurityLadder {
+  const credit = assessCredit(requested, termsDays, fin);
+  const { score } = credit;
+  const cap = Math.min(credit.cashCap, credit.liquidityCap);
+  const fullCapLimit = round25k(Math.min(requested, cap));
+  const shortfall = Math.max(0, requested - credit.limit);
+
+  const classification: SecurityKind = score >= 70 ? 'unsecured' : score >= 45 ? 'secured' : 'prepay';
+
+  const rungs: SecurityRung[] = [
+    {
+      id: 'unsecured',
+      name: 'Unsecured open terms',
+      kind: 'unsecured',
+      available: score >= 70,
+      supportedLimit: score >= 70 ? credit.limit : 0,
+      requirement:
+        score >= 70
+          ? `Signature only — Net ${termsDays}, up to the cash-flow / liquidity caps.`
+          : 'Not offered — a score of 70+ is required for unsecured terms.',
+      why:
+        score >= 70
+          ? 'Strong ratios mean their own cash flow secures your invoice.'
+          : 'On these ratios an unsecured invoice is an interest-free loan you may not get back.',
+    },
+    {
+      id: 'guarantee',
+      name: 'Personal / corporate guarantee',
+      kind: 'secured',
+      available: score >= 45,
+      supportedLimit: score >= 45 ? fullCapLimit : 0,
+      requirement:
+        score >= 45
+          ? 'A signed guarantee from the owner or parent company covering the line.'
+          : 'Not accepted — a guarantee from a business this strained adds little real recovery.',
+      why:
+        score >= 70
+          ? 'They already qualify unsecured; a guarantee just lets the line run to the full computed cap.'
+          : score >= 45
+            ? 'Improves recovery if they fail, so it unlocks the full computed cap instead of half — but it adds no cash, so the caps still bind.'
+            : 'A guarantee is only as good as the guarantor; it cannot rescue a decline.',
+    },
+    {
+      id: 'deposit',
+      name: 'Cash deposit held against the line',
+      kind: 'secured',
+      available: true,
+      supportedLimit: requested,
+      requirement:
+        shortfall > 0
+          ? `A deposit of ${'$' + shortfall.toLocaleString('en-US')} — the gap between the open-terms limit and the request.`
+          : 'No deposit needed — open terms already cover the full request.',
+      why: 'Cash you hold is dollar-for-dollar security: it turns their credit risk into your escrow, at any score.',
+    },
+    {
+      id: 'loc',
+      name: 'Standby letter of credit',
+      kind: 'secured',
+      available: true,
+      supportedLimit: requested,
+      requirement:
+        shortfall > 0
+          ? `A standby LC of ${'$' + shortfall.toLocaleString('en-US')} from their bank, covering the uncollateralized gap.`
+          : 'No LC needed — open terms already cover the full request.',
+      why: "Their bank's promise replaces their credit — if they don't pay, the bank does. The bank underwrites them so you don't have to.",
+    },
+    {
+      id: 'prepay',
+      name: 'Prepay / COD',
+      kind: 'prepay',
+      available: true,
+      supportedLimit: requested,
+      requirement: 'Payment before (or on) shipment — no credit decision needed.',
+      why: 'Zero exposure: any customer can buy any amount when the cash arrives before the goods leave.',
+    },
+  ];
+
+  return { classification, rungs };
+}
 
 // ---------------------------------------------------------------------------
 // 3. Treasury & hedging playbook
