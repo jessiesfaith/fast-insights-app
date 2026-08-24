@@ -8,7 +8,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { Activity, ArrowRight, BarChart3, Boxes, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Boxes, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -140,6 +140,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Enter your capital, pick a macro scenario — growth, inflation, Fed & fiscal policy — and see the modeled impact by asset class and industry, with the why behind every number. Education only; not investment advice.',
     href: '/market-scenarios',
     icon: Activity,
+    status: 'live',
+  },
+  {
+    id: 'corporate-finance',
+    name: 'Corporate Finance Lab',
+    tagline: 'Three scenario-driven analyses: which capital move clears its hurdle (M&A, new product, capacity, AI, debt paydown), underwrite a customer\'s financials to size a trade-credit line, and a treasury playbook for money market, swaps, and derivatives. Education only; not investment or credit advice.',
+    href: '/corporate-finance',
+    icon: Briefcase,
     status: 'live',
   },
   {
