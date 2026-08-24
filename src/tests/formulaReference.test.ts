@@ -26,7 +26,7 @@ describe('glossary', () => {
 
 describe('formula reference', () => {
   it('covers all five decision groups with flows and formulas', () => {
-    expect(FORMULA_GROUPS.map((g) => g.id)).toEqual(['invest', 'proforma', 'credit', 'treasury', 'machine']);
+    expect(FORMULA_GROUPS.map((g) => g.id)).toEqual(['invest', 'proforma', 'credit', 'treasury', 'valuation', 'machine']);
     for (const g of FORMULA_GROUPS) {
       expect(g.decision.length).toBeGreaterThan(10);
       expect(g.flow).toContain('→');
@@ -46,6 +46,8 @@ describe('formula reference', () => {
     expect(eq('proforma')).toContain('pension');
     expect(eq('credit')).toContain('CCC = DSO + DIO − DPO');
     expect(eq('treasury')).toContain('notional × Δrate');
+    expect(eq('valuation')).toContain('FCF = NOPAT + D&A − capex − ΔNWC');
+    expect(eq('valuation')).toContain('EV − net debt');
     expect(eq('machine')).toContain('Sg×G');
   });
 });

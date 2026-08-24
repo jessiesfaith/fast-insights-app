@@ -31,6 +31,7 @@ import {
   RefreshCcw,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   Umbrella,
   Wallet,
 } from 'lucide-react';
@@ -108,6 +109,14 @@ import {
 } from '../lib/marketAnalysis';
 import { FORMULA_GROUPS, GLOSSARY } from '../lib/formulaReference';
 import {
+  DEFAULT_DCF_INPUTS,
+  DEPRECIATION_WALKTHROUGH,
+  DcfInputs,
+  EV_BRIDGE,
+  runDcf,
+  sensitivityGrid,
+} from '../lib/valuation';
+import {
   DALIO_RULES,
   EQ_STATUS_LABEL,
   EquilibriumRead,
@@ -122,7 +131,7 @@ import {
 // Small local pieces
 // ---------------------------------------------------------------------------
 
-type TabId = 'capital' | 'credit' | 'treasury' | 'analysis' | 'machine' | 'formulas';
+type TabId = 'capital' | 'credit' | 'treasury' | 'analysis' | 'machine' | 'valuation' | 'formulas';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -130,7 +139,8 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'treasury', label: '3 · Treasury & hedging', icon: Umbrella },
   { id: 'analysis', label: '4 · Market analysis', icon: Activity },
   { id: 'machine', label: '5 · The economic machine', icon: Cog },
-  { id: 'formulas', label: '6 · Formulas & decisions', icon: Calculator },
+  { id: 'valuation', label: '6 · Valuation (DCF & comps)', icon: TrendingUp },
+  { id: 'formulas', label: '7 · Formulas & decisions', icon: Calculator },
 ];
 
 const BACKDROP_META: Record<'tailwind' | 'neutral' | 'headwind', { label: string; tone: string }> = {
@@ -241,7 +251,17 @@ function MoneyInput({
   );
 }
 
-function PctInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function PctInput({
+  value,
+  onChange,
+  max = 25,
+  suffix = '%',
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  max?: number;
+  suffix?: string;
+}) {
   return (
     <div
       className="row"
@@ -260,7 +280,7 @@ function PctInput({ value, onChange }: { value: number; onChange: (v: number) =>
         onChange={(e) => {
           const cleaned = e.target.value.replace(/[^0-9.]/g, '');
           const n = Number(cleaned);
-          if (!Number.isNaN(n) && n <= 25) onChange(n);
+          if (!Number.isNaN(n) && n <= max) onChange(n);
         }}
         style={{
           fontSize: 14,
@@ -274,7 +294,7 @@ function PctInput({ value, onChange }: { value: number; onChange: (v: number) =>
           textAlign: 'right',
         }}
       />
-      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>%</span>
+      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{suffix}</span>
     </div>
   );
 }
@@ -446,6 +466,12 @@ export default function CorporateFinanceLab() {
 
   // Tab 5 state (also derived from the shared scenario).
   const machineData = useMemo(() => machineCurve(), []);
+
+  // Tab 6 state (valuation workbench).
+  const [dcf, setDcf] = useState<DcfInputs>(DEFAULT_DCF_INPUTS);
+  const setDcfField = (key: keyof DcfInputs, v: number) => setDcf((d) => ({ ...d, [key]: v }));
+  const dcfResult = useMemo(() => runDcf(dcf), [dcf]);
+  const dcfGrid = useMemo(() => sensitivityGrid(dcf), [dcf]);
   const eqReads = useMemo(() => equilibriumReads(factors, effInputs.riskFree), [factors, effInputs]);
   const levers = useMemo(() => leverWatch(factors), [factors]);
   const interplay = useMemo(() => leverInterplay(factors), [factors]);
@@ -494,12 +520,13 @@ export default function CorporateFinanceLab() {
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 600, margin: 0, letterSpacing: '-0.02em' }}>Corporate Finance Lab</h1>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720, lineHeight: 1.6 }}>
-          Six ways to run the numbers: decide <strong>your company's next move</strong> under real
-          market conditions, <strong>underwrite a customer</strong> before extending them credit,
-          pick the right <strong>treasury &amp; hedging tools</strong> for the environment, read
-          the <strong>market itself</strong> — ranges, cross-effects, industry trends, and the debt
-          cycles — study <strong>the economic machine</strong>: Dalio's cycles, equilibriums, and
-          levers — and keep the <strong>formula reference</strong> with every equation, decision
+          Seven ways to run the numbers: decide <strong>your company's next move</strong> under
+          real market conditions, <strong>underwrite a customer</strong> before extending them
+          credit, pick the right <strong>treasury &amp; hedging tools</strong> for the environment,
+          read the <strong>market itself</strong> — ranges, cross-effects, industry trends, and the
+          debt cycles — study <strong>the economic machine</strong>: Dalio's cycles, equilibriums,
+          and levers — <strong>value a business</strong> with a DCF, comps, and the sensitivity
+          grid — and keep the <strong>formula reference</strong> with every equation, decision
           flow, and acronym.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
@@ -1147,6 +1174,217 @@ export default function CorporateFinanceLab() {
                       </ul>
                       <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 8 }}>
                         <strong style={{ color: 'var(--text-primary)' }}>Transmission:</strong> {lv.transmission}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </StepCard>
+            </>
+          )}
+
+          {tab === 'valuation' && (
+            <>
+              <StepCard n="A" icon={<Calculator size={17} />} title="The forecast — revenue to free cash flow">
+                <p style={hintStyle}>
+                  A five-year DCF, built the way you'd narrate it in an interview: revenue grows,
+                  EBITDA follows the margin, D&amp;A splits out EBIT for tax, then{' '}
+                  <strong>FCF = NOPAT + D&amp;A − capex − ΔNWC</strong>. Set the drivers; the table
+                  and the value bridge recompute live.
+                </p>
+                <div className="row gap-4" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 8 }}>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>Revenue (LTM)</span>
+                    <MoneyInput value={dcf.revenue} onChange={(v) => setDcfField('revenue', v)} width={110} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>EBITDA margin</span>
+                    <PctInput value={dcf.ebitdaMarginPct} onChange={(v) => setDcfField('ebitdaMarginPct', v)} max={60} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>Growth (yrs 1–5)</span>
+                    <PctInput value={dcf.growthPct} onChange={(v) => setDcfField('growthPct', v)} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>D&amp;A (% rev)</span>
+                    <PctInput value={dcf.daPctRevenue} onChange={(v) => setDcfField('daPctRevenue', v)} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>Capex (% rev)</span>
+                    <PctInput value={dcf.capexPctRevenue} onChange={(v) => setDcfField('capexPctRevenue', v)} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>ΔNWC (% of growth)</span>
+                    <PctInput value={dcf.nwcPctGrowth} onChange={(v) => setDcfField('nwcPctGrowth', v)} max={50} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>WACC</span>
+                    <div className="row gap-2" style={{ alignItems: 'center' }}>
+                      <PctInput value={dcf.waccPct} onChange={(v) => setDcfField('waccPct', v)} />
+                      <Chip active={dcf.waccPct === wacc.wacc} onClick={() => setDcfField('waccPct', wacc.wacc)}>
+                        From tab 1 · {wacc.wacc}%
+                      </Chip>
+                    </div>
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>Terminal growth</span>
+                    <PctInput value={dcf.terminalGrowthPct} onChange={(v) => setDcfField('terminalGrowthPct', v)} max={6} />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>Peer EV/EBITDA</span>
+                    <PctInput value={dcf.peerMultiple} onChange={(v) => setDcfField('peerMultiple', v)} max={30} suffix="×" />
+                  </div>
+                  <div className="col" style={{ gap: 6 }}>
+                    <span style={labelStyle}>Net debt</span>
+                    <MoneyInput value={dcf.netDebt} onChange={(v) => setDcfField('netDebt', v)} width={100} />
+                  </div>
+                </div>
+                {!dcfResult.valid ? (
+                  <p style={{ fontSize: 12.5, color: 'var(--neg)', fontWeight: 600, margin: '8px 0 0' }}>
+                    WACC must exceed terminal growth — a perpetuity growing faster than its discount
+                    rate is worth infinity, which is the model telling you the assumption is wrong.
+                  </p>
+                ) : (
+                  <div style={{ overflowX: 'auto', marginTop: 6 }}>
+                    <table className="fin-table" style={{ width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left' }}>Year</th>
+                          {dcfResult.years.map((y) => (
+                            <th key={y.year} className="num" style={{ textAlign: 'right' }}>Yr {y.year}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(
+                          [
+                            ['Revenue', (y: typeof dcfResult.years[0]) => y.revenue],
+                            ['EBITDA', (y: typeof dcfResult.years[0]) => y.ebitda],
+                            ['EBIT', (y: typeof dcfResult.years[0]) => y.ebit],
+                            ['NOPAT', (y: typeof dcfResult.years[0]) => y.nopat],
+                            ['− Capex', (y: typeof dcfResult.years[0]) => -y.capex],
+                            ['− ΔNWC', (y: typeof dcfResult.years[0]) => -y.deltaNwc],
+                            ['Free cash flow', (y: typeof dcfResult.years[0]) => y.fcf],
+                            ['PV @ WACC', (y: typeof dcfResult.years[0]) => y.pv],
+                          ] as [string, (y: typeof dcfResult.years[0]) => number][]
+                        ).map(([label, get]) => (
+                          <tr key={label}>
+                            <td style={{ fontWeight: label === 'Free cash flow' || label === 'PV @ WACC' ? 700 : 500 }}>{label}</td>
+                            {dcfResult.years.map((y) => (
+                              <td key={y.year} className="num" style={{ textAlign: 'right' }}>{fmtMoney(get(y), 0)}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </StepCard>
+
+              <StepCard n="B" icon={<TrendingUp size={17} />} title="The value bridge — enterprise to equity">
+                {dcfResult.valid && (
+                  <>
+                    <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+                      <StatPill label="PV of 5-yr FCF" value={fmtMoney(dcfResult.pvForecast, 0)} />
+                      <StatPill label="PV of terminal value" value={fmtMoney(dcfResult.pvTerminal, 0)} />
+                      <StatPill label="Enterprise value (DCF)" value={fmtMoney(dcfResult.ev, 0)} strong />
+                      <StatPill label="− net debt → equity value" value={fmtMoney(dcfResult.equity, 0)} strong />
+                    </div>
+                    <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 10 }}>
+                      <StatPill label="TV share of EV" value={`${dcfResult.tvSharePct}%`} />
+                      <StatPill label={`Exit check (${dcf.peerMultiple}× EBITDA₅)`} value={fmtMoney(dcfResult.evExit, 0)} />
+                      <StatPill label="Implied fwd EV/EBITDA" value={`${dcfResult.impliedForwardMultiple}×`} />
+                    </div>
+                    {dcfResult.tvSharePct >= 75 && (
+                      <p style={{ fontSize: 12, color: 'var(--severity-medium)', fontWeight: 600, margin: '10px 0 0' }}>
+                        {dcfResult.tvSharePct}% of this valuation sits in the terminal value — the
+                        forecast barely matters. That's normal for a DCF, and exactly why the
+                        sensitivity grid below is not optional.
+                      </p>
+                    )}
+                    <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 12 }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Two answers, one triangulation:</strong>{' '}
+                      the income approach (DCF) says {fmtMoney(dcfResult.ev, 0)}; the market approach
+                      ({dcf.peerMultiple}× peer multiple on year-5 EBITDA, discounted) says{' '}
+                      {fmtMoney(dcfResult.evExit, 0)}. When they diverge, one of your assumptions —
+                      growth, margin, or the peers — is doing the talking. Finding which is the job.
+                    </div>
+                    <div style={{ marginTop: 12 }}>
+                      <span style={labelStyle}>The EV ↔ equity bridge</span>
+                      <div className="col" style={{ gap: 4, marginTop: 6 }}>
+                        {EV_BRIDGE.map((b) => (
+                          <div key={b.item} style={{ fontSize: 12, lineHeight: 1.5 }}>
+                            <strong style={{ color: 'var(--text-primary)' }}>{b.item}</strong>{' '}
+                            <span style={{ color: 'var(--text-tertiary)' }}>— {b.note}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </StepCard>
+
+              <StepCard n="C" icon={<BarChart3 size={17} />} title="Sensitivity — the two-way table">
+                <p style={hintStyle}>
+                  Enterprise value across WACC (rows, ±1pp) and terminal growth (columns, ±0.5pp).
+                  The spread of this grid IS the honest answer — a valuation is a range, not a
+                  number.
+                </p>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="fin-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>WACC \ g</th>
+                        {dcfGrid.growths.map((g) => (
+                          <th key={g} className="num" style={{ textAlign: 'right' }}>{g}%</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dcfGrid.waccs.map((w, i) => (
+                        <tr key={w}>
+                          <td className="num" style={{ fontWeight: w === dcf.waccPct ? 700 : 500 }}>{w}%</td>
+                          {dcfGrid.values[i].map((v, j) => {
+                            const isBase = w === dcf.waccPct && dcfGrid.growths[j] === dcf.terminalGrowthPct;
+                            return (
+                              <td
+                                key={j}
+                                className="num"
+                                style={{
+                                  textAlign: 'right',
+                                  fontWeight: isBase ? 700 : 400,
+                                  color: isBase ? 'var(--accent)' : v === null ? 'var(--text-muted)' : 'var(--text-primary)',
+                                  background: isBase ? 'var(--accent-soft)' : undefined,
+                                }}
+                              >
+                                {v === null ? 'n/m' : fmtMoney(v, 0)}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </StepCard>
+
+              <StepCard n="D" icon={<ClipboardCheck size={17} />} title='The three statements — "depreciation goes up $10"'>
+                <p style={hintStyle}>
+                  The classic linkage question, answered in order — income statement first (it has
+                  the tax effect), then cash flow, then balance sheet. Tax rate 25%.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                  {DEPRECIATION_WALKTHROUGH.map((s, i) => (
+                    <GlassCard key={s.statement} variant="nested" padding={14}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', marginBottom: 6 }}>
+                        {i + 1}. {s.statement}
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        {s.lines.map((l) => (
+                          <li key={l}>{l}</li>
+                        ))}
+                      </ul>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, lineHeight: 1.5, marginTop: 8 }}>
+                        {s.takeaway}
                       </div>
                     </GlassCard>
                   ))}
@@ -1816,6 +2054,7 @@ function GuidePane({
           {tab === 'treasury' && 'Picking treasury tools: what each instrument does and when it fits.'}
           {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}
           {tab === 'machine' && "Dalio's economic machine: how it cycles, the three equilibriums, the two levers."}
+          {tab === 'valuation' && 'The valuation workbench: DCF → terminal value → EV → equity, with comps and sensitivity.'}
           {tab === 'formulas' && 'The reference: every formula, grouped by the decision it serves, plus the full glossary.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
@@ -2042,6 +2281,41 @@ function GuidePane({
               drive every hedge verdict (tab 3) and trend (tab 4). Dalio's frame: you don't need to
               predict the machine — you need to know where it is and build positions that survive
               every phase.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'valuation' && (
+          <>
+            <GuideSection n="A" title='"Walk me through a DCF" — the script'>
+              <Eq>1. project FCF 5 yrs: NOPAT + D&A − capex − ΔNWC{'\n'}2. TV = FCF₅(1+g) ÷ (WACC − g){'\n'}3. discount both at WACC → enterprise value{'\n'}4. EV − net debt = equity value</Eq>
+              Say it in that order, then name the two judgment calls: the forecast drivers and the
+              discount rate. Everything else is arithmetic — which is exactly what this tab lets
+              you practice by feel.
+            </GuideSection>
+            <GuideSection n="B" title="Enterprise vs. equity value">
+              EV is the price of the whole operating business, whoever financed it; equity value is
+              the shareholders' slice after the lenders. Bridge: <em>equity + debt − cash = EV</em>.
+              That's also why EV pairs with EBITDA (pre-interest, whole-business profit) while P/E
+              pairs with net income (post-interest, shareholders' profit) — never cross them.
+            </GuideSection>
+            <GuideSection n="C" title="Why EV/EBITDA">
+              It's capital-structure neutral (EBITDA is before interest) and ignores D&A policy
+              differences — so two identically-run businesses with different debt loads and
+              depreciation schedules still compare cleanly. Its blind spot: EBITDA isn't cash flow —
+              it ignores capex and working capital, which is why the DCF exists.
+            </GuideSection>
+            <GuideSection n="D" title="Terminal value honesty">
+              The TV routinely carries 60–80% of a DCF's value — meaning most of the number rests
+              on two small assumptions (WACC, g). That's not a flaw to hide; it's why you present
+              the sensitivity grid, keep g at or below long-run GDP growth (~2–3%), and cross-check
+              against the exit multiple.
+            </GuideSection>
+            <GuideSection n="E" title="Working capital's role">
+              Growth consumes cash before it returns it: every new dollar of revenue drags ΔNWC out
+              of free cash flow (receivables and inventory build first). It's the same lesson as
+              tab 2's cash conversion cycle, seen from inside the company — fast-growing firms can
+              be simultaneously profitable and cash-starved.
             </GuideSection>
           </>
         )}

@@ -112,6 +112,30 @@ export const ASSET_CLASSES: ImpactTarget[] = [
     sens: { growth: -1, inflation: -3, policy: -4, fiscal: 0 },
   },
   {
+    id: 'bonds-ig',
+    name: 'Corporate bonds (investment grade)',
+    driver: 'Treasury-like duration plus a credit spread — rate rises hurt it, a healthy economy tightens the spread.',
+    sens: { growth: 0.5, inflation: -2.5, policy: -3, fiscal: 0 },
+  },
+  {
+    id: 'high-yield',
+    name: 'High-yield ("junk") bonds',
+    driver: 'Half bond, half stock: the coupon is fixed, but whether the borrower survives depends on the economy.',
+    sens: { growth: 3, inflation: -1, policy: -2, fiscal: 0.5 },
+  },
+  {
+    id: 'tips',
+    name: 'Inflation-protected bonds (TIPS)',
+    driver: 'Principal rises with CPI — the direct inflation hedge; still duration, so aggressive hikes bite.',
+    sens: { growth: -0.5, inflation: 2, policy: -2, fiscal: 0 },
+  },
+  {
+    id: 'intl-stocks',
+    name: 'International & EM stocks',
+    driver: 'Follows global growth and the dollar: Fed tightening pulls capital home and squeezes overseas borrowers.',
+    sens: { growth: 5, inflation: -1, policy: -2.5, fiscal: 1 },
+  },
+  {
     id: 'cash',
     name: 'Cash & T-bills',
     driver: "Earns the Fed's rate; inflation quietly eats its buying power.",
