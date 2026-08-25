@@ -25,8 +25,10 @@ import {
   ClipboardCheck,
   Cog,
   Compass,
+  Database,
   GraduationCap,
   Handshake,
+  History,
   Globe,
   Home,
   Landmark,
@@ -245,6 +247,18 @@ import {
   STATE_DEBT_SOURCE,
 } from '../lib/debtGeo';
 import { DEFAULT_FULL_CYCLE, FullCycleInputs, runFullCycle } from '../lib/fullCycle';
+import {
+  DATA_MODES,
+  PROVIDER_REGISTRY,
+  SERIES_CATALOG,
+  STORE_AS_OF,
+  TIER_LABELS,
+  TIMING_RULES,
+  latestObservation,
+  observationsFor,
+  staleness,
+} from '../lib/observationStore';
+import { BACKTEST_METHOD, REGIMES, runBacktests } from '../lib/regimeBacktest';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
@@ -266,7 +280,9 @@ type TabId =
   | 'ipo'
   | 'benchmarks'
   | 'debtgeo'
-  | 'fullcycle';
+  | 'fullcycle'
+  | 'datasources'
+  | 'backtest';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -285,6 +301,8 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'benchmarks', label: '14 · Industry benchmarks', icon: Scale },
   { id: 'debtgeo', label: '15 · Debt & geopolitics', icon: Globe },
   { id: 'fullcycle', label: '16 · The full cycle (EV·ROIC·WACC)', icon: Workflow },
+  { id: 'datasources', label: '17 · Data & sources', icon: Database },
+  { id: 'backtest', label: '18 · Regime backtest', icon: History },
 ];
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
@@ -2194,6 +2212,10 @@ export default function CorporateFinanceLab() {
           {tab === 'debtgeo' && <DebtGeoTab />}
 
           {tab === 'fullcycle' && <FullCycleTab />}
+
+          {tab === 'datasources' && <DataSourcesTab />}
+
+          {tab === 'backtest' && <BacktestTab />}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
@@ -4455,6 +4477,235 @@ project NPV = value − cost = ${m(r.s6.projectValue)} − ${m(inp.projectCost)}
 }
 
 // ---------------------------------------------------------------------------
+// Tabs 17 & 18 — the observation store, and the regime backtest
+// ---------------------------------------------------------------------------
+
+function DataSourcesTab() {
+  const gdpVintages = observationsFor('GDP_Q_ANN').filter((o) => o.observationDate === '2026-Q1');
+  return (
+    <>
+      <StepCard n="A" icon={<Database size={17} />} title={`The data layer — modes and providers (as of ${STORE_AS_OF})`}>
+        <p style={hintStyle}>
+          The master spec's deterministic data layer, implemented as this app's local cache: every
+          number a tab shows traces back to a cataloged series with full lineage, and the provider
+          interfaces exist but are OFF — no API is called, no paid service is ever contacted.
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginBottom: 12 }}>
+          {Object.entries(DATA_MODES).map(([k, v]) => (
+            <StatPill key={k} label={k} value={v} strong={v === 'ON'} />
+          ))}
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Provider</th>
+                <th style={{ textAlign: 'left' }}>Domain</th>
+                <th style={{ textAlign: 'left' }}>Serves</th>
+                <th style={{ textAlign: 'left' }}>Tier</th>
+                <th style={{ textAlign: 'left' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PROVIDER_REGISTRY.map((pr) => (
+                <tr key={pr.name}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{pr.name}</td>
+                  <td className="num" style={{ fontSize: 11.5, textAlign: 'left' }}>{pr.domain}</td>
+                  <td style={{ fontSize: 11.5 }}>{pr.serves}</td>
+                  <td style={{ fontSize: 11, whiteSpace: 'nowrap' }}>{TIER_LABELS[pr.tier].split(' — ')[0]}</td>
+                  <td>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: pr.status === 'local-cache' ? 'var(--pos)' : 'var(--severity-medium)', border: `1px solid ${pr.status === 'local-cache' ? 'var(--pos)' : 'var(--severity-medium)'}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                      {pr.status === 'local-cache' ? 'active · local' : 'registered · off'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </StepCard>
+
+      <StepCard n="B" icon={<ClipboardCheck size={17} />} title="The series catalog — every number, with its lineage and freshness">
+        <p style={hintStyle}>
+          Each row is one series the Lab uses: original source (never just the aggregator),
+          observation vs release vs retrieval dates, units, tier, and a COMPUTED staleness read
+          against each series' refresh budget. Derived series name their parents — nothing here
+          was eyeballed.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Series</th>
+                <th className="num" style={{ textAlign: 'right' }}>Latest</th>
+                <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>Obs / released / retrieved</th>
+                <th style={{ textAlign: 'left' }}>Source (tier)</th>
+                <th style={{ textAlign: 'left' }}>Freshness</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SERIES_CATALOG.map((m) => {
+                const latest = latestObservation(m.seriesId);
+                const st = staleness(m);
+                return (
+                  <tr key={m.seriesId}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{m.name}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>
+                        {m.seriesId} · {m.unit} · {m.seasonalAdjustment}
+                        {m.derivedFrom ? ` · DERIVED: ${m.derivedFrom}` : ''}
+                      </div>
+                    </td>
+                    <td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>
+                      {latest ? latest.value : '—'}
+                      {latest?.revisionStatus !== 'final' && latest ? (
+                        <span style={{ fontSize: 9.5, color: 'var(--severity-medium)', display: 'block' }}>{latest.revisionStatus}</span>
+                      ) : null}
+                    </td>
+                    <td className="num" style={{ fontSize: 10.5, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                      {latest ? `${latest.observationDate} / ${latest.releaseDate} / ${latest.retrievedAt}` : '—'}
+                    </td>
+                    <td style={{ fontSize: 11 }}>
+                      {m.sourceProvider}
+                      <span style={{ color: 'var(--text-tertiary)' }}> (T{m.tier})</span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: st.stale ? 'var(--neg)' : 'var(--pos)', border: `1px solid ${st.stale ? 'var(--neg)' : 'var(--pos)'}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                        {st.stale ? `STALE — ${st.daysOld}d old` : `fresh (${st.daysOld}d / ${st.budgetDays}d)`}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> a number without lineage is a rumor with decimals.
+          Every dashboard in the Lab can answer "says who, observed when, retrieved when, how
+          fresh" — and when the answer is "stale," it says so instead of posing as current.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<RefreshCcw size={17} />} title="The vintage discipline — revisions never overwrite history">
+        <p style={hintStyle}>
+          Q1-2026 GDP, demonstrated: the advance estimate and the (illustrative) second estimate
+          live as SEPARATE rows. The original is never deleted — because backtests, and the
+          decisions made on the old number, happened against the old number.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Observation</th>
+                <th className="num" style={{ textAlign: 'right' }}>Value</th>
+                <th style={{ textAlign: 'left' }}>Released</th>
+                <th style={{ textAlign: 'left' }}>Status</th>
+                <th style={{ textAlign: 'left' }}>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gdpVintages.map((o) => (
+                <tr key={o.releaseDate}>
+                  <td style={{ fontWeight: 600 }}>{o.observationDate} real GDP</td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>{o.value}%</td>
+                  <td className="num" style={{ textAlign: 'left', fontSize: 11.5 }}>{o.releaseDate}</td>
+                  <td style={{ fontSize: 11, textTransform: 'uppercase', color: o.revisionStatus === 'revised' ? 'var(--severity-medium)' : 'var(--text-secondary)' }}>{o.revisionStatus}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{o.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65, marginTop: 12 }}>
+          {TIMING_RULES.map((t) => (
+            <div key={t.slice(0, 30)} style={{ marginBottom: 4 }}>• {t}</div>
+          ))}
+        </div>
+      </StepCard>
+    </>
+  );
+}
+
+function BacktestTab() {
+  const results = useMemo(() => runBacktests(), []);
+  return (
+    <>
+      <StepCard n="A" icon={<History size={17} />} title="The method — write it down, then test it everywhere">
+        <p style={hintStyle}>
+          Dalio's discipline from the talk, made executable: each rule below is written as
+          explicit criteria, then RUN through five real regimes using the Lab's own models — the
+          capital engine, the debt playbook, the asset sensitivities, the equilibrium reads.
+          Nothing is asserted; every verdict is computed, and one famous rule fails on purpose.
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {BACKTEST_METHOD.map((m2) => (
+            <li key={m2.slice(0, 30)}>{m2}</li>
+          ))}
+        </ul>
+      </StepCard>
+
+      <StepCard n="B" icon={<Compass size={17} />} title="The five regimes">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+          {REGIMES.map((reg) => (
+            <GlassCard key={reg.id} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{reg.year} — {reg.name}</div>
+              <div className="num" style={{ fontSize: 11, color: 'var(--accent)', textAlign: 'left', margin: '4px 0' }}>
+                dials [g {reg.factors.growth} · i {reg.factors.inflation} · Fed {reg.factors.policy} · fiscal {reg.factors.fiscal}] · funds {reg.fedFundsPct}% · 10Y {reg.tenYearPct}%
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{reg.whatHappened}</div>
+            </GlassCard>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '8px 0 0' }}>
+          Dial settings and rate anchors are approximate teaching values for well-documented episodes.
+        </p>
+      </StepCard>
+
+      {results.map((rule, idx) => (
+        <StepCard
+          key={rule.id}
+          n={String.fromCharCode(67 + idx)}
+          icon={rule.timeless ? <ClipboardCheck size={17} /> : <RefreshCcw size={17} />}
+          title={`Rule ${idx + 1}: ${rule.name} — ${rule.timeless ? 'TIMELESS (survives all five)' : 'NOT timeless'}`}
+        >
+          <Eq>{rule.criteria}</Eq>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="fin-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Regime</th>
+                  <th style={{ textAlign: 'left' }}>Fired?</th>
+                  <th style={{ textAlign: 'left' }}>Verdict</th>
+                  <th style={{ textAlign: 'left' }}>What the models computed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rule.verdicts.map((v) => (
+                  <tr key={v.regimeId}>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{v.year}</td>
+                    <td style={{ fontSize: 11.5 }}>{v.fired ? 'fired' : 'silent'}</td>
+                    <td>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: v.correct ? 'var(--pos)' : 'var(--neg)', border: `1px solid ${v.correct ? 'var(--pos)' : 'var(--neg)'}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                        {v.correct ? 'correct' : 'FAILED'}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{v.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={decisionLine}>
+            <strong>The lesson:</strong> {rule.lesson}
+          </p>
+        </StepCard>
+      ))}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
@@ -4513,7 +4764,9 @@ function GuidePane({
           {tab === 'ipo' && 'The IPO decision as three separate windows — market, industry, company — plus the dilution math and the financing menu.'}
           {tab === 'benchmarks' && 'Industry benchmarks with discipline: observed averages are not healthy ranges, and every vertical has its own metric.'}
           {tab === 'debtgeo' && 'Sovereign debt-to-GDP for the ten largest economies, the US-state pension layer, and the geopolitical watch list & calendar.'}
-          {tab === 'fullcycle' && 'One company traced through every formula — operating engine → ROIC → WACC → economic profit → valuation → the bonds-vs-stock decision.'}{' '}
+          {tab === 'fullcycle' && 'One company traced through every formula — operating engine → ROIC → WACC → economic profit → valuation → the bonds-vs-stock decision.'}
+          {tab === 'datasources' && 'The data layer: every series with lineage, freshness computed against its budget, vintages preserved, providers registered but OFF.'}
+          {tab === 'backtest' && 'Dalio’s discipline, executable: four written rules run through five regimes by the Lab’s own models — one fails on purpose.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -5120,6 +5373,59 @@ function GuidePane({
               beta workshop (where the 1.1 should really come from), accretion/dilution, and
               incremental ROIC. Tab 13: the dilution and windows machinery if the answer is
               equity. Tab 11: why the coupon is what it is.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'datasources' && (
+          <>
+            <GuideSection n="A" title="Why a teaching app has a data layer">
+              Because the spec's first discipline is that numbers are computed and traceable, not
+              asserted. This tab is the audit trail for every other tab: which source, which
+              tier, observed when vs released when vs retrieved when, how fresh, and — for
+              derived series — which parents and which formula.
+            </GuideSection>
+            <GuideSection n="B" title="The three dates">
+              <Eq>observation date ≠ release date ≠ retrieval date</Eq>
+              The EFFR row shows all three differing. Backtests run on observation dates;
+              real-time decisions were made on release dates; this store's honesty runs on
+              retrieval dates. Confusing them is how "the data said so" goes wrong.
+            </GuideSection>
+            <GuideSection n="C" title="Vintages: why revisions never overwrite">
+              Q1 GDP was +2.1% when the world reacted to it, and (illustratively) +1.9% after
+              revision. Both are true — about different moments of knowledge. Keeping both rows
+              is what makes tab 18's backtesting honest: rules must be judged against what was
+              KNOWN, not what was later true.
+            </GuideSection>
+            <GuideSection n="D" title="The OFF switches">
+              API_MODE and PAID_API_MODE are OFF by design: V1 runs on free public data and this
+              local cache. The provider registry is the spec's promise that turning them on later
+              is a config change, not a rewrite — and that no paid service is ever contacted
+              without an explicit decision.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'backtest' && (
+          <>
+            <GuideSection n="A" title="What this proves">
+              The verdicts are not opinions — each rule is executed against each regime's dials
+              by the same functions the other tabs run (the capital engine, the debt playbook,
+              the asset sensitivities, the equilibrium reads). The tab is the Lab testing itself.
+            </GuideSection>
+            <GuideSection n="B" title="Why rule 3 fails, and why that's the exhibit">
+              "Bonds hedge stocks" worked for four decades of DEMAND shocks (2008, 2020: money
+              runs to safety) and failed in the INFLATION shock (2022 — and again in the 2026
+              term-premium regime), because rate shocks hit every long-duration asset at once.
+              A pattern held long enough becomes invisible as an assumption — until the regime
+              that breaks it. Dalio's fix is tab 3's alignment view: diversify by environment,
+              not by habit.
+            </GuideSection>
+            <GuideSection n="C" title="Writing your own rules">
+              The template: state the trigger as dials (IF policy &gt; 0…), state the action,
+              state what SILENCE means, then demand correctness in all five regimes — scoring
+              the tops (2000, 2022) as strictly as the bottoms. If you can't write the trigger
+              as a condition on observable state, it isn't a rule yet.
             </GuideSection>
           </>
         )}
