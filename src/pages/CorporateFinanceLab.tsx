@@ -172,6 +172,15 @@ import {
   stateReport,
 } from '../lib/reportBuilder';
 import {
+  GDP_QUARTERLY,
+  GDP_SOURCE,
+  HISTORY_SOURCE,
+  HISTORY_STORIES,
+  HistoryFreq,
+  MACRO_HISTORY,
+  historyRows,
+} from '../lib/historyTrends';
+import {
   DEFAULT_ACCRETION_INPUTS,
   DEFAULT_BETA_INPUTS,
   DEFAULT_BREAKEVEN_INPUTS,
@@ -5169,6 +5178,8 @@ function ReportTab() {
   const [countryId, setCountryId] = useState('us');
   const [stateId, setStateId] = useState('ca');
   const [industryId, setIndustryId] = useState('tech');
+  const [histFreq, setHistFreq] = useState<HistoryFreq>('monthly');
+  const [histSel, setHistSel] = useState<string[]>(MACRO_HISTORY.map((x) => x.id));
 
   const factors: MacroFactors =
     scenarioId === TODAY_SCENARIO_ID
@@ -5194,10 +5205,11 @@ function ReportTab() {
   const noteText: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 };
 
   let step = 0;
-  const letter = () => String.fromCharCode(68 + step++); // D, E, F… after the fixed A–C
+  const letter = () => String.fromCharCode(69 + step++); // E, F, G… after the fixed A–D
 
   return (
     <>
+      <div className="sticky-conditions">
       <StepCard n="A" icon={<Cog size={17} />} title="Build the report — pick your lenses">
         <p style={hintStyle}>
           Toggle each lens on or off and pick its subject. Any combination works — country
@@ -5268,6 +5280,7 @@ function ReportTab() {
           </GlassCard>
         </div>
       </StepCard>
+      </div>
 
       <StepCard n="B" icon={<GraduationCap size={17} />} title="How to read this report">
         <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -5288,6 +5301,93 @@ function ReportTab() {
             </GlassCard>
           ))}
         </div>
+      </StepCard>
+
+      <StepCard n="D" icon={<History size={17} />} title="History — monthly & quarterly trends">
+        <p style={hintStyle}>
+          The last 4½ years of the numbers every section above leans on, reviewable at
+          either frequency. Chart lines are official prints at the anchor months (the same
+          sources as tabs 3, 11, and 12 — the latest points match those tabs exactly) with
+          computed linear interpolation between; quarterly is computed as the mean of each
+          quarter's months. GDP is quarterly only — that's how the BEA prints it.
+        </p>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+          <Chip active={histFreq === 'monthly'} onClick={() => setHistFreq('monthly')}>
+            Monthly
+          </Chip>
+          <Chip active={histFreq === 'quarterly'} onClick={() => setHistFreq('quarterly')}>
+            Quarterly
+          </Chip>
+          <span style={{ width: 12 }} />
+          {MACRO_HISTORY.map((x) => (
+            <Chip
+              key={x.id}
+              active={histSel.includes(x.id)}
+              onClick={() =>
+                setHistSel(histSel.includes(x.id) ? histSel.filter((i) => i !== x.id) : [...histSel, x.id])
+              }
+            >
+              {x.name}
+            </Chip>
+          ))}
+        </div>
+        {histSel.length > 0 ? (
+          <XYLineChart
+            data={historyRows(histSel, histFreq)}
+            xKey="x"
+            series={MACRO_HISTORY.filter((x) => histSel.includes(x.id)).map((x) => ({ id: x.id, label: x.name }))}
+            height={240}
+          />
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Pick at least one series above.</div>
+        )}
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{HISTORY_SOURCE}</div>
+
+        <div
+          style={{
+            fontSize: 11.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: 'var(--text-tertiary)',
+            margin: '14px 0 8px',
+          }}
+        >
+          Real GDP, quarterly annualized
+        </div>
+        <XYLineChart
+          data={GDP_QUARTERLY.map((g) => ({ x: g.q, gdp: g.value }))}
+          xKey="x"
+          series={[{ id: 'gdp', label: 'Real GDP (annualized %)' }]}
+          height={180}
+        />
+        <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+          {GDP_QUARTERLY.filter((g) => g.note).map((g) => (
+            <li key={g.q}>
+              <strong>{g.q}:</strong> {g.note}
+            </li>
+          ))}
+        </ul>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{GDP_SOURCE}</div>
+
+        <div
+          style={{
+            fontSize: 11.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: 'var(--text-tertiary)',
+            margin: '14px 0 8px',
+          }}
+        >
+          What the history teaches
+        </div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {HISTORY_STORIES.map((h) => (
+            <li key={h.slice(0, 40)}>{h}</li>
+          ))}
+        </ul>
+        <RefLine r={{ tab: 11, step: 'A', label: 'Rates & the curve (plus tabs 3 and 12 for the CPI and mortgage anchors)' }} />
       </StepCard>
 
       {showCountry && (
@@ -6337,7 +6437,16 @@ function GuidePane({
               a number surprises you, step C's formula cards show the exact math, each with its
               own reference.
             </GuideSection>
-            <GuideSection n="D" title="Using it for the interview">
+            <GuideSection n="D" title="The history step (monthly vs quarterly)">
+              Step D holds 2022→today for CPI, the Fed midpoint, the 10-year, and the PMMS
+              mortgage, plus quarterly GDP. Anchor months are official prints — the latest ones
+              are pinned by tests to equal tabs 3/11/12's snapshots — and the months between are
+              computed linear interpolation, labeled as such. Toggle monthly to find turning
+              points (the 9.1% CPI peak, the 5% 10-year scare), quarterly to see the trend the
+              noise hides. The build card at the top stays stuck to the screen, so flip lenses
+              and frequencies and watch the sections change in place.
+            </GuideSection>
+            <GuideSection n="E" title="Using it for the interview">
               This is the "walk me through how you'd brief a client on X" rehearsal: pick the
               client's industry and home state, read the report top to bottom out loud, and
               practice ending each section with the so-what. The EY-expected exhibits on tab 7
