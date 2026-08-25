@@ -129,12 +129,32 @@ import {
   machineCurve,
 } from '../lib/economicMachine';
 import { INDUSTRY_PROFILES, adviseCapital } from '../lib/industryPlaybook';
+import {
+  BEHAVIORAL_STAPLES,
+  DRILL_CARDS,
+  DrillCategory,
+  EY_OUTLOOK,
+  GAP_CHECK,
+  GapStatus,
+  INTERVIEW_FORMAT,
+  TAKE_HOME_PLAN,
+} from '../lib/eyPrep';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
 // ---------------------------------------------------------------------------
 
-type TabId = 'capital' | 'credit' | 'treasury' | 'analysis' | 'machine' | 'valuation' | 'formulas';
+type TabId =
+  | 'capital'
+  | 'credit'
+  | 'treasury'
+  | 'analysis'
+  | 'machine'
+  | 'valuation'
+  | 'formulas'
+  | 'eygap'
+  | 'drill'
+  | 'rounds';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -144,7 +164,31 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'machine', label: '5 · The economic machine', icon: Cog },
   { id: 'valuation', label: '6 · Valuation (DCF & comps)', icon: TrendingUp },
   { id: 'formulas', label: '7 · Formulas & decisions', icon: Calculator },
+  { id: 'eygap', label: '8 · EY gap check', icon: ClipboardCheck },
+  { id: 'drill', label: '9 · EY interview drill', icon: GraduationCap },
+  { id: 'rounds', label: '10 · EY round map', icon: Handshake },
 ];
+
+const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
+  covered: { label: 'Covered in the Lab', tone: 'var(--pos)' },
+  partial: { label: 'Partly covered', tone: 'var(--severity-medium)' },
+  gap: { label: 'Gap — know the one-liner', tone: 'var(--neg)' },
+};
+
+const DRILL_CATEGORY_META: Record<DrillCategory, { title: string; blurb: string }> = {
+  technical: {
+    title: 'Technical drill',
+    blurb: 'The questions reported from EY valuation/CF interviews, each with a model answer. Read the question, answer OUT LOUD, then reveal and compare.',
+  },
+  behavioral: {
+    title: 'Behavioral drill (the HireVue round)',
+    blurb: 'Scaffolds, not scripts — the structure interviewers listen for. Fill each with YOUR story and rehearse to 90 seconds.',
+  },
+  market: {
+    title: 'Market-trends drill',
+    blurb: 'The current-events answers, anchored to EY-Parthenon’s own 2026 outlook numbers.',
+  },
+};
 
 const BACKDROP_META: Record<'tailwind' | 'neutral' | 'headwind', { label: string; tone: string }> = {
   tailwind: { label: 'Tailwind', tone: 'var(--pos)' },
@@ -551,7 +595,8 @@ export default function CorporateFinanceLab() {
           debt cycles — study <strong>the economic machine</strong>: Dalio's cycles, equilibriums,
           and levers — <strong>value a business</strong> with a DCF, comps, and the sensitivity
           grid — and keep the <strong>formula reference</strong> with every equation, decision
-          flow, and acronym.{' '}
+          flow, and acronym. Tabs 8–10 are <strong>EY interview prep</strong>: the gap check, the
+          Q&amp;A drill, and the round map.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginTop: 18 }}>
@@ -1704,6 +1749,174 @@ export default function CorporateFinanceLab() {
               ))}
             </>
           )}
+
+          {tab === 'eygap' && (
+            <>
+              <StepCard n="A" icon={<ClipboardCheck size={17} />} title="The EY technical checklist — item by item">
+                <p style={hintStyle}>
+                  Everything EY names for its Corporate Finance / Valuation, Modeling &amp;
+                  Economics roles, gap-checked against this Lab: where each item lives here, and for
+                  the deliberate gaps, the one-liner to know by name. Compiled from EY's own
+                  postings and service pages (sources in the study repo).
+                </p>
+                <div className="col" style={{ gap: 10 }}>
+                  {GAP_CHECK.map((g) => {
+                    const meta = GAP_STATUS_META[g.status];
+                    return (
+                      <GlassCard key={g.item} variant="nested" padding={14}>
+                        <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{g.item}</span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: meta.tone,
+                              border: `1px solid ${meta.tone}`,
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 6 }}>{g.where}</div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                          <strong style={{ color: meta.tone }}>Know:</strong> {g.know}
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+              </StepCard>
+
+              <StepCard n="B" icon={<Activity size={17} />} title="The market-trends anchor — EY-Parthenon 2026 outlook">
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {EY_OUTLOOK.map((o) => (
+                    <li key={o}>{o}</li>
+                  ))}
+                </ul>
+              </StepCard>
+
+              <StepCard n="C" icon={<GraduationCap size={17} />} title="What the interview actually looks like">
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {INTERVIEW_FORMAT.map((o) => (
+                    <li key={o}>{o}</li>
+                  ))}
+                </ul>
+                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 10 }}>
+                  Practice both halves here: <strong>tab 9</strong> drills the questions,{' '}
+                  <strong>tab 10</strong> maps the rounds, and <strong>tab 6</strong> is the
+                  take-home rehearsal.
+                </p>
+              </StepCard>
+            </>
+          )}
+
+          {tab === 'drill' && (
+            <>
+              {(['technical', 'behavioral', 'market'] as DrillCategory[]).map((cat, i) => {
+                const meta = DRILL_CATEGORY_META[cat];
+                const cards = DRILL_CARDS.filter((c) => c.category === cat);
+                return (
+                  <StepCard key={cat} n={String.fromCharCode(65 + i)} icon={<GraduationCap size={17} />} title={`${meta.title} — ${cards.length} questions`}>
+                    <p style={hintStyle}>{meta.blurb}</p>
+                    <div className="col" style={{ gap: 10 }}>
+                      {cards.map((c) => (
+                        <GlassCard key={c.id} variant="nested" padding={14}>
+                          <details>
+                            <summary style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', lineHeight: 1.5 }}>
+                              {c.q}
+                            </summary>
+                            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65, marginTop: 10 }}>{c.a}</div>
+                            {c.practice && (
+                              <div style={{ fontSize: 12, color: 'var(--accent)', lineHeight: 1.5, marginTop: 8 }}>
+                                <strong>Practice live:</strong> {c.practice}
+                              </div>
+                            )}
+                          </details>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </StepCard>
+                );
+              })}
+            </>
+          )}
+
+          {tab === 'rounds' && (
+            <>
+              <StepCard n="A" icon={<GraduationCap size={17} />} title="Round 1 — the HireVue video (almost entirely behavioral)">
+                <p style={hintStyle}>
+                  ~5 recorded questions, 30–60 seconds of prep, 90 seconds–2 minutes per answer.
+                  Technicals mostly wait for round 2 — this round is won with rehearsed STAR
+                  stories, not formulas.
+                </p>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '4px 0 6px' }}>
+                  The staples to have ready (drilled with scaffolds on tab 9)
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {BEHAVIORAL_STAPLES.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-elevated-2)',
+                    border: '1px solid var(--accent)',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    marginTop: 10,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <strong style={{ color: 'var(--accent)' }}>STAR, every time:</strong> Situation
+                  (one line) → Task (what YOU owned) → Action (2–3 decisions, in the first person —
+                  this is 60% of the answer) → Result (quantified). One concrete story per question,
+                  rehearsed to 90 seconds, ending on the result.
+                </div>
+              </StepCard>
+
+              <StepCard n="B" icon={<Calculator size={17} />} title="Round 2 — the ~48-hour take-home DCF, and defending it">
+                <p style={hintStyle}>
+                  The reported round-2 pattern: a take-home Excel DCF case with roughly 48 hours,
+                  then a live interview where you walk through and defend your model. The game plan:
+                </p>
+                <ol style={{ margin: 0, paddingLeft: 20, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {TAKE_HOME_PLAN.map((s) => (
+                    <li key={s} style={{ marginBottom: 4 }}>{s}</li>
+                  ))}
+                </ol>
+                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 10 }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>Rehearsal:</strong> tab 6 is this
+                  exact model in miniature — build the muscle memory there (the guide has the
+                  narration script), then the Excel version is transcription.
+                </p>
+              </StepCard>
+
+              <StepCard n="C" icon={<Activity size={17} />} title="The market-trends anchor — and the one-click scenario">
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {EY_OUTLOOK.map((o) => (
+                    <li key={o}>{o}</li>
+                  ))}
+                </ul>
+                <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
+                  <Chip active={scenarioId === 'supply-shock'} onClick={() => pickPreset('supply-shock')}>
+                    Load the Tariff / supply-shock preset — EY's "supply-shock world"
+                  </Chip>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                    {scenarioId === 'supply-shock'
+                      ? 'Loaded — now walk tabs 1, 4, 5, and 6 and narrate what it does to hurdles, trends, equilibriums, and the DCF.'
+                      : 'Sets the shared dials every tab runs on.'}
+                  </span>
+                </div>
+              </StepCard>
+            </>
+          )}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} />
@@ -2294,7 +2507,10 @@ function GuidePane({
           {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}
           {tab === 'machine' && "Dalio's economic machine: how it cycles, the three equilibriums, the two levers."}
           {tab === 'valuation' && 'The valuation workbench: DCF → terminal value → EV → equity, with comps and sensitivity.'}
-          {tab === 'formulas' && 'The reference: every formula, grouped by the decision it serves, plus the full glossary.'}{' '}
+          {tab === 'formulas' && 'The reference: every formula, grouped by the decision it serves, plus the full glossary.'}
+          {tab === 'eygap' && 'The EY checklist, gap-checked: what the Lab covers, and the one-liners for what it deliberately leaves out.'}
+          {tab === 'drill' && 'Practice mode: answer out loud first, then reveal the model answer and compare.'}
+          {tab === 'rounds' && 'The interview, round by round: HireVue behaviorals, the take-home DCF, and the market anchor.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -2613,6 +2829,62 @@ function GuidePane({
               sensitivities) are deliberately visible and deliberately simple — the point is the
               mechanism. Every threshold appears in the formula cards, so you can challenge any of
               them: "why 30% of free cash flow?" is exactly the right question.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'eygap' && (
+          <>
+            <GuideSection n="A" title="How to use the gap check">
+              Green items: practice them in the named tab until you can narrate without looking.
+              Amber and red items: memorize the "Know" line — being able to NAME what you haven't
+              built (PPA, impairment, the cost approach) reads as maturity, not weakness. "I built
+              the covered column into a working tool" is itself an interview answer.
+            </GuideSection>
+            <GuideSection n="B" title="The honest framing">
+              This Lab is a teaching model and says so. If asked about its limits, volunteer them:
+              linear sensitivities, illustrative bands, one peer multiple. Knowing a model's limits
+              is the skill EY literally sells as "model review."
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'drill' && (
+          <>
+            <GuideSection n="A" title="How to drill">
+              Cover the answer. Say yours out loud — actually out loud, timed to ~90 seconds. Then
+              reveal and diff: what did the model answer include that you skipped? Re-drill only
+              the misses. Two passes a day beats ten silent read-throughs.
+            </GuideSection>
+            <GuideSection n="B" title="Behavioral scaffolds are not scripts">
+              The behavioral cards give structure and what interviewers listen for — the stories
+              must be yours. Write your 4–5 STAR stories once, map each staple question to one of
+              them, and rehearse the mapping, not the wording.
+            </GuideSection>
+            <GuideSection n="C" title="Tie answers back to the Lab">
+              Every technical card names where to practice it live. In the interview, "I built
+              this into a working model — here's what surprised me" turns a memorized answer into
+              evidence.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'rounds' && (
+          <>
+            <GuideSection n="A" title="Round 1 strategy">
+              HireVue is a rehearsal test, not a thinking test: camera at eye level, 90-second
+              answers, end on the result. Record yourself once — everyone's first take runs long.
+            </GuideSection>
+            <GuideSection n="B" title="Round 2 strategy">
+              The take-home is graded on structure, labeled assumptions, and the sensitivity range
+              more than the point answer. The defense is graded on ownership: know which three
+              assumptions matter, and what evidence would change your mind.
+            </GuideSection>
+            <GuideSection n="C" title="The market answer">
+              Numbers first (3.4% → 2.9% → 3.2%), mechanism second (tariff-driven divergence,
+              supply shocks), implication third (AI as the upside; why sensitivity analysis earns
+              its keep). Load the supply-shock preset and practice the chain across tabs 1, 4, 5,
+              and 6 until it's one continuous story.
             </GuideSection>
           </>
         )}
