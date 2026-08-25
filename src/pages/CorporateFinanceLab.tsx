@@ -181,6 +181,24 @@ import {
   historyRows,
 } from '../lib/historyTrends';
 import {
+  ACTIVE_CONFLICTS,
+  ALLIANCE_STRUCTURE,
+  Alignment,
+  FLASHPOINTS,
+  GEOPOLITICS_SOURCE,
+  GEO_EXPOSURE_COUNTRIES,
+  GEO_EXPOSURE_INDUSTRIES,
+  GEO_EXPOSURE_STATES,
+  INSTITUTIONS,
+  MILITARY_BALANCE,
+  MILITARY_ECON_READS,
+  MILITARY_SOURCE,
+  RECENT_WINDOW,
+  RECENT_WINDOW_LABEL,
+  TWO_DECADE_TIMELINE,
+  US_SUMMIT_HISTORY,
+} from '../lib/geoPolitics';
+import {
   DEFAULT_ACCRETION_INPUTS,
   DEFAULT_BETA_INPUTS,
   DEFAULT_BREAKEVEN_INPUTS,
@@ -5162,6 +5180,59 @@ function BacktestTab() {
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
+const ALIGNMENT_META: Record<Alignment, { label: string; tone: string }> = {
+  self: { label: 'the US', tone: 'var(--accent)' },
+  ally: { label: 'US ally', tone: 'var(--pos)' },
+  adversary: { label: 'adversary', tone: 'var(--neg)' },
+  swing: { label: 'swing state', tone: 'var(--severity-medium)' },
+};
+
+function AlignmentBadge({ a }: { a: Alignment }) {
+  const meta = ALIGNMENT_META[a];
+  return (
+    <span
+      style={{
+        fontSize: 10.5,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: meta.tone,
+        border: `1px solid ${meta.tone}`,
+        borderRadius: 999,
+        padding: '3px 10px',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
+function GeoExposureBlock({ title, headline, items }: { title: string; headline: string; items: string[] }) {
+  return (
+    <>
+      <div
+        style={{
+          fontSize: 11.5,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: 'var(--text-tertiary)',
+          margin: '14px 0 8px',
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{headline}</div>
+      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+        {items.map((x) => (
+          <li key={x.slice(0, 40)}>{x}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 function RefLine({ r }: { r: ReportRef }) {
   return (
     <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', marginTop: 8 }}>
@@ -5192,6 +5263,13 @@ function ReportTab() {
     () => industryReport(industryId, DEFAULT_WACC_INPUTS.riskFree, factors),
     [industryId, factors],
   );
+
+  const countryGeo = GEO_EXPOSURE_COUNTRIES.find((g) => g.id === country.id)!;
+  const countryMil = MILITARY_BALANCE.find((m) => m.id === country.id)!;
+  const countryFlash = FLASHPOINTS.filter((f) => f.countries.includes(country.id));
+  const stateGeo = GEO_EXPOSURE_STATES.find((g) => g.id === state.id)!;
+  const industryGeo = GEO_EXPOSURE_INDUSTRIES.find((g) => g.id === industry.id)!;
+  const industryFlash = FLASHPOINTS.filter((f) => f.industries.includes(industry.id));
 
   const secTitle: React.CSSProperties = {
     fontSize: 11.5,
@@ -5521,6 +5599,23 @@ function ReportTab() {
               <RefLine r={{ tab: 15, step: 'E', label: 'The South Korea case study' }} />
             </>
           )}
+
+          <GeoExposureBlock title="Geopolitical exposure" headline={countryGeo.headline} items={countryGeo.items} />
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+            <AlignmentBadge a={countryMil.alignment} />
+            <StatPill label="Defense budget" value={`~$${countryMil.budgetB}B`} />
+            <StatPill label="% of GDP" value={`${countryMil.pctGdp}%`} />
+            <StatPill label="Nuclear" value={countryMil.nuclear ? 'yes' : 'no'} />
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 6 }}>{countryMil.note}</div>
+          {countryFlash.length > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginTop: 6 }}>
+              <strong>Flashpoints touching {country.name}:</strong> {countryFlash.map((f) => f.name).join(' · ')}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+            Full detail in the geopolitics steps at the bottom of this tab (flashpoints, military balance, alliances, meetings, timeline).
+          </div>
         </StepCard>
       )}
 
@@ -5569,6 +5664,15 @@ function ReportTab() {
               <RefLine r={state.calendar.ref} />
             </>
           )}
+
+          <GeoExposureBlock
+            title="Geo-economic exposure — defense, fabs, data centers, ports, space"
+            headline={stateGeo.headline}
+            items={stateGeo.items}
+          />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+            Full detail in the geopolitics steps at the bottom of this tab (flashpoints, military balance, alliances, meetings, timeline).
+          </div>
         </StepCard>
       )}
 
@@ -5662,6 +5766,16 @@ function ReportTab() {
               <RefLine r={industry.subs.ref} />
             </>
           )}
+
+          <GeoExposureBlock title="Geopolitical exposure" headline={industryGeo.headline} items={industryGeo.items} />
+          {industryFlash.length > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginTop: 6 }}>
+              <strong>Flashpoints touching {industry.name}:</strong> {industryFlash.map((f) => f.name).join(' · ')}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+            Full detail in the geopolitics steps at the bottom of this tab (flashpoints, military balance, alliances, meetings, timeline).
+          </div>
         </StepCard>
       )}
 
@@ -5674,6 +5788,177 @@ function ReportTab() {
           </div>
         </StepCard>
       )}
+
+      <StepCard n={letter()} icon={<ShieldCheck size={17} />} title="Geopolitics live — flashpoints, conflicts, military balance & alliances">
+        <p style={hintStyle}>
+          The security layer under every number above: the live flashpoints and what each does
+          to the dials, the active conflicts and their market channels, who spends what on
+          defense and which side of the line they stand on, and the alliance structure. The
+          exposure blocks in the country/state/industry sections above are this layer filtered
+          to your selection.
+        </p>
+        <div className="col" style={{ gap: 10 }}>
+          {FLASHPOINTS.map((f) => (
+            <GlassCard key={f.id} variant="nested" padding={14}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{f.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 6 }}>{f.status}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 6 }}>
+                <strong>The economics:</strong> {f.economics}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 6 }}>
+                <strong>Hits:</strong> {f.hits}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>
+                <strong>Watch:</strong> {f.watch}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          Active military conflicts & hot zones
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {ACTIVE_CONFLICTS.map((c) => (
+            <GlassCard key={c.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{c.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 4 }}>{c.status}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                <strong>Market channel:</strong> {c.marketChannel}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          Military balance — the same eleven countries as the country lens
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Budget</th>
+                <th>% GDP</th>
+                <th>Alignment</th>
+                <th>Nuclear</th>
+                <th>The read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MILITARY_BALANCE.map((m) => (
+                <tr key={m.id}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{m.name}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>~${m.budgetB}B</td>
+                  <td>{m.pctGdp}%</td>
+                  <td>
+                    <AlignmentBadge a={m.alignment} />
+                  </td>
+                  <td>{m.nuclear ? 'yes' : '—'}</td>
+                  <td style={{ minWidth: 320 }}>{m.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{MILITARY_SOURCE}</div>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          The alliance structure
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {ALLIANCE_STRUCTURE.map((a) => (
+            <GlassCard key={a.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{a.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 4 }}>{a.members}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{a.what}</div>
+            </GlassCard>
+          ))}
+        </div>
+        <ul style={{ margin: '10px 0 0', paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {MILITARY_ECON_READS.map((r) => (
+            <li key={r.slice(0, 40)}>{r}</li>
+          ))}
+        </ul>
+      </StepCard>
+
+      <StepCard n={letter()} icon={<Handshake size={17} />} title="Institutions & the two-decade arc — WTO, G7/G20, BRICS, US meetings, the timeline">
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
+          The institutions
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {INSTITUTIONS.map((inst) => (
+            <GlassCard key={inst.id} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{inst.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 4 }}>{inst.what}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>
+                <strong>Where it stands:</strong> {inst.status}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                <strong>Watch:</strong> {inst.watch}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          Two decades of US meetings — and what each actually produced
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {US_SUMMIT_HISTORY.map((m) => (
+            <GlassCard key={`${m.when}-${m.what.slice(0, 20)}`} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>
+                {m.when} — {m.what}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>
+                <strong>Result:</strong> {m.result}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>
+                <strong>The relationship read:</strong> {m.read}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 4px' }}>
+          The recent window
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 }}>{RECENT_WINDOW_LABEL}</div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {RECENT_WINDOW.map((r) => (
+            <li key={r.when}>
+              <strong>{r.when}:</strong> {r.what} <em>{r.impact}</em>
+            </li>
+          ))}
+        </ul>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          Two decades of economic history — the market-lesson timeline
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>What happened</th>
+                <th>Market effect</th>
+                <th>The lesson</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TWO_DECADE_TIMELINE.map((t) => (
+                <tr key={t.period}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t.period}</td>
+                  <td style={{ minWidth: 220 }}>{t.event}</td>
+                  <td style={{ minWidth: 220 }}>{t.effect}</td>
+                  <td style={{ minWidth: 260 }}>{t.lesson}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{GEOPOLITICS_SOURCE}</div>
+      </StepCard>
     </>
   );
 }
@@ -6446,7 +6731,18 @@ function GuidePane({
               noise hides. The build card at the top stays stuck to the screen, so flip lenses
               and frequencies and watch the sections change in place.
             </GuideSection>
-            <GuideSection n="E" title="Using it for the interview">
+            <GuideSection n="E" title="The geopolitics layer">
+              The last two steps hold the security layer: seven flashpoints (Taiwan, the South
+              China Sea island campaign, Iran/Hormuz, Venezuela, the sanctions economy, AI/chips
+              &amp; data centers, space), the active conflicts with their market channels, the
+              military-balance table (budgets, alignment, nuclear status — same eleven countries
+              as the country lens), the alliance structure, the WTO/G7/G20/BRICS state of play,
+              two decades of US meetings with what each produced, and the 2005→2026 market-lesson
+              timeline. Each lens section above carries its filtered slice. The discipline: name
+              the channel — commodities, budgets, or tails — before citing any headline, and
+              treat the recent-window digest as illustrative until verified.
+            </GuideSection>
+            <GuideSection n="F" title="Using it for the interview">
               This is the "walk me through how you'd brief a client on X" rehearsal: pick the
               client's industry and home state, read the report top to bottom out loud, and
               practice ending each section with the so-what. The EY-expected exhibits on tab 7
