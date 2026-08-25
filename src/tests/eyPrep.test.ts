@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   BEHAVIORAL_STAPLES,
+  EY_EXHIBITS,
+  EY_MARKET_ROUTINE,
+  EY_ROUTINE_EXPECTATION,
+  EY_STANDARD_ANALYSES,
   DRILL_CARDS,
   EY_OUTLOOK,
   GAP_CHECK,
@@ -82,5 +86,50 @@ describe('the round map', () => {
     expect(TAKE_HOME_PLAN.join(' ')).toMatch(/sensitivity/i);
     expect(TAKE_HOME_PLAN.join(' ')).toMatch(/WACC/);
     for (const s of TAKE_HOME_PLAN) expect(s.length).toBeGreaterThan(50);
+  });
+});
+
+describe("EY's standard analyses, exhibits, and routine (tab 7, steps D–E)", () => {
+  it('ranks the analyses with the valuation triad and PPA in the core tier, every row mapped to the Lab', () => {
+    expect(EY_STANDARD_ANALYSES.length).toBeGreaterThanOrEqual(14);
+    const core = EY_STANDARD_ANALYSES.filter((a) => a.tier === 'core').map((a) => a.name).join(' ');
+    expect(core).toMatch(/DCF/);
+    expect(core).toMatch(/comps/i);
+    expect(core).toMatch(/Precedent/i);
+    expect(core).toMatch(/Purchase price allocation/i);
+    expect(core).toMatch(/Quality of Earnings/i);
+    for (const a of EY_STANDARD_ANALYSES) {
+      expect(a.what.length).toBeGreaterThan(30);
+      expect(a.lab.length).toBeGreaterThan(20);
+    }
+    // the honest ranking: LBO is peripheral for EY specifically
+    expect(EY_STANDARD_ANALYSES.find((a) => a.name.includes('LBO'))!.tier).toBe('peripheral');
+    // the headline practitioner finding survives in the data
+    expect(EY_STANDARD_ANALYSES.map((a) => a.what).join(' ')).toMatch(/~50% of a junior/i);
+  });
+
+  it('the exhibit list leads with the two-way sensitivity table and includes the football field and EY house bars+line', () => {
+    expect(EY_EXHIBITS.length).toBeGreaterThanOrEqual(7);
+    expect(EY_EXHIBITS[0].name).toMatch(/Two-way sensitivity/i);
+    const names = EY_EXHIBITS.map((e) => e.name).join(' ');
+    expect(names).toMatch(/Football field/i);
+    expect(names).toMatch(/waterfall/i);
+    expect(names).toMatch(/Bars \+ line/i);
+    for (const e of EY_EXHIBITS) expect(e.lab.length).toBeGreaterThan(20);
+    // the two-way grid maps to where the Lab actually renders it
+    expect(EY_EXHIBITS[0].lab).toMatch(/Tab 5/);
+  });
+
+  it('the market routine spans daily through annual at EY cadence, with the verbatim posting expectation', () => {
+    const cadences = EY_MARKET_ROUTINE.map((r) => r.cadence).join(' ');
+    for (const c of ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual']) expect(cadences).toContain(c);
+    const all = EY_MARKET_ROUTINE.map((r) => `${r.what} ${r.labTie}`).join(' ');
+    expect(all).toMatch(/IPO Trends/);
+    expect(all).toMatch(/Deal Barometer/);
+    expect(all).toMatch(/Valuation Market Essentials/);
+    expect(all).toMatch(/Damodaran/);
+    expect(all).toMatch(/CPE/);
+    expect(EY_ROUTINE_EXPECTATION).toMatch(/staying abreast of current business and economic developments/);
+    for (const r of EY_MARKET_ROUTINE) expect(r.labTie).toMatch(/[Tt]abs? \d+/);
   });
 });

@@ -148,6 +148,80 @@ export const INTERVIEW_FORMAT: string[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// EY's standard analyses, exhibits, and market-update routine (tab 7)
+// ---------------------------------------------------------------------------
+//
+// Researched 2026-08 from EY job postings (VME, EY-Parthenon Corporate
+// Finance/Business Valuation, Transaction Diligence), EY service pages, EY's
+// own publications, and first-year practitioner accounts. Sourced write-up
+// in the study repo's ey-interview-prep.md.
+
+export type AnalysisTier = 'core' | 'named' | 'peripheral';
+
+export interface EyAnalysis {
+  name: string;
+  tier: AnalysisTier;
+  what: string;
+  /** Where you practice it in this Lab — or the one-liner if knowledge-only. */
+  lab: string;
+}
+
+export const EY_STANDARD_ANALYSES: EyAnalysis[] = [
+  { name: 'DCF models', tier: 'core', what: 'Named verbatim in VME postings ("building complex financial models, including DCF…"); "exposure to DCF valuation methodology is expected."', lab: 'Tab 5 — the five-year build, terminal value, and the narration script.' },
+  { name: 'Trading comps (comparable company analysis)', tier: 'core', what: 'The CCA leg of the postings’ DCF/CCA/PTA triad; the cross-check in every valuation and fairness deliverable.', lab: 'Tab 5’s peer multiple; tab 10’s comps comparator.' },
+  { name: 'Precedent transaction analysis (PTA)', tier: 'core', what: 'The third leg of the triad — deal prices paid, control premium included.', lab: 'Tab 10 — trading vs precedent with the implied control premium.' },
+  { name: 'Purchase price allocation (PPA / ASC 805) & intangibles', tier: 'core', what: 'THE first-year workhorse: practitioner accounts put PPAs at ~50% of a junior valuation analyst’s time — allocating price to tangibles, then customer relationships, trade names, technology, non-competes.', lab: 'Tab 10’s PPA calculator — drill it until the goodwill residual is reflex.' },
+  { name: 'Quality of Earnings (QoE) / financial due diligence package', tier: 'core', what: 'Transaction Diligence postings name "quality of earnings, working capital analysis, and debt and debt-like items" verbatim — the adjusted-EBITDA bridge, the NWC peg, the net-debt schedule.', lab: 'Pieces live in tabs 1 (debt-like items — pension!), 2/5 (NWC); the QoE BRIDGE format itself is the exhibit to learn below.' },
+  { name: 'Working capital analysis / NWC peg', tier: 'core', what: 'Core FDD workstream: what "normal" working capital is, so the price adjusts for deviations at close.', lab: 'Tab 2’s CCC machinery and tab 5’s ΔNWC drag are the mechanics behind the peg.' },
+  { name: 'Net debt & debt-like items schedule', tier: 'core', what: 'Everything that behaves like debt moves the equity bridge — including the pensions and leases.', lab: 'Tab 1’s pro forma (adjusted debt = debt + pension & leases) is exactly this schedule.' },
+  { name: 'Goodwill impairment testing (ASC 350)', tier: 'named', what: 'The financial-reporting twin of PPA.', lab: 'Tab 10’s impairment tester.' },
+  { name: 'Fairness opinions', tier: 'named', what: 'EY-Parthenon Business Valuation postings: "provide fairness opinions on transactions and restructurings" — summarized by the football-field exhibit.', lab: 'Knowledge item — the football field below is its signature slide.' },
+  { name: 'Model build / model review / model support', tier: 'named', what: 'VME’s Business Modeling triad, named verbatim — building, extending, and independently checking decision models.', lab: 'Tabs 5 and 16 are the build; tab 18’s verify-everything habit IS model review.' },
+  { name: 'Sensitivity & scenario analysis', tier: 'named', what: 'Named in postings and the capital-allocation service page ("scenario modeling and risk assessments").', lab: 'Tab 5’s WACC×g grid; the four dials everywhere; tab 18’s regimes.' },
+  { name: 'Commercial due diligence / market studies', tier: 'named', what: 'EY-Parthenon strategy work: market sizing, segmentation, competitor analysis, downside cases, investment-thesis testing.', lab: 'Tabs 3, 13, and 15 are the macro/market-study layer.' },
+  { name: '13-week cash flow model', tier: 'named', what: 'Turnaround & Restructuring postings verbatim: "including 13-week cash flow models, to understand clients’ liquidity positions."', lab: 'Knowledge item — the restructuring cousin of tab 14’s runway math (weekly granularity, receipts/disbursements).' },
+  { name: 'Capital allocation frameworks', tier: 'named', what: 'A dedicated EY-Parthenon service: portfolio-vs-strategy alignment, scenario modeling, cash culture.', lab: 'Tab 1’s seven-way ranking and tab 4’s by-industry recommendation.' },
+  { name: 'WACC / cost-of-capital build-ups', tier: 'named', what: 'EY publishes its own practitioner’s guide to cost of capital & WACC; Valuation Market Essentials updates WACC by industry quarterly.', lab: 'Tabs 1, 10 (beta workshop), and 16 (market-weighted, circularity noted).' },
+  { name: 'LBO / returns analysis', tier: 'peripheral', what: 'Not prominent in EY postings (EY isn’t a US underwriter) — appears via PE-client diligence context.', lab: 'Tab 10’s LBO mini-model covers the sentence you need.' },
+];
+
+export interface EyExhibit {
+  name: string;
+  what: string;
+  lab: string;
+}
+
+/** The chart/exhibit formats EY deliverables expect, ranked. */
+export const EY_EXHIBITS: EyExhibit[] = [
+  { name: 'Two-way sensitivity table (WACC × terminal growth)', what: 'The default DCF exhibit — ±1–2pp ranges around base case; the "a valuation is a range" slide.', lab: 'Tab 5 renders it live, base case highlighted.' },
+  { name: 'EBITDA bridge / QoE adjustment waterfall', what: 'The headline exhibit of an FDD report: reported EBITDA → each adjustment bar → adjusted → pro-forma run-rate. Same waterfall grammar for net-debt and equity bridges.', lab: 'Format to learn: tab 16’s stage-6 table is the equity-bridge math; the waterfall is how it’s DRAWN in a deliverable.' },
+  { name: 'Football field (valuation range summary)', what: 'Horizontal range bars per method — DCF, trading comps, precedents, 52-week range — side by side: the single slide summarizing a fairness opinion’s foundation.', lab: 'Conceptually: tab 5’s DCF vs exit-multiple cross-check IS a two-bar football field; know the full format by name.' },
+  { name: 'Comps spread table', what: 'EV/EBITDA, EV/Revenue, P/E across the peer set with mean/median rows — EY publishes exactly this quarterly by industry (Valuation Market Essentials).', lab: 'Tab 10’s comparator and tab 14’s benchmark table are the same grammar.' },
+  { name: 'Scenario matrix / downside case', what: 'Base / upside / downside with the assumptions that differ — capital-allocation and CDD staple.', lab: 'Tab 1’s Δ-NPV-vs-neutral column and tab 18’s regime tables.' },
+  { name: 'Bars + line combo (EY house style)', what: 'EY’s visible chart signature: value as bars, count as a line — the Global IPO Trends and monthly M&A activity format.', lab: 'Tab 13’s sector chart carries the same data; know that EY draws it bars+line.' },
+  { name: 'Share price / VWAP chart & IRR tables', what: 'Deal-context staples: where the stock traded vs the offer; returns tables by scenario.', lab: 'Tab 16’s implied-growth read is the analytical cousin; tab 10’s LBO prints the IRR table.' },
+];
+
+export interface RoutineItem {
+  cadence: string;
+  what: string;
+  labTie: string;
+}
+
+/** How to keep up with markets, at EY's own cadence. */
+export const EY_MARKET_ROUTINE: RoutineItem[] = [
+  { cadence: 'Daily', what: 'Treasury curve & H.15 rates, credit spreads — the risk-free legs of every valuation you’ll touch.', labTie: 'Tab 11’s curve; tab 17’s daily freshness budget.' },
+  { cadence: 'Weekly', what: 'Freddie Mac PMMS mortgage print (real-estate work); weekly deal-news sweep.', labTie: 'Tab 12’s benchmark panel.' },
+  { cadence: 'Monthly', what: 'CPI/PCE prints; EY US M&A activity insights / Deal Barometer (deal value bars, count line).', labTie: 'Tab 3’s inflation panel; tab 13’s window checklists.' },
+  { cadence: 'Quarterly', what: 'EY Global IPO Trends; EY-Parthenon CEO Outlook Pulse; EY ITEM Club (UK); Valuation Market Essentials (WACC & multiples by industry); GDP releases.', labTie: 'Tabs 13 (windows), 14 (benchmarks), 17 (vintages).' },
+  { cadence: 'Twice a year +', what: 'EY-Parthenon Global Economic Outlook (global twice yearly; regional monthly/quarterly — Daco’s cadence).', labTie: 'Tab 3’s dials and the outlook numbers on this tab.' },
+  { cadence: 'Annual', what: 'Firepower (life-sciences M&A, JPM-week January); Biotech Beyond Borders (June); Damodaran’s data update (ERP, spreads, betas — January); ~40 CPE credits/yr via EY webcasts (enforced).', labTie: 'Tab 14’s Damodaran table is last-January’s snapshot of exactly this.' },
+];
+
+export const EY_ROUTINE_EXPECTATION =
+  'The verbatim posting language: "staying abreast of current business and economic developments relevant to the client’s business" is a listed RESPONSIBILITY, not a nicety — paired with ~40 CPE credits a year (webcasts, enforced). The routine above is that expectation turned into a calendar, and tab 17’s refresh budgets are the same idea applied to data.';
+
+// ---------------------------------------------------------------------------
 // The round map (tab 9)
 // ---------------------------------------------------------------------------
 

@@ -143,10 +143,15 @@ import {
 } from '../lib/economicMachine';
 import { INDUSTRY_PROFILES, adviseCapital } from '../lib/industryPlaybook';
 import {
+  AnalysisTier,
   BEHAVIORAL_STAPLES,
   DRILL_CARDS,
   DrillCategory,
+  EY_EXHIBITS,
+  EY_MARKET_ROUTINE,
   EY_OUTLOOK,
+  EY_ROUTINE_EXPECTATION,
+  EY_STANDARD_ANALYSES,
   GAP_CHECK,
   GapStatus,
   INTERVIEW_FORMAT,
@@ -319,6 +324,12 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'datasources', label: '17 · Data & sources', icon: Database },
   { id: 'backtest', label: '18 · Regime backtest', icon: History },
 ];
+
+const ANALYSIS_TIER_META: Record<AnalysisTier, { label: string; tone: string }> = {
+  core: { label: 'core — expect it', tone: 'var(--success, #22c55e)' },
+  named: { label: 'named in postings', tone: 'var(--info, #3b82f6)' },
+  peripheral: { label: 'peripheral at EY', tone: 'var(--text-tertiary)' },
+};
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
   covered: { label: 'Covered in the Lab', tone: 'var(--pos)' },
@@ -2106,6 +2117,99 @@ export default function CorporateFinanceLab() {
                   Practice both halves here: <strong>tab 8</strong> drills the questions,{' '}
                   <strong>tab 9</strong> maps the rounds, and <strong>tab 5</strong> is the
                   take-home rehearsal.
+                </p>
+              </StepCard>
+
+              <StepCard n="D" icon={<Briefcase size={17} />} title="EY's standard analyses — what they use and would expect of me">
+                <p style={hintStyle}>
+                  The analyses that actually fill an EY Valuation / Corporate Finance week, ranked
+                  by how often they appear across EY's own job postings, service pages, and
+                  first-year practitioner accounts (researched Aug 2026; sourced write-up in the
+                  study repo). Each row says where this Lab practices it. The headline finding:
+                  the DCF/comps/precedents triad is table stakes, but{' '}
+                  <strong>purchase price allocations are ~half of a first-year valuation
+                  analyst's time</strong> — drill tab 10's PPA until it's reflex.
+                </p>
+                <div className="col" style={{ gap: 10 }}>
+                  {EY_STANDARD_ANALYSES.map((a) => {
+                    const meta = ANALYSIS_TIER_META[a.tier];
+                    return (
+                      <GlassCard key={a.name} variant="nested" padding={14}>
+                        <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{a.name}</span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: meta.tone,
+                              border: `1px solid ${meta.tone}`,
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 6 }}>{a.what}</div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                          <strong style={{ color: meta.tone }}>In this Lab:</strong> {a.lab}
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+              </StepCard>
+
+              <StepCard n="E" icon={<BarChart3 size={17} />} title="The reporting & exhibits they'd expect — and the market-update routine">
+                <p style={hintStyle}>
+                  How EY deliverables <em>look</em>: the exhibit formats a valuation or diligence
+                  report is built from, ranked, with where this Lab already renders each — then
+                  the keep-current routine, set to EY's own publication cadence.
+                </p>
+                <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                  The exhibits, ranked
+                </div>
+                <div className="col" style={{ gap: 8, marginBottom: 16 }}>
+                  {EY_EXHIBITS.map((e, i) => (
+                    <GlassCard key={e.name} variant="nested" padding={12}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>
+                        {i + 1}. {e.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 4 }}>{e.what}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        <strong>In this Lab:</strong> {e.lab}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                  Keeping up with the market, at EY's cadence
+                </div>
+                <div style={{ overflowX: 'auto', marginBottom: 12 }}>
+                  <table className="fin-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Cadence</th>
+                        <th>What to read / refresh</th>
+                        <th>Where the Lab mirrors it</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {EY_MARKET_ROUTINE.map((r) => (
+                        <tr key={r.cadence}>
+                          <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.cadence}</td>
+                          <td>{r.what}</td>
+                          <td>{r.labTie}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+                  {EY_ROUTINE_EXPECTATION}
                 </p>
               </StepCard>
             </>
@@ -5454,6 +5558,22 @@ function GuidePane({
               This Lab is a teaching model and says so. If asked about its limits, volunteer them:
               linear sensitivities, illustrative bands, one peer multiple. Knowing a model's limits
               is the skill EY literally sells as "model review."
+            </GuideSection>
+            <GuideSection n="C" title="Reading the standard-analyses list (step D)">
+              The badges are evidence tiers, not importance: "core" items appear in nearly every
+              EY source, "named" items in specific postings or service pages, "peripheral" is
+              honest about what EY does less of (LBOs — EY isn't an underwriter). Interview move:
+              when asked what the work is, answer with the core tier IN ORDER — DCF, comps,
+              precedents, then say "and I understand PPAs are where first-years spend half their
+              time, so I built one" and open tab 10.
+            </GuideSection>
+            <GuideSection n="D" title="The routine is an interview answer (step E)">
+              "How do you stay current?" now has a sourced answer: daily curve, monthly CPI/PCE and
+              EY's M&amp;A activity insights, quarterly IPO Trends / CEO Outlook / Valuation Market
+              Essentials, EY-Parthenon's twice-yearly global outlook, Damodaran every January —
+              and name the posting language itself: "staying abreast of current business and
+              economic developments" is a listed responsibility. Tab 17 shows you already treat
+              data freshness as a discipline.
             </GuideSection>
           </>
         )}
