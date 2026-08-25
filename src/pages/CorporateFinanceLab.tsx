@@ -26,6 +26,7 @@ import {
   Cog,
   Compass,
   Database,
+  FileText,
   GraduationCap,
   Handshake,
   History,
@@ -158,6 +159,19 @@ import {
   TAKE_HOME_PLAN,
 } from '../lib/eyPrep';
 import {
+  REPORT_COUNTRIES,
+  REPORT_FORMULAS,
+  REPORT_HOW_TO_READ,
+  REPORT_INDUSTRIES,
+  REPORT_STATES,
+  ReportRef,
+  combinedRead,
+  countryReport,
+  industryReport,
+  refText,
+  stateReport,
+} from '../lib/reportBuilder';
+import {
   DEFAULT_ACCRETION_INPUTS,
   DEFAULT_BETA_INPUTS,
   DEFAULT_BREAKEVEN_INPUTS,
@@ -247,6 +261,7 @@ import {
   COUNTRY_DEBT_SOURCE,
   CURRENCY_SOURCE,
   CURRENCY_TRENDS,
+  CURRENCY_YEARS,
   DEBT_TREND_YEARS,
   GDP_IMPACT_COUNTRIES,
   GDP_IMPACT_NOTE,
@@ -302,7 +317,8 @@ type TabId =
   | 'debtgeo'
   | 'fullcycle'
   | 'datasources'
-  | 'backtest';
+  | 'backtest'
+  | 'report';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -323,6 +339,7 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'fullcycle', label: '16 · The full cycle (EV·ROIC·WACC)', icon: Workflow },
   { id: 'datasources', label: '17 · Data & sources', icon: Database },
   { id: 'backtest', label: '18 · Regime backtest', icon: History },
+  { id: 'report', label: '19 · Report builder', icon: FileText },
 ];
 
 const ANALYSIS_TIER_META: Record<AnalysisTier, { label: string; tone: string }> = {
@@ -2335,6 +2352,8 @@ export default function CorporateFinanceLab() {
           {tab === 'datasources' && <DataSourcesTab />}
 
           {tab === 'backtest' && <BacktestTab />}
+
+          {tab === 'report' && <ReportTab />}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
@@ -5134,6 +5153,431 @@ function BacktestTab() {
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
+function RefLine({ r }: { r: ReportRef }) {
+  return (
+    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', marginTop: 8 }}>
+      Reference: {refText(r)}
+    </div>
+  );
+}
+
+function ReportTab() {
+  const [scenarioId, setScenarioId] = useState<string>(TODAY_SCENARIO_ID);
+  const [showCountry, setShowCountry] = useState(true);
+  const [showState, setShowState] = useState(true);
+  const [showIndustry, setShowIndustry] = useState(true);
+  const [countryId, setCountryId] = useState('us');
+  const [stateId, setStateId] = useState('ca');
+  const [industryId, setIndustryId] = useState('tech');
+
+  const factors: MacroFactors =
+    scenarioId === TODAY_SCENARIO_ID
+      ? MARKET_SNAPSHOT.factors
+      : (SCENARIOS.find((x) => x.id === scenarioId)?.factors ?? MARKET_SNAPSHOT.factors);
+
+  const country = useMemo(() => countryReport(countryId), [countryId]);
+  const state = useMemo(() => stateReport(stateId), [stateId]);
+  const industry = useMemo(
+    () => industryReport(industryId, DEFAULT_WACC_INPUTS.riskFree, factors),
+    [industryId, factors],
+  );
+
+  const secTitle: React.CSSProperties = {
+    fontSize: 11.5,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: 'var(--text-tertiary)',
+    margin: '14px 0 8px',
+  };
+  const bodyText: React.CSSProperties = { fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 };
+  const noteText: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 };
+
+  let step = 0;
+  const letter = () => String.fromCharCode(68 + step++); // D, E, F… after the fixed A–C
+
+  return (
+    <>
+      <StepCard n="A" icon={<Cog size={17} />} title="Build the report — pick your lenses">
+        <p style={hintStyle}>
+          Toggle each lens on or off and pick its subject. Any combination works — country
+          alone, "California by industry," or all three. Every section below is pulled live
+          from the same models the source tabs use, and carries its tab · step reference.
+        </p>
+        <div className="col" style={{ gap: 10 }}>
+          <GlassCard variant="nested" padding={12}>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Chip active={showCountry} onClick={() => setShowCountry(!showCountry)}>
+                Country lens: {showCountry ? 'ON' : 'off'}
+              </Chip>
+              {showCountry &&
+                REPORT_COUNTRIES.map((c) => (
+                  <Chip key={c.id} active={countryId === c.id} onClick={() => setCountryId(c.id)}>
+                    {c.name}
+                  </Chip>
+                ))}
+            </div>
+          </GlassCard>
+          <GlassCard variant="nested" padding={12}>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Chip active={showState} onClick={() => setShowState(!showState)}>
+                State lens: {showState ? 'ON' : 'off'}
+              </Chip>
+              {showState &&
+                REPORT_STATES.map((c) => (
+                  <Chip key={c.id} active={stateId === c.id} onClick={() => setStateId(c.id)}>
+                    {c.name}
+                  </Chip>
+                ))}
+            </div>
+          </GlassCard>
+          <GlassCard variant="nested" padding={12}>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Chip active={showIndustry} onClick={() => setShowIndustry(!showIndustry)}>
+                Industry lens: {showIndustry ? 'ON' : 'off'}
+              </Chip>
+              {showIndustry &&
+                REPORT_INDUSTRIES.map((c) => (
+                  <Chip key={c.id} active={industryId === c.id} onClick={() => setIndustryId(c.id)}>
+                    {c.name}
+                  </Chip>
+                ))}
+            </div>
+          </GlassCard>
+          <GlassCard variant="nested" padding={12}>
+            <div style={{ ...noteText, marginBottom: 8 }}>
+              Scenario for the dial-driven sections (industry backdrop, capital stance,
+              sub-lenses). Country and state facts are snapshot data and do not move.
+            </div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <Chip active={scenarioId === TODAY_SCENARIO_ID} onClick={() => setScenarioId(TODAY_SCENARIO_ID)}>
+                Today ({MARKET_SNAPSHOT.asOf})
+              </Chip>
+              {SCENARIOS.map((x) => (
+                <Chip key={x.id} active={scenarioId === x.id} onClick={() => setScenarioId(x.id)}>
+                  {x.name}
+                </Chip>
+              ))}
+            </div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              <StatPill label="Growth dial" value={`${factors.growth >= 0 ? '+' : ''}${factors.growth}`} />
+              <StatPill label="Inflation dial" value={`${factors.inflation >= 0 ? '+' : ''}${factors.inflation}`} />
+              <StatPill label="Fed dial" value={`${factors.policy >= 0 ? '+' : ''}${factors.policy}`} />
+              <StatPill label="Fiscal dial" value={`${factors.fiscal >= 0 ? '+' : ''}${factors.fiscal}`} />
+            </div>
+          </GlassCard>
+        </div>
+      </StepCard>
+
+      <StepCard n="B" icon={<GraduationCap size={17} />} title="How to read this report">
+        <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {REPORT_HOW_TO_READ.map((h) => (
+            <li key={h.slice(0, 40)}>{h}</li>
+          ))}
+        </ol>
+      </StepCard>
+
+      <StepCard n="C" icon={<Calculator size={17} />} title="The formulas behind every number here">
+        <div className="col" style={{ gap: 8 }}>
+          {REPORT_FORMULAS.map((f) => (
+            <GlassCard key={f.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{f.name}</div>
+              <Eq>{f.formula}</Eq>
+              <div style={noteText}>{f.how}</div>
+              <RefLine r={f.ref} />
+            </GlassCard>
+          ))}
+        </div>
+      </StepCard>
+
+      {showCountry && (
+        <StepCard n={letter()} icon={<Globe size={17} />} title={`Country report — ${country.name}`}>
+          {country.debt ? (
+            <>
+              <div style={secTitle}>Debt-to-GDP, 2000 → 2025</div>
+              <XYLineChart
+                data={DEBT_TREND_YEARS.map((y, i) => ({ year: String(y), pct: country.debt!.row.trend[i] }))}
+                xKey="year"
+                series={[{ id: 'pct', label: 'Debt / GDP %' }]}
+                height={180}
+              />
+              <div style={{ ...bodyText, marginTop: 6 }}>{country.debt.row.note}</div>
+              <div style={{ ...noteText, marginTop: 4 }}>{country.debt.how}</div>
+              <RefLine r={country.debt.ref} />
+            </>
+          ) : (
+            <div style={noteText}>
+              Not in the top-10 debt list (tab 15 tracks the ten largest economies) — the trade,
+              currency, and case-study sections below carry this country's story.
+            </div>
+          )}
+
+          {country.trade && (
+            <>
+              <div style={secTitle}>Trade balance</div>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <StatPill label="Exports" value={`$${country.trade.row.exportsB}B`} />
+                <StatPill label="Imports" value={`$${country.trade.row.importsB}B`} />
+                <StatPill
+                  label="Balance (computed)"
+                  value={`${country.trade.balanceB >= 0 ? '+' : '−'}$${Math.abs(country.trade.balanceB)}B`}
+                  strong
+                />
+              </div>
+              <div style={{ ...bodyText, marginTop: 6 }}>{country.trade.row.note}</div>
+              <div style={{ ...noteText, marginTop: 4 }}>{country.trade.how}</div>
+              <RefLine r={country.trade.ref} />
+            </>
+          )}
+
+          {country.currency && (
+            <>
+              <div style={secTitle}>Currency vs the dollar (2021 = 100)</div>
+              <XYLineChart
+                data={CURRENCY_YEARS.map((y, i) => ({ year: y, idx: country.currency!.row.index[i] }))}
+                xKey="year"
+                series={[{ id: 'idx', label: country.currency.row.name }]}
+                height={180}
+                ySuffix=""
+              />
+              <div style={{ ...bodyText, marginTop: 6 }}>{country.currency.row.note}</div>
+              <div style={{ ...noteText, marginTop: 4 }}>{country.currency.how}</div>
+              <RefLine r={country.currency.ref} />
+            </>
+          )}
+          {country.currencyNote && (
+            <>
+              <div style={secTitle}>Currency</div>
+              <div style={bodyText}>{country.currencyNote}</div>
+            </>
+          )}
+
+          {country.populism && (
+            <>
+              <div style={secTitle}>Populism & the fiscal pipeline</div>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                <StatPill label="Pressure" value={country.populism.row.pressure} strong />
+              </div>
+              <div style={bodyText}>
+                <strong>Expression:</strong> {country.populism.row.expression}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>Fiscal pipeline (24m):</strong> {country.populism.row.fiscalPipeline}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>Economic channel:</strong> {country.populism.row.impact}
+              </div>
+              <div style={{ ...noteText, marginTop: 4 }}>{country.populism.how}</div>
+              <RefLine r={country.populism.ref} />
+            </>
+          )}
+
+          {country.impactWatch && (
+            <>
+              <div style={secTitle}>GDP impact watch — health / food / education (24m)</div>
+              <div style={bodyText}>
+                <strong>Health:</strong> {country.impactWatch.row.health}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>Food & agriculture:</strong> {country.impactWatch.row.food}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>Education & workforce:</strong> {country.impactWatch.row.education}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>The read:</strong> {country.impactWatch.row.read}
+              </div>
+              <RefLine r={country.impactWatch.ref} />
+            </>
+          )}
+
+          {country.calendar.events.length > 0 && (
+            <>
+              <div style={secTitle}>24-month calendar</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                {country.calendar.events.map((e) => (
+                  <li key={`${e.when}-${e.what}`}>
+                    <strong>{e.when}</strong> — {e.what}. {e.why}
+                  </li>
+                ))}
+              </ul>
+              <div style={{ ...noteText, marginTop: 4 }}>{country.calendar.how}</div>
+              <RefLine r={country.calendar.ref} />
+            </>
+          )}
+
+          {country.caseStudy && (
+            <>
+              <div style={secTitle}>{country.caseStudy.title}</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                {country.caseStudy.facts.map((x) => (
+                  <li key={x.slice(0, 40)}>{x}</li>
+                ))}
+              </ul>
+              <div style={{ ...bodyText, marginTop: 8 }}>
+                <strong>The chain:</strong> {country.caseStudy.chain.join(' → ')}
+              </div>
+              <div style={{ ...bodyText, marginTop: 6 }}>{country.caseStudy.lesson}</div>
+              <RefLine r={{ tab: 15, step: 'E', label: 'The South Korea case study' }} />
+            </>
+          )}
+        </StepCard>
+      )}
+
+      {showState && (
+        <StepCard n={letter()} icon={<Landmark size={17} />} title={`State report — ${state.name}`}>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <StatPill label="GSP rank (economy size)" value={`#${state.debt.row.gdpRank}`} />
+            <StatPill label="Bonded debt / GSP" value={`${state.debt.row.debtGspPct}%`} strong />
+            <StatPill label="Debt rank among top ten" value={`#${state.debt.rankAmongTen}`} />
+          </div>
+          <div style={{ ...bodyText, marginTop: 8 }}>
+            <strong>The pension layer (the real balance sheet):</strong> {state.debt.row.pensionNote}
+          </div>
+          <div style={{ ...noteText, marginTop: 4 }}>{state.debt.how}</div>
+          <RefLine r={state.debt.ref} />
+
+          {state.impactWatch && (
+            <>
+              <div style={secTitle}>GSP impact watch — health / food / education (24m)</div>
+              <div style={bodyText}>
+                <strong>Health:</strong> {state.impactWatch.row.health}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>Food & agriculture:</strong> {state.impactWatch.row.food}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>Education & workforce:</strong> {state.impactWatch.row.education}
+              </div>
+              <div style={{ ...bodyText, marginTop: 4 }}>
+                <strong>The read:</strong> {state.impactWatch.row.read}
+              </div>
+              <RefLine r={state.impactWatch.ref} />
+            </>
+          )}
+
+          {state.calendar.events.length > 0 && (
+            <>
+              <div style={secTitle}>24-month calendar</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                {state.calendar.events.map((e) => (
+                  <li key={`${e.when}-${e.what}`}>
+                    <strong>{e.when}</strong> — {e.what}. {e.why}
+                  </li>
+                ))}
+              </ul>
+              <RefLine r={state.calendar.ref} />
+            </>
+          )}
+        </StepCard>
+      )}
+
+      {showIndustry && (
+        <StepCard n={letter()} icon={<BarChart3 size={17} />} title={`Industry report — ${industry.name}`}>
+          <div style={secTitle}>Backdrop under the current dials</div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <StatPill label="Backdrop" value={industry.backdrop.read.level} strong />
+            <StatPill label="Modeled impact now" value={fmtSignedPct(industry.backdrop.read.now)} />
+            <StatPill label="In 8 quarters" value={fmtSignedPct(industry.backdrop.read.later)} />
+          </div>
+          <div style={{ ...bodyText, marginTop: 6 }}>{industry.backdrop.read.note}</div>
+          <div style={{ ...noteText, marginTop: 4 }}>{industry.backdrop.how}</div>
+          <RefLine r={industry.backdrop.ref} />
+
+          <div style={secTitle}>Capital stance & WACC</div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <StatPill label="Stance" value={industry.advice.result.stance} strong />
+            <StatPill label="Industry WACC" value={`${industry.advice.result.wacc.wacc}%`} />
+            <StatPill label="Beta" value={`${industry.profile.beta}`} />
+          </div>
+          <div style={{ ...bodyText, marginTop: 6 }}>{industry.advice.result.summary}</div>
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+            {industry.profile.assumptions.map((a) => (
+              <li key={a.slice(0, 40)}>{a}</li>
+            ))}
+          </ul>
+          <div style={{ ...noteText, marginTop: 4 }}>{industry.advice.how}</div>
+          <RefLine r={industry.advice.ref} />
+
+          <div style={secTitle}>Benchmarks — what normal looks like here</div>
+          {industry.benchmarks.rows.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="fin-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Damodaran industry</th>
+                    <th>Debt/EBITDA</th>
+                    <th>Coverage</th>
+                    <th>Margin</th>
+                    <th>ROC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {industry.benchmarks.rows.map((b) => (
+                    <tr key={b.id}>
+                      <td>{b.industry}</td>
+                      <td>{Number.isNaN(b.debtEbitda) ? '—' : `${b.debtEbitda}×`}</td>
+                      <td>{Number.isNaN(b.interestCoverage) ? '—' : `${b.interestCoverage}×`}</td>
+                      <td>{b.afterTaxOperMarginPct}%</td>
+                      <td>{b.rocPct}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div style={noteText}>
+              No Damodaran row in tab 14's teaching set maps to this industry — use tab 14's
+              vertical toolkits and the observed-not-healthy rule when you find real data.
+            </div>
+          )}
+          <div style={{ ...noteText, marginTop: 4 }}>{industry.benchmarks.how}</div>
+          <RefLine r={industry.benchmarks.ref} />
+
+          {industry.ipo && (
+            <>
+              <div style={secTitle}>The equity window — sector IPO counts</div>
+              <XYLineChart
+                data={industry.ipo.years.map((y, i) => ({ year: y, n: industry.ipo!.row.counts[i] }))}
+                xKey="year"
+                series={[{ id: 'n', label: industry.ipo.row.name }]}
+                height={180}
+                ySuffix=""
+              />
+              <div style={{ ...bodyText, marginTop: 6 }}>{industry.ipo.row.note}</div>
+              <div style={{ ...noteText, marginTop: 4 }}>{industry.ipo.how}</div>
+              <RefLine r={industry.ipo.ref} />
+            </>
+          )}
+
+          {industry.subs.reads.length > 0 && (
+            <>
+              <div style={secTitle}>Sub-industry lenses at this scenario</div>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                {industry.subs.reads.map((sub) => (
+                  <StatPill key={sub.target.id} label={sub.target.name} value={fmtSignedPct(Math.round(sub.nowPct * 10) / 10)} />
+                ))}
+              </div>
+              <div style={{ ...noteText, marginTop: 6 }}>{industry.subs.how}</div>
+              <RefLine r={industry.subs.ref} />
+            </>
+          )}
+        </StepCard>
+      )}
+
+      {showState && showIndustry && (
+        <StepCard n={letter()} icon={<Compass size={17} />} title={`The combined read — ${state.name} × ${industry.name}`}>
+          <div style={bodyText}>{combinedRead(stateId, industryId, DEFAULT_WACC_INPUTS.riskFree, factors)}</div>
+          <div style={{ ...noteText, marginTop: 8 }}>
+            Computed from the same models as the sections above — change the industry, state, or
+            scenario chips and this paragraph re-derives.
+          </div>
+        </StepCard>
+      )}
+    </>
+  );
+}
+
 function GuidePane({
   tab,
   wacc,
@@ -5191,7 +5635,8 @@ function GuidePane({
           {tab === 'debtgeo' && 'Sovereign debt-to-GDP for the ten largest economies, the US-state pension layer, and the geopolitical watch list & calendar.'}
           {tab === 'fullcycle' && 'One company traced through every formula — operating engine → ROIC → WACC → economic profit → valuation → the bonds-vs-stock decision.'}
           {tab === 'datasources' && 'The data layer: every series with lineage, freshness computed against its budget, vintages preserved, providers registered but OFF.'}
-          {tab === 'backtest' && 'Dalio’s discipline, executable: four written rules run through five regimes by the Lab’s own models — one fails on purpose.'}{' '}
+          {tab === 'backtest' && 'Dalio’s discipline, executable: four written rules run through five regimes by the Lab’s own models — one fails on purpose.'}
+          {tab === 'report' && 'One filterable report — country, state, industry, or any combination — every section pulled live from its source tab, with the reference to go deeper.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -5865,6 +6310,38 @@ function GuidePane({
               local cache. The provider registry is the spec's promise that turning them on later
               is a config change, not a rewrite — and that no paid service is ever contacted
               without an explicit decision.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'report' && (
+          <>
+            <GuideSection n="A" title="What this tab is">
+              The whole Lab, filtered to one subject and read as a single report. Nothing here is
+              new data — every section is pulled live from the model behind its source tab, and
+              the reference line under each section is the address: "Tab 15 · step A" means go to
+              tab 15, section A for the interactive version, worked examples, and guide.
+            </GuideSection>
+            <GuideSection n="B" title="Filter recipes">
+              Country only: the four-gauge sovereign health check (debt slope → trade balance →
+              currency → politics). State only: the muni lens — bonded debt plus the pension
+              truth. Industry only: revenue weather → capital stance → benchmarks → equity
+              window. State + industry ("California by technology"): both layers plus the
+              combined read at the bottom, which joins them in one paragraph. All three on:
+              the full briefing.
+            </GuideSection>
+            <GuideSection n="C" title="What moves and what doesn't">
+              The scenario chips drive ONLY the dial-driven sections — industry backdrop, capital
+              stance, sub-lenses, and the combined read. Country and state sections are dated
+              snapshot data (approximate teaching values, sources on tab 15) and hold still. If
+              a number surprises you, step C's formula cards show the exact math, each with its
+              own reference.
+            </GuideSection>
+            <GuideSection n="D" title="Using it for the interview">
+              This is the "walk me through how you'd brief a client on X" rehearsal: pick the
+              client's industry and home state, read the report top to bottom out loud, and
+              practice ending each section with the so-what. The EY-expected exhibits on tab 7
+              step E tell you which of these sections would become which slide.
             </GuideSection>
           </>
         )}
