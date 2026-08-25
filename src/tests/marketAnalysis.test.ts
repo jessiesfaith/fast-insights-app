@@ -3,12 +3,14 @@ import { ASSET_CLASSES, INDUSTRIES, MacroFactors, SCENARIOS, impactPct } from '.
 import {
   CROSS_EFFECTS,
   DIAL_PROFILES,
+  assetLens,
   debtPlaybook,
   dialPressures,
   impactTrend,
   industryBackdrop,
   levelFor,
   projectDials,
+  sensAlignment,
   shortCyclePhase,
 } from '../lib/marketAnalysis';
 
@@ -143,6 +145,43 @@ describe('market & industry trends', () => {
     const b = industryBackdrop(INDUSTRIES.find((i) => i.id === 'discretionary')!, f);
     expect(b.level).toBe('tailwind');
     expect(b.note).toMatch(/do not let a tailwind excuse/i);
+  });
+});
+
+describe('asset classes through an industry lens', () => {
+  const target = (id: string) => [...INDUSTRIES, ...ASSET_CLASSES].find((t) => t.id === id)!;
+
+  it('alignment is a cosine: bounded, symmetric, +1 against itself', () => {
+    const tech = target('tech');
+    expect(sensAlignment(tech, tech)).toBe(1);
+    for (const a of ASSET_CLASSES) {
+      const v = sensAlignment(tech, a);
+      expect(v).toBeGreaterThanOrEqual(-1);
+      expect(v).toBeLessThanOrEqual(1);
+      expect(sensAlignment(a, tech)).toBe(v);
+    }
+  });
+
+  it('teaches the real pairings: stocks move with tech, cash cuts against it, and long bonds are a FALSE hedge for tech', () => {
+    const rows = assetLens('tech', NEUTRAL);
+    const by = (id: string) => rows.find((r) => r.id === id)!;
+    expect(by('stocks').relation).toBe('with');
+    expect(by('cash').relation).toBe('against');
+    // long-duration bonds catch the same rate shock as long-duration tech
+    expect(by('bonds-long').relation).toBe('with');
+    // energy sells what inflation is made of — commodities move with it
+    expect(assetLens('energy', NEUTRAL).find((r) => r.id === 'commodities')!.relation).toBe('with');
+  });
+
+  it('covers every asset class, sorted best diversifiers first, with live impact numbers', () => {
+    const f = scenario('overheating');
+    const rows = assetLens('discretionary', f);
+    expect(rows).toHaveLength(ASSET_CLASSES.length);
+    for (let i = 1; i < rows.length; i++) expect(rows[i].alignment).toBeGreaterThanOrEqual(rows[i - 1].alignment);
+    for (const r of rows) {
+      expect(typeof r.now).toBe('number');
+      expect(['with', 'independent', 'against']).toContain(r.relation);
+    }
   });
 });
 

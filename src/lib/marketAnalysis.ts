@@ -15,7 +15,7 @@
 // All ranges and effects are illustrative teaching values, not forecasts.
 // Education only; not investment, credit, or tax advice.
 
-import { ImpactTarget, MacroFactors, impactPct } from './macroModel';
+import { ASSET_CLASSES, INDUSTRIES, ImpactTarget, MacroFactors, impactPct } from './macroModel';
 
 // ---------------------------------------------------------------------------
 // 1. The dials in real numbers
@@ -246,6 +246,54 @@ export function impactTrend(
     for (const t of targets) row[t.id] = impactPct(t.sens, factors);
     return row;
   });
+}
+
+// ---------------------------------------------------------------------------
+// 2c. Asset classes through an industry's eyes
+// ---------------------------------------------------------------------------
+
+export type AssetRelation = 'with' | 'independent' | 'against';
+
+export interface AssetLensRow {
+  id: string;
+  name: string;
+  driver: string;
+  /** Modeled 12-month impact under today's dials, %. */
+  now: number;
+  /** Cosine alignment of macro sensitivities vs. the industry, −1…+1. */
+  alignment: number;
+  relation: AssetRelation;
+}
+
+/**
+ * Cosine similarity of two targets' macro-sensitivity vectors: +1 means they
+ * respond to growth/inflation/policy/fiscal the same way (an asset that moves
+ * WITH the industry — owning it concentrates the risk you already run), −1
+ * means opposite (a diversifier for that business). Model-space alignment,
+ * not historical correlation.
+ */
+export function sensAlignment(a: ImpactTarget, b: ImpactTarget): number {
+  const va = [a.sens.growth, a.sens.inflation, a.sens.policy, a.sens.fiscal];
+  const vb = [b.sens.growth, b.sens.inflation, b.sens.policy, b.sens.fiscal];
+  const dot = va.reduce((s, x, i) => s + x * vb[i], 0);
+  const mag = (v: number[]) => Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+  const denom = mag(va) * mag(vb);
+  return denom > 0 ? Math.round((dot / denom) * 100) / 100 : 0;
+}
+
+/**
+ * Every asset class scored against one industry: how it performs under the
+ * current dials, and whether it moves with, independent of, or against that
+ * industry. Sorted best diversifiers first — Dalio's point that uncorrelated
+ * return streams are the only free lunch.
+ */
+export function assetLens(industryId: string, f: MacroFactors): AssetLensRow[] {
+  const industry = INDUSTRIES.find((i) => i.id === industryId) ?? INDUSTRIES[0];
+  return ASSET_CLASSES.map((a) => {
+    const alignment = sensAlignment(industry, a);
+    const relation: AssetRelation = alignment >= 0.35 ? 'with' : alignment <= -0.1 ? 'against' : 'independent';
+    return { id: a.id, name: a.name, driver: a.driver, now: impactPct(a.sens, f), alignment, relation };
+  }).sort((x, y) => x.alignment - y.alignment);
 }
 
 export type BackdropLevel = 'tailwind' | 'neutral' | 'headwind';

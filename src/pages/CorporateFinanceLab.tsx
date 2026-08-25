@@ -101,6 +101,7 @@ import {
   TrendPoint,
   debtPlaybook,
   dialPressures,
+  assetLens,
   impactTrend,
   industryBackdrop,
   levelFor,
@@ -462,6 +463,16 @@ export default function CorporateFinanceLab() {
     });
   const trendTargets = trendGroup === 'industries' ? INDUSTRIES : ASSET_CLASSES;
   const marketTrend = useMemo(() => impactTrend(trendTargets, factors), [trendTargets, factors]);
+  const [lensIndustryId, setLensIndustryId] = useState('tech');
+  const [lensAssetSel, setLensAssetSel] = useState<string[]>(['stocks', 'bonds-long', 'gold']);
+  const toggleLensAsset = (id: string) =>
+    setLensAssetSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 3 ? cur : [...cur, id]));
+  const lensIndustry = INDUSTRIES.find((i) => i.id === lensIndustryId) ?? INDUSTRIES[0];
+  const lensRows = useMemo(() => assetLens(lensIndustryId, factors), [lensIndustryId, factors]);
+  const lensTrend = useMemo(
+    () => impactTrend([lensIndustry, ...ASSET_CLASSES.filter((a) => lensAssetSel.includes(a.id))], factors),
+    [lensIndustry, lensAssetSel, factors],
+  );
   const custIndustry = INDUSTRIES.find((i) => i.id === custIndustryId) ?? null;
   const backdrop = useMemo(
     () => (custIndustry ? industryBackdrop(custIndustry, factors) : null),
@@ -960,7 +971,91 @@ export default function CorporateFinanceLab() {
                 />
               </StepCard>
 
-              <StepCard n="E" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
+              <StepCard n="E" icon={<TrendingUp size={17} />} title={`Asset classes by industry — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The breakout: pick an <strong>industry</strong> and see how each{' '}
+                  <strong>asset class</strong> performs alongside it under this scenario. The bold
+                  line is the industry; the others are the assets you select. Below the chart, every
+                  asset is scored by how its macro sensitivities <em>align</em> with that industry —
+                  assets that move <strong>against</strong> your industry diversify the risk you
+                  already run; assets that move <strong>with</strong> it double down.
+                </p>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                  {INDUSTRIES.map((i) => (
+                    <Chip key={i.id} active={lensIndustryId === i.id} onClick={() => setLensIndustryId(i.id)}>
+                      {i.name}
+                    </Chip>
+                  ))}
+                </div>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
+                  {ASSET_CLASSES.map((a) => (
+                    <Chip key={a.id} active={lensAssetSel.includes(a.id)} onClick={() => toggleLensAsset(a.id)}>
+                      {a.name}
+                    </Chip>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 4px' }}>
+                  Pick up to 3 asset classes to chart against {lensIndustry.name}.
+                </p>
+                <ImpactTrendChart
+                  data={lensTrend}
+                  series={[
+                    { id: lensIndustry.id, label: `${lensIndustry.name} (industry)` },
+                    ...ASSET_CLASSES.filter((a) => lensAssetSel.includes(a.id)).map((a) => ({ id: a.id, label: a.name })),
+                  ]}
+                  height={260}
+                />
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '14px 0 6px' }}>
+                  Every asset class vs. {lensIndustry.name} — best diversifiers first
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                  {lensRows.map((row) => {
+                    const meta =
+                      row.relation === 'against'
+                        ? { label: 'Diversifies you', tone: 'var(--pos)' }
+                        : row.relation === 'with'
+                          ? { label: 'Moves with you', tone: 'var(--neg)' }
+                          : { label: 'Independent', tone: 'var(--severity-medium)' };
+                    return (
+                      <GlassCard key={row.id} variant="nested" padding={12}>
+                        <div className="between" style={{ gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{row.name}</span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: meta.tone,
+                              border: `1px solid ${meta.tone}`,
+                              borderRadius: 999,
+                              padding: '2px 9px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                          <span className="num" style={{ color: toneFor(row.now), fontWeight: 700 }}>{fmtSignedPct(row.now)}</span>
+                          <span style={{ color: 'var(--text-tertiary)' }}> this scenario · alignment </span>
+                          <span className="num" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{row.alignment > 0 ? '+' : ''}{row.alignment}</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 4 }}>{row.driver}</div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '10px 0 0' }}>
+                  Alignment is the cosine of the two macro-sensitivity vectors (−1…+1) — model-space
+                  co-movement, not historical correlation. The Dalio point it teaches: a treasury
+                  built from streams that <em>don't</em> move with your own industry is the only
+                  free reduction in risk — and note the trap the chart exposes: for long-duration
+                  industries like tech, long bonds move <em>with</em> you when rates are the shock.
+                </p>
+              </StepCard>
+
+              <StepCard n="F" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
                 <p style={hintStyle}>
                   Dalio's frame: the economy runs on two debt cycles stacked on productivity growth.
                   The short one is the business cycle you feel; the long one decides what tools are
@@ -1011,7 +1106,7 @@ export default function CorporateFinanceLab() {
                 </div>
               </StepCard>
 
-              <StepCard n="F" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
+              <StepCard n="G" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
                 <p style={hintStyle}>
                   The same cycle, seen from your own balance sheet: floating debt reprices with the
                   Fed within days, while long-term fixed debt locks today's rate until the
@@ -2380,7 +2475,17 @@ function GuidePane({
               industry view as a customer-type screen: a line sliding below zero is a customer
               segment whose credit you should be re-reading on tab 2.
             </GuideSection>
-            <GuideSection n="E" title="Short-term vs. long-term debt (yours)">
+            <GuideSection n="E" title="Asset classes by industry">
+              The bold line is the industry you picked; the rest are asset classes under the same
+              scenario. The alignment score below the chart is the cosine of their macro-sensitivity
+              vectors: <strong style={{ color: 'var(--neg)' }}>moves with you</strong> means the
+              asset catches the same shocks as your business (holding it doubles your bet),{' '}
+              <strong style={{ color: 'var(--pos)' }}>diversifies you</strong> means it tends to pay
+              when your industry is hurting. Use it to build the treasury sleeve that offsets the
+              risk your operations already carry — and to spot false hedges (long bonds do NOT
+              protect a long-duration business from a rate shock).
+            </GuideSection>
+            <GuideSection n="F" title="Short-term vs. long-term debt (yours)">
               Rule of thumb: <strong>floating debt reprices in days; fixed debt reprices at
               refinancing.</strong> So a hiking cycle punishes floating and protects fixed
               (inflation even erodes fixed debt in real terms), while a cutting cycle rewards
