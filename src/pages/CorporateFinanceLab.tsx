@@ -794,7 +794,7 @@ export default function CorporateFinanceLab() {
         }
       `}</style>
 
-      <header style={{ marginBottom: 28 }}>
+      <header className="no-print" style={{ marginBottom: 28 }}>
         <div className="between" style={{ gap: 16, marginBottom: 12 }}>
           <div
             className="row gap-2"
@@ -2396,7 +2396,7 @@ export default function CorporateFinanceLab() {
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
       </div>
 
-      <footer style={{ marginTop: 48, color: 'var(--text-tertiary)', fontSize: 12, lineHeight: 1.6 }}>
+      <footer className="no-print" style={{ marginTop: 48, color: 'var(--text-tertiary)', fontSize: 12, lineHeight: 1.6 }}>
         © FAST Insights — Corporate Finance Lab is an educational model with illustrative assumptions.
         It is not investment, credit, accounting, or tax advice, and no output is a recommendation to
         extend or deny credit to any real party.
@@ -5359,15 +5359,57 @@ function ReportTab() {
   let step = 0;
   const letter = () => String.fromCharCode(69 + step++); // E, F, G… after the fixed A–D
 
+  const selectionLine = [
+    showCountry ? `Country: ${country.name}` : null,
+    showState ? `State: ${state.name}` : null,
+    showIndustry ? `Industry: ${industry.name}` : null,
+    `Scenario: ${scenarioId === TODAY_SCENARIO_ID ? `Today (${MARKET_SNAPSHOT.asOf})` : (SCENARIOS.find((x) => x.id === scenarioId)?.name ?? scenarioId)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <>
+      <div className="print-only" style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+          Corporate Finance Lab — Report
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 4 }}>{selectionLine}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+          Printed {new Date().toLocaleDateString()} · app.fastinsights.io/corporate-finance · education only — every
+          section names its source tab; teaching values labeled where used.
+        </div>
+      </div>
+
       <div className="sticky-conditions">
       <StepCard n="A" icon={<Cog size={17} />} title="Build the report — pick your lenses">
-        <p style={hintStyle}>
-          Toggle each lens on or off and pick its subject. Any combination works — country
-          alone, "California by industry," or all three. Every section below is pulled live
-          from the same models the source tabs use, and carries its tab · step reference.
-        </p>
+        <div className="between no-print" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <p style={{ ...hintStyle, flex: 1, minWidth: 260 }}>
+            Toggle each lens on or off and pick its subject. Any combination works — country
+            alone, "California by industry," or all three. Every section below is pulled live
+            from the same models the source tabs use, and carries its tab · step reference.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              color: 'var(--accent)',
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--accent)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Print / save as PDF
+          </button>
+        </div>
         <div className="col" style={{ gap: 10 }}>
           <GlassCard variant="nested" padding={12}>
             <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -6201,7 +6243,7 @@ function GuidePane({
   const dso = fin.revenue > 0 ? Math.round((fin.ar / fin.revenue) * 365) : 0;
 
   return (
-    <aside className="ms-guide" aria-label="User guide">
+    <aside className="ms-guide no-print" aria-label="User guide">
       <GlassCard variant="default" padding={20}>
         <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 4 }}>
           <GraduationCap size={16} color="var(--accent)" />
@@ -6965,7 +7007,17 @@ function GuidePane({
               index: all 19 tabs and their sections, with exactly how the report uses each —
               pinned by tests, so "is everything in here?" has a checkable answer.
             </GuideSection>
-            <GuideSection n="G" title="Using it for the interview">
+            <GuideSection n="G" title="Print to PDF — and comparing selections">
+              Set the lenses and scenario, then hit "Print / save as PDF" (top of the build
+              card) and choose <strong>Save as PDF</strong> as the destination in the print
+              dialog. The printout is the report alone — app chrome, tab bar, and this guide
+              are stripped; it always prints in light ink even if the app is in dark mode; and
+              a header stamps WHICH selection it is (country · state · industry · scenario ·
+              date). To compare, print one PDF per selection — "California × Tech, Today" next
+              to "Texas × Energy, Supply shock" — and read them side by side; the stamped
+              headers keep them straight.
+            </GuideSection>
+            <GuideSection n="H" title="Using it for the interview">
               This is the "walk me through how you'd brief a client on X" rehearsal: pick the
               client's industry and home state, read the report top to bottom out loud, and
               practice ending each section with the so-what. The EY-expected exhibits on tab 7

@@ -120,3 +120,52 @@
 }
 
 .print-only { display: none; }
+
+/* ============================================================
+   Corporate Finance Lab — report tab print-to-PDF.
+   Print always comes out in light ink regardless of app theme;
+   app chrome (header, tab bar, guide pane, footer) is stripped
+   so the printed document is the filtered report alone.
+   ============================================================ */
+
+@media print {
+  /* Force light tokens even when the app is in dark mode. */
+  [data-theme='dark'] {
+    --bg-base:        #ffffff;
+    --bg-gradient:    none;
+    --bg-elevated:    #ffffff;
+    --bg-elevated-2:  #ffffff;
+    --border:         rgba(10, 10, 10, 0.18);
+    --border-strong:  rgba(10, 10, 10, 0.32);
+    --text-primary:   #0a0a0a;
+    --text-secondary: #2a2824;
+    --text-tertiary:  #4a4842;
+    --text-muted:     #84827b;
+    --accent:         #006d04;
+    --accent-soft:    rgba(0, 109, 4, 0.08);
+    --severity-high:  #b91c1c;
+    --severity-medium:#a16207;
+    --severity-low:   #1a2540;
+    --pos:            #006d04;
+    --neg:            #b91c1c;
+    --shadow-card:    none;
+    --shadow-card-strong: none;
+    color-scheme: light;
+  }
+
+  /* The sticky builder card prints as a normal block. */
+  .sticky-conditions {
+    position: static !important;
+    box-shadow: none !important;
+  }
+
+  /* Table rows and stat pills stay whole across page breaks. */
+  tr {
+    break-inside: avoid;
+  }
+
+  /* Keep section headers attached to what follows. */
+  h1, h2, h3 {
+    break-after: avoid;
+  }
+}
