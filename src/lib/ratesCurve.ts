@@ -297,3 +297,62 @@ export const PRACTICAL_SHIFT: string[] = [
   'When the 10Y falls meaningfully and HOLDS, refinancing becomes worth pricing. When it climbs, waiting gets more expensive — not less.',
   'Waiting for "the cut" is actually waiting for thousands of auction buyers to decide 30-year lending to the US is attractive again. That is not on anyone’s calendar.',
 ];
+
+// ---------------------------------------------------------------------------
+// The debt build-up — how the US got to $40T, and what interest now costs
+// (tab 11 step H; mirrored in tab 19's US country report)
+// ---------------------------------------------------------------------------
+
+export const DEBT_HISTORY_SOURCE =
+  'Gross federal debt (Treasury, fiscal-year, $T) and net interest outlays (CBO/OMB, $B) — APPROXIMATE TEACHING VALUES rounded from official series, anchored to the milestones noted and to this snapshot ($40T crossed, ≈$1.2T interest). The effective rate column is COMPUTED (interest ÷ debt), never typed.';
+
+export interface DebtYear {
+  year: number;
+  /** Gross federal debt, $ trillions. */
+  debtT: number;
+  /** Net interest outlays, $ billions. */
+  interestB: number;
+  note?: string;
+}
+
+export const DEBT_HISTORY: DebtYear[] = [
+  { year: 2000, debtT: 5.7, interestB: 223, note: 'Surplus years — the last time the debt briefly SHRANK.' },
+  { year: 2004, debtT: 7.4, interestB: 160 },
+  { year: 2008, debtT: 10.0, interestB: 253, note: 'Crosses $10T as the financial crisis hits.' },
+  { year: 2010, debtT: 13.6, interestB: 196, note: 'Crisis response — and cheap rates make more debt cost LESS interest than 2008.' },
+  { year: 2012, debtT: 16.1, interestB: 220 },
+  { year: 2014, debtT: 17.8, interestB: 229 },
+  { year: 2016, debtT: 19.6, interestB: 240 },
+  { year: 2017, debtT: 20.2, interestB: 263, note: 'Crosses $20T — the 2008→2017 doubling took nine years.' },
+  { year: 2019, debtT: 22.7, interestB: 375 },
+  { year: 2020, debtT: 26.9, interestB: 345, note: 'COVID: +$4T in one year — and interest FALLS, because the Fed cut to zero.' },
+  { year: 2021, debtT: 28.4, interestB: 352, note: 'The cheap-money illusion at its peak: $28T serviced for ~1.2%.' },
+  { year: 2022, debtT: 30.9, interestB: 475, note: 'Crosses $30T as the hiking cycle begins — the bill starts repricing.' },
+  { year: 2023, debtT: 33.2, interestB: 659 },
+  { year: 2024, debtT: 35.5, interestB: 882, note: 'Interest passes the defense budget (~$900B, the geopolitics step’s military table).' },
+  { year: 2025, debtT: 38.0, interestB: 1000, note: 'Interest crosses $1T/yr — the fastest-growing "program" in the budget.' },
+  { year: 2026, debtT: 40.0, interestB: 1200, note: 'Crosses $40T (this snapshot); interest ≈$1.2T — roughly two-thirds of the deficit’s recent pace.' },
+];
+
+/** Effective average rate on the stock: interest ÷ debt, computed. */
+export function effectiveDebtRatePct(d: DebtYear): number {
+  return Math.round((d.interestB / (d.debtT * 1000)) * 100 * 100) / 100;
+}
+
+/** Chart-ready rows: debt level, interest cost, and the computed effective rate. */
+export function debtHistoryRows(): { year: string; debtT: number; interestB: number; effPct: number }[] {
+  return DEBT_HISTORY.map((d) => ({
+    year: String(d.year),
+    debtT: d.debtT,
+    interestB: d.interestB,
+    effPct: effectiveDebtRatePct(d),
+  }));
+}
+
+export const DEBT_INTEREST_READS: string[] = [
+  'The doubling ladder: $10T (2008) → $20T (2017) → $40T (2026). Each doubling came faster relative to the economy — the ratchet only turns one way because every crisis adds a step and no expansion removes one (tab 15’s US debt-to-GDP line is this chart divided by GDP).',
+  'The cheap-money illusion, visible in the computed line: from 2010 to 2021 the debt TRIPLED while the interest bill barely moved, because the effective rate fell to ~1.2%. Washington learned that debt was free. Then 2022 repriced the lesson.',
+  'The rollover problem IS the interest-rate debt issue: the effective rate (~3.0% computed for 2026) is still well BELOW today’s 10Y at 4.70% — and roughly a third of the stock matures within a year. Every maturing cheap bond is reissued at market rates, so the interest bill keeps climbing EVEN IF rates never rise again. The bill is on autopilot; only the destination is debatable.',
+  'Interest is now the fastest-growing line in the federal budget: ~$352B in 2021 → ≈$1.2T in 2026, past defense (~$900B) and closing on Social Security. Interest buys nothing — it is pure crowd-out of every other priority, which is why it feeds tab 15’s populism-and-fiscal-pipeline table.',
+  'Borrowing to pay interest on what you borrowed is Dalio’s late-long-cycle marker (tab 2): with interest running near two-thirds of the deficit, a growing share of each auction services the LAST auctions. That supply, meeting buyers who now demand compensation, is the term premium — the reason the 10Y ROSE ~105bp while the Fed cut 175bp (step F above and tab 19’s history step).',
+];

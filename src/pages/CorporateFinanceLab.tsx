@@ -231,7 +231,11 @@ import {
   BOND_BASICS,
   CUTS_VS_TENYEAR,
   PRACTICAL_SHIFT,
+  DEBT_HISTORY,
+  DEBT_HISTORY_SOURCE,
+  DEBT_INTEREST_READS,
   RATES_SNAPSHOT,
+  debtHistoryRows,
   RATE_STACK,
   SCALE_STORY,
   SNAP_REASONS,
@@ -3689,6 +3693,69 @@ function RatesTab() {
           <strong>The practical shift:</strong> {PRACTICAL_SHIFT.join(' ')}
         </p>
       </StepCard>
+
+      <StepCard n="H" icon={<TrendingUp size={17} />} title="How the debt got to $40T — and what the interest now costs">
+        <p style={hintStyle}>
+          The build-up as trends, not headlines: the debt level, the annual interest bill, and
+          the <strong>computed</strong> effective rate on the stock (interest ÷ debt — never
+          typed). The three lines together are the whole issue: the debt tripled while money was
+          cheap, the effective rate is repricing upward as old bonds roll over, and the bill
+          compounds even if market rates never move again.
+        </p>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '4px 0 6px' }}>
+          Gross federal debt ($T), 2000 → 2026
+        </div>
+        <XYLineChart
+          data={debtHistoryRows()}
+          xKey="year"
+          series={[{ id: 'debtT', label: 'Gross federal debt ($T)' }]}
+          height={180}
+          ySuffix="T"
+        />
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 6px' }}>
+          Annual net interest ($B)
+        </div>
+        <XYLineChart
+          data={debtHistoryRows()}
+          xKey="year"
+          series={[{ id: 'interestB', label: 'Net interest ($B)' }]}
+          height={180}
+          ySuffix="B"
+        />
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 6px' }}>
+          Effective rate on the stock (computed: interest ÷ debt) vs today’s 10Y
+        </div>
+        <XYLineChart
+          data={debtHistoryRows()}
+          xKey="year"
+          series={[{ id: 'effPct', label: 'Effective rate (computed %)' }]}
+          height={180}
+        />
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '6px 0 0' }}>
+          The computed line ends near 3.0% — today’s 10Y is{' '}
+          {RATES_SNAPSHOT.curve.find((c) => c.maturity === '10Y')!.yieldPct}%. That gap is the
+          rollover problem: every maturing cheap bond reissues at market rates.
+        </p>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 6px' }}>
+          The milestones
+        </div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.65 }}>
+          {DEBT_HISTORY.filter((d) => d.note).map((d) => (
+            <li key={d.year}>
+              <strong>{d.year} — ${d.debtT}T, ${d.interestB}B interest:</strong> {d.note}
+            </li>
+          ))}
+        </ul>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 6px' }}>
+          What the trends say
+        </div>
+        <div className="col" style={{ gap: 6 }}>
+          {DEBT_INTEREST_READS.map((r) => (
+            <p key={r.slice(0, 40)} style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>{r}</p>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 8 }}>{DEBT_HISTORY_SOURCE}</div>
+      </StepCard>
     </>
   );
 }
@@ -5490,6 +5557,38 @@ function ReportTab() {
             </div>
           )}
 
+          {country.id === 'us' && (
+            <>
+              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 8px' }}>
+                The debt build-up to $40T — and the interest bill
+              </div>
+              <XYLineChart
+                data={debtHistoryRows()}
+                xKey="year"
+                series={[{ id: 'debtT', label: 'Gross federal debt ($T)' }]}
+                height={170}
+                ySuffix="T"
+              />
+              <div style={{ height: 10 }} />
+              <XYLineChart
+                data={debtHistoryRows()}
+                xKey="year"
+                series={[{ id: 'interestB', label: 'Net interest ($B)' }]}
+                height={170}
+                ySuffix="B"
+              />
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 6 }}>
+                {DEBT_INTEREST_READS[2]}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginTop: 4 }}>
+                The effective rate on the stock is computed (interest ÷ debt): ~1.2% at the 2021
+                trough, ~3.0% now, still below the 4.70% 10Y — which is why the bill keeps
+                climbing on autopilot. Full trends, milestones, and reads on tab 11.
+              </div>
+              <RefLine r={{ tab: 11, step: 'H', label: 'How the debt got to $40T — and what the interest now costs' }} />
+            </>
+          )}
+
           {country.trade && (
             <>
               <div style={secTitle}>Trade balance</div>
@@ -6502,6 +6601,15 @@ function GuidePane({
               one-file snapshot pattern as the market and inflation snapshots — observation date,
               release date, and retrieval date are different things, and the panel says which is
               which. Refreshed by hand until the automation lands.
+            </GuideSection>
+            <GuideSection n="E" title="Reading the debt build-up (step H)">
+              Three lines, one issue. The debt chart shows the ladder ($10T → $20T → $30T → $40T,
+              each crisis a step). The interest chart shows the bill barely moving until 2022 —
+              then tripling. The third line is COMPUTED (interest ÷ debt): it bottoms near 1.2%
+              in 2021 and ends near 3.0%, still below the 4.70% 10Y — so the bill keeps rising as
+              cheap bonds roll over, even with rates flat. When asked about the deficit in an
+              interview, this is the mechanism to narrate: level → cost → effective rate → term
+              premium.
             </GuideSection>
           </>
         )}

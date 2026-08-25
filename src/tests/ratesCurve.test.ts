@@ -11,6 +11,11 @@ import {
   curveSlopes,
   curveYield,
   mortgageTreasurySpreadBp,
+  DEBT_HISTORY,
+  DEBT_HISTORY_SOURCE,
+  DEBT_INTEREST_READS,
+  debtHistoryRows,
+  effectiveDebtRatePct,
 } from '../lib/ratesCurve';
 
 describe('the official H.15 snapshot', () => {
@@ -96,5 +101,49 @@ describe('the teaching structure', () => {
     expect(SNAP_REASONS.map((r) => r.name).join(' ')).toMatch(/Supply.*Competition.*Doubt/s);
     expect(THREE_WAYS_DOWN).toHaveLength(3);
     expect(THREE_WAYS_DOWN[2].warning).toMatch(/job losses/i);
+  });
+});
+
+describe('the debt build-up to $40T and the interest bill (step H)', () => {
+  it('anchors to the snapshot: ends at $40T and ≈$1.2T interest, with the milestone notes', () => {
+    const last = DEBT_HISTORY[DEBT_HISTORY.length - 1];
+    expect(last.year).toBe(2026);
+    expect(last.debtT).toBe(40);
+    expect(RATES_SNAPSHOT.nationalDebt).toMatch(/\$40 trillion/);
+    expect(last.interestB).toBe(1200);
+    expect(RATES_SNAPSHOT.annualInterestCost).toMatch(/1\.2 trillion/);
+    const notes = DEBT_HISTORY.filter((d) => d.note).map((d) => `${d.year} ${d.note}`).join(' ');
+    expect(notes).toMatch(/2008 Crosses \$10T/);
+    expect(notes).toMatch(/2017 Crosses \$20T/);
+    expect(notes).toMatch(/2022 Crosses \$30T/);
+    expect(notes).toMatch(/2026 Crosses \$40T/);
+  });
+
+  it('the effective rate is computed (interest ÷ debt), bottoms in the cheap-money era, then climbs every year', () => {
+    expect(effectiveDebtRatePct({ year: 2000, debtT: 5.7, interestB: 223 })).toBeCloseTo(3.91, 2);
+    const eff = DEBT_HISTORY.map(effectiveDebtRatePct);
+    const minIdx = eff.indexOf(Math.min(...eff));
+    const minYear = DEBT_HISTORY[minIdx].year;
+    expect(minYear).toBeGreaterThanOrEqual(2010);
+    expect(minYear).toBeLessThanOrEqual(2021);
+    // strictly rising after 2021 — the repricing
+    const from2021 = DEBT_HISTORY.filter((d) => d.year >= 2021).map(effectiveDebtRatePct);
+    for (let i = 1; i < from2021.length; i++) expect(from2021[i]).toBeGreaterThan(from2021[i - 1]);
+    // and still below the 10Y — the rollover gap that keeps the bill climbing
+    const eff2026 = effectiveDebtRatePct(DEBT_HISTORY[DEBT_HISTORY.length - 1]);
+    expect(eff2026).toBeLessThan(RATES_SNAPSHOT.curve.find((c) => c.maturity === '10Y')!.yieldPct);
+  });
+
+  it('chart rows carry all three series; reads carry the doubling ladder, the rollover math, and the defense comparison', () => {
+    const rows = debtHistoryRows();
+    expect(rows).toHaveLength(DEBT_HISTORY.length);
+    expect(rows[0]).toMatchObject({ year: '2000', debtT: 5.7, interestB: 223, effPct: 3.91 });
+    const all = DEBT_INTEREST_READS.join(' ');
+    expect(all).toMatch(/\$10T \(2008\) → \$20T \(2017\) → \$40T \(2026\)/);
+    expect(all).toMatch(/third of the stock matures/i);
+    expect(all).toMatch(/defense \(~\$900B\)/);
+    expect(all).toMatch(/term premium/i);
+    expect(DEBT_HISTORY_SOURCE).toMatch(/APPROXIMATE TEACHING VALUES/);
+    expect(DEBT_HISTORY_SOURCE).toMatch(/COMPUTED/);
   });
 });
