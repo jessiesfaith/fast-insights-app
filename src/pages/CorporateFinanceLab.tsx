@@ -27,10 +27,13 @@ import {
   Compass,
   GraduationCap,
   Handshake,
+  Globe,
   Home,
   Landmark,
   Percent,
   RefreshCcw,
+  Rocket,
+  Scale,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -204,6 +207,42 @@ import {
   mortgageBenchmark,
   paymentSensitivity,
 } from '../lib/realEstate';
+import {
+  DEFAULT_DILUTION_INPUTS,
+  FINANCING_MENU,
+  IPO_REFERENCE,
+  THREE_SCORES_RULE,
+  WINDOW_CHECKLISTS,
+  dilution,
+  windowScore,
+} from '../lib/ipoWindow';
+import {
+  BANK_METRICS_NOTE,
+  BENCHMARK_SOURCE,
+  DAMODARAN_JAN2026,
+  DEFAULT_COMPANY_METRICS,
+  DEFAULT_RETAIL_INPUTS,
+  DEFAULT_RULE40_INPUTS,
+  DEFAULT_RUNWAY_INPUTS,
+  INDUSTRY_HEALTH_QUESTIONS,
+  OBSERVED_NOT_HEALTHY_RULE,
+  biotechRunway,
+  compareToBenchmark,
+  retailKit,
+  rule40,
+} from '../lib/industryBenchmarks';
+import {
+  COUNTRY_DEBT,
+  COUNTRY_DEBT_SOURCE,
+  DEBT_TREND_YEARS,
+  GEO_CALENDAR_COUNTRIES,
+  GEO_CALENDAR_NOTE,
+  GEO_CALENDAR_STATES,
+  GEO_CURRENT,
+  GEO_DRIVERS,
+  STATE_DEBT,
+  STATE_DEBT_SOURCE,
+} from '../lib/debtGeo';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
@@ -221,7 +260,10 @@ type TabId =
   | 'rounds'
   | 'gapwork'
   | 'rates'
-  | 'realestate';
+  | 'realestate'
+  | 'ipo'
+  | 'benchmarks'
+  | 'debtgeo';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -236,6 +278,9 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'gapwork', label: '10 · Gap workbench', icon: Landmark },
   { id: 'rates', label: '11 · Rates & the bond market', icon: Percent },
   { id: 'realestate', label: '12 · Real estate financing', icon: Home },
+  { id: 'ipo', label: '13 · IPO & capital markets', icon: Rocket },
+  { id: 'benchmarks', label: '14 · Industry benchmarks', icon: Scale },
+  { id: 'debtgeo', label: '15 · Debt & geopolitics', icon: Globe },
 ];
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
@@ -672,8 +717,9 @@ export default function CorporateFinanceLab() {
           grid — and keep the <strong>formula reference</strong> with every equation, decision
           flow, and acronym. Tabs 7–9 are <strong>EY interview prep</strong>: the gap check, the
           Q&amp;A drill, and the round map; tab 10 is the <strong>gap workbench</strong>; tabs
-          11–12 open the <strong>bond market and real-estate financing</strong> — the yield curve,
-          real rates, and the 10Y-plus-spread machinery that actually prices mortgages and CRE.{' '}
+          11–15 open the <strong>markets themselves</strong>: the bond market and yield curve,
+          real-estate financing, IPO &amp; capital markets, industry benchmarks, and sovereign
+          debt &amp; geopolitics.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginTop: 18 }}>
@@ -2123,6 +2169,12 @@ export default function CorporateFinanceLab() {
           {tab === 'rates' && <RatesTab />}
 
           {tab === 'realestate' && <RealEstateTab />}
+
+          {tab === 'ipo' && <IpoTab />}
+
+          {tab === 'benchmarks' && <BenchmarksTab />}
+
+          {tab === 'debtgeo' && <DebtGeoTab />}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
@@ -3659,6 +3711,542 @@ function RealEstateTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Tabs 13 & 14 — IPO & capital markets, industry benchmarks
+// ---------------------------------------------------------------------------
+
+function IpoTab() {
+  const [checked, setChecked] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(
+      WINDOW_CHECKLISTS.map((l) => [l.id, l.items.filter((i) => i.defaultChecked).map((i) => i.id)]),
+    ),
+  );
+  const toggle = (listId: string, itemId: string) =>
+    setChecked((c) => ({
+      ...c,
+      [listId]: c[listId].includes(itemId) ? c[listId].filter((x) => x !== itemId) : [...c[listId], itemId],
+    }));
+  const scores = WINDOW_CHECKLISTS.map((l) => windowScore(l, checked[l.id]));
+  const [dil, setDil] = useState(DEFAULT_DILUTION_INPUTS);
+  const dilR = useMemo(() => dilution(dil), [dil]);
+
+  return (
+    <>
+      <StepCard n="A" icon={<Rocket size={17} />} title={`The IPO market right now — ${IPO_REFERENCE.period}`}>
+        <p style={hintStyle}>
+          Before any framework: what the market is actually doing. Reference context from{' '}
+          {IPO_REFERENCE.source} — anchored to its period, never treated as permanently current.
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {IPO_REFERENCE.facts.map((f) => (
+            <li key={f.slice(0, 40)}>{f}</li>
+          ))}
+        </ul>
+      </StepCard>
+
+      <StepCard n="B" icon={<ClipboardCheck size={17} />} title="The three windows — scored separately, never collapsed">
+        <p style={hintStyle}>
+          The IPO decision is three different questions with three different owners. Toggle the
+          checklist items to score each one — the defaults are pre-set to the H1-2026 reference
+          picture for a biotech-style issuer (overall market open, sector window shut, company
+          unproven).
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginBottom: 12 }}>
+          {scores.map((sc) => (
+            <StatPill
+              key={sc.id}
+              label={`${sc.name} (${sc.checked}/${sc.total})`}
+              value={`${sc.scorePct}% — ${sc.read}`}
+              strong={sc.id === 'company'}
+            />
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+          {WINDOW_CHECKLISTS.map((list) => (
+            <GlassCard key={list.id} variant="nested" padding={14}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>{list.name}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginBottom: 8 }}>{list.question}</div>
+              <div className="col" style={{ gap: 6 }}>
+                {list.items.map((item) => {
+                  const on = checked[list.id].includes(item.id);
+                  return (
+                    <div key={item.id}>
+                      <Chip active={on} onClick={() => toggle(list.id, item.id)}>
+                        {on ? '✓ ' : ''}{item.label}
+                      </Chip>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, margin: '3px 0 0 4px' }}>{item.why}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+        <p style={decisionLine}>
+          <strong>The rule:</strong> {THREE_SCORES_RULE}
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<Calculator size={17} />} title="Dilution math — what the raise actually costs the owners">
+        <p style={hintStyle}>
+          Post-money = pre-money + PRIMARY raised; new investors own primary ÷ post-money.
+          Secondary shares are existing holders selling — cash to them, zero dilution — and the
+          spec's rule is to never blur the two in a headline number. The greenshoe can add up to
+          15% more primary shares if bankers exercise it.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Pre-money value" hint="What the company is worth before new money. Example: 900 ($M).">
+            <MoneyInput value={dil.preMoney} onChange={(v) => setDil((x) => ({ ...x, preMoney: v }))} width={90} />
+          </WbField>
+          <WbField label="Primary raised" hint="NEW money into the company. Example: 100 → post-money 1,000.">
+            <MoneyInput value={dil.primaryRaised} onChange={(v) => setDil((x) => ({ ...x, primaryRaised: v }))} width={80} />
+          </WbField>
+          <WbField label="Existing shares" hint="Fully diluted, before the offering. Example: 90 (M) → $10.00 offer price.">
+            <MoneyInput value={dil.existingShares} onChange={(v) => setDil((x) => ({ ...x, existingShares: v }))} width={80} />
+          </WbField>
+          <WbField label="Greenshoe" hint="Over-allotment option, % of primary. Example: 15%.">
+            <PctInput value={dil.greenshoePct} onChange={(v) => setDil((x) => ({ ...x, greenshoePct: v }))} max={25} />
+          </WbField>
+          <WbField label="Secondary sold" hint="Existing holders' shares sold, $. Cash to sellers — NOT dilution. Example: 50.">
+            <MoneyInput value={dil.secondarySold} onChange={(v) => setDil((x) => ({ ...x, secondarySold: v }))} width={80} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Post-money" value={fmtMoney(dilR.postMoney, 0)} strong />
+          <StatPill label="Offer price (pre ÷ shares)" value={`$${dilR.sharePrice.toLocaleString('en-US')}`} />
+          <StatPill label="New shares issued" value={String(dilR.newShares)} />
+          <StatPill label="New-investor ownership" value={`${dilR.newOwnershipPct}%`} strong />
+          <StatPill label="…if greenshoe exercised" value={`${dilR.newOwnershipWithShoePct}%`} />
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> dilution is the PRICE of the equity window. Compare
+          it against the financing menu below — and remember §82: if you believe intrinsic value
+          materially exceeds the market's price, issuing equity transfers value from your existing
+          holders to the new ones. That belief should be defended or dropped, not assumed.
+        </p>
+      </StepCard>
+
+      <StepCard n="D" icon={<Handshake size={17} />} title="The financing menu — IPO against every alternative">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Option</th>
+                <th style={{ textAlign: 'left' }}>Cash you get</th>
+                <th style={{ textAlign: 'left' }}>What it costs</th>
+                <th style={{ textAlign: 'left' }}>Best when</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FINANCING_MENU.map((f) => (
+                <tr key={f.name}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.name}</td>
+                  <td style={{ fontSize: 12 }}>{f.cash}</td>
+                  <td style={{ fontSize: 12 }}>{f.cost}</td>
+                  <td style={{ fontSize: 12 }}>{f.bestWhen}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> "should we IPO?" is really "which cell of this
+          table is cheapest for the cash we actually need, given which windows are open?" —
+          biotech's 2025 answer was the private row ($68.5B raised with the IPO window down 47%).
+        </p>
+      </StepCard>
+    </>
+  );
+}
+
+function BenchmarksTab() {
+  const [companyM, setCompanyM] = useState(DEFAULT_COMPANY_METRICS);
+  const [industryId, setIndustryId] = useState('pharma');
+  const comparison = useMemo(() => compareToBenchmark(companyM, industryId), [companyM, industryId]);
+  const [runway, setRunway] = useState(DEFAULT_RUNWAY_INPUTS);
+  const runwayR = useMemo(() => biotechRunway(runway), [runway]);
+  const [r40, setR40] = useState(DEFAULT_RULE40_INPUTS);
+  const r40R = useMemo(() => rule40(r40), [r40]);
+  const [retail, setRetail] = useState(DEFAULT_RETAIL_INPUTS);
+  const retailR = useMemo(() => retailKit(retail), [retail]);
+
+  return (
+    <>
+      <StepCard n="A" icon={<Scale size={17} />} title="The observed benchmarks — January 2026 (Damodaran / NYU Stern)">
+        <p style={hintStyle}>
+          What industries actually look like — the observed averages the spec cites. Read the
+          biotech-vs-pharma row twice: same sector family, different planet. Then read the rule
+          under the table before using any of it.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Industry</th>
+                <th className="num" style={{ textAlign: 'right' }}>Debt/EBITDA</th>
+                <th className="num" style={{ textAlign: 'right' }}>Coverage</th>
+                <th className="num" style={{ textAlign: 'right' }}>AT oper. margin</th>
+                <th className="num" style={{ textAlign: 'right' }}>ROC</th>
+                <th style={{ textAlign: 'left' }}>The read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DAMODARAN_JAN2026.map((b) => (
+                <tr key={b.id}>
+                  <td style={{ fontWeight: 600 }}>{b.industry}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{Number.isFinite(b.debtEbitda) ? `${b.debtEbitda}×` : '—'}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{Number.isFinite(b.interestCoverage) ? `${b.interestCoverage}×` : '—'}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{b.afterTaxOperMarginPct}%</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{b.rocPct}%</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{b.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>Source: {BENCHMARK_SOURCE}.</p>
+        <p style={{ ...decisionLine, borderLeftColor: 'var(--neg)' }}>
+          <strong>The rule:</strong> {OBSERVED_NOT_HEALTHY_RULE}
+        </p>
+      </StepCard>
+
+      <StepCard n="B" icon={<BarChart3 size={17} />} title="Your company vs. the observed average">
+        <p style={hintStyle}>
+          Type your four numbers, pick the industry, and each comparison comes back with the
+          direction discipline attached — higher is NOT automatically better, and the read tells
+          you which way each metric cuts.
+        </p>
+        <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
+          {DAMODARAN_JAN2026.map((b) => (
+            <Chip key={b.id} active={industryId === b.id} onClick={() => setIndustryId(b.id)}>
+              {b.industry}
+            </Chip>
+          ))}
+        </div>
+        <div style={wbGrid}>
+          <WbField label="Debt / EBITDA" hint="Adjusted debt ÷ EBITDA (tab 1's pro forma computes it). Example: 2.5×.">
+            <PctInput value={companyM.debtEbitda} onChange={(v) => setCompanyM((x) => ({ ...x, debtEbitda: v }))} max={15} suffix="×" />
+          </WbField>
+          <WbField label="Interest coverage" hint="EBITDA ÷ interest. Example: 6.7×.">
+            <PctInput value={companyM.interestCoverage} onChange={(v) => setCompanyM((x) => ({ ...x, interestCoverage: v }))} max={50} suffix="×" />
+          </WbField>
+          <WbField label="After-tax operating margin" hint="NOPAT ÷ revenue. Example: 16%.">
+            <PctInput value={companyM.afterTaxOperMarginPct} onChange={(v) => setCompanyM((x) => ({ ...x, afterTaxOperMarginPct: v }))} max={60} />
+          </WbField>
+          <WbField label="Return on capital" hint="NOPAT ÷ invested capital (tab 10's ROIC kit). Example: 12%.">
+            <PctInput value={companyM.rocPct} onChange={(v) => setCompanyM((x) => ({ ...x, rocPct: v }))} max={80} />
+          </WbField>
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {comparison.rows.map((row) => (
+            <GlassCard key={row.metric} variant="nested" padding={12}>
+              <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{row.metric}</span>
+                <span className="num" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  you {row.company} · observed {row.observed}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{row.read}</div>
+            </GlassCard>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '8px 0 0' }}>
+          Benchmark type: {comparison.benchmarkType} — never displayed as a rule.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<Calculator size={17} />} title="Vertical quick kits — the metric that matters in YOUR industry">
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>
+          Pre-revenue biotech: runway & catalyst coverage
+        </div>
+        <div style={wbGrid}>
+          <WbField label="Cash" hint="Example: 40 ($M).">
+            <MoneyInput value={runway.cash} onChange={(v) => setRunway((x) => ({ ...x, cash: v }))} width={70} />
+          </WbField>
+          <WbField label="Marketable securities" hint="Example: 8.">
+            <MoneyInput value={runway.marketableSecurities} onChange={(v) => setRunway((x) => ({ ...x, marketableSecurities: v }))} width={70} />
+          </WbField>
+          <WbField label="Monthly burn" hint="Example: 2 → 24 months of runway.">
+            <MoneyInput value={runway.monthlyBurn} onChange={(v) => setRunway((x) => ({ ...x, monthlyBurn: v }))} width={70} />
+          </WbField>
+          <WbField label="Months to next catalyst" hint="The value-changing readout/approval. Example: 18.">
+            <PctInput value={runway.monthsToNextCatalyst} onChange={(v) => setRunway((x) => ({ ...x, monthsToNextCatalyst: Math.round(v) }))} max={60} suffix="mo" />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Cash runway" value={`${runwayR.runwayMonths} months`} strong />
+          <StatPill label="Band" value={runwayR.bandLabel} />
+          <StatPill label="Catalyst coverage (runway − catalyst)" value={`${runwayR.catalystCoverageMonths > 0 ? '+' : ''}${runwayR.catalystCoverageMonths} mo`} strong />
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> {runwayR.read}
+        </p>
+
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', margin: '16px 0 6px' }}>
+          SaaS: Rule of 40
+        </div>
+        <div className="row gap-4" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <WbField label="Revenue growth" hint="ARR growth, %. Example: 28%.">
+            <PctInput value={r40.revenueGrowthPct} onChange={(v) => setR40((x) => ({ ...x, revenueGrowthPct: v }))} max={200} />
+          </WbField>
+          <WbField label="FCF margin" hint="The NAMED profitability measure. Example: 8%.">
+            <PctInput value={r40.fcfMarginPct} onChange={(v) => setR40((x) => ({ ...x, fcfMarginPct: v }))} max={60} />
+          </WbField>
+          <StatPill label="Rule of 40" value={`${r40R.score} — ${r40R.passes ? 'passes' : 'below'}`} strong />
+        </div>
+        <p style={decisionLine}>{r40R.read}</p>
+
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', margin: '16px 0 6px' }}>
+          Retail: turnover, GMROI, and the inventory growth gap
+        </div>
+        <div style={wbGrid}>
+          <WbField label="COGS (annual)" hint="Example: $7,000,000.">
+            <MoneyInput value={retail.cogs} onChange={(v) => setRetail((x) => ({ ...x, cogs: v }))} width={100} />
+          </WbField>
+          <WbField label="Average inventory" hint="Example: $1,600,000 → 4.4 turns.">
+            <MoneyInput value={retail.averageInventory} onChange={(v) => setRetail((x) => ({ ...x, averageInventory: v }))} width={100} />
+          </WbField>
+          <WbField label="Gross margin $" hint="Example: $3,000,000 → GMROI 1.9.">
+            <MoneyInput value={retail.grossMarginDollars} onChange={(v) => setRetail((x) => ({ ...x, grossMarginDollars: v }))} width={100} />
+          </WbField>
+          <WbField label="Inventory growth" hint="YoY, %. Example: 14%.">
+            <PctInput value={retail.inventoryGrowthPct} onChange={(v) => setRetail((x) => ({ ...x, inventoryGrowthPct: v }))} max={100} />
+          </WbField>
+          <WbField label="Revenue growth" hint="YoY, %. Example: 6% → an 8pp warning gap.">
+            <PctInput value={retail.revenueGrowthPct} onChange={(v) => setRetail((x) => ({ ...x, revenueGrowthPct: v }))} max={100} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Inventory turnover" value={`${retailR.inventoryTurnover}×`} />
+          <StatPill label="GMROI" value={String(retailR.gmroi)} />
+          <StatPill label="Inventory − revenue growth" value={`${retailR.inventoryGrowthGapPct > 0 ? '+' : ''}${retailR.inventoryGrowthGapPct}pp`} strong />
+        </div>
+        <p style={decisionLine}>{retailR.read}</p>
+
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 14 }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Banks:</strong> {BANK_METRICS_NOTE}
+        </p>
+      </StepCard>
+
+      <StepCard n="D" icon={<GraduationCap size={17} />} title='Before you ever say "is 3× good?" — the §123 questions'>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {INDUSTRY_HEALTH_QUESTIONS.map((q) => (
+            <li key={q}>{q}</li>
+          ))}
+        </ul>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> a number without its industry, stage, peers, cycle
+          position, and downside case is not information — it's a Rorschach test. The comparator
+          above forces the first two questions; the rest are yours to ask out loud, which is
+          exactly what a Manager-level answer sounds like.
+        </p>
+      </StepCard>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tab 15 — sovereign debt & geopolitics
+// ---------------------------------------------------------------------------
+
+function DebtGeoTab() {
+  const [sel, setSel] = useState<string[]>(['us', 'china', 'japan', 'germany']);
+  const toggleCountry = (id: string) =>
+    setSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id]));
+  const chartData = DEBT_TREND_YEARS.map((year, i) => {
+    const row: Record<string, number | string> = { year: String(year) };
+    for (const c of COUNTRY_DEBT) row[c.id] = c.trend[i];
+    return row;
+  });
+  const latestSorted = [...COUNTRY_DEBT].sort((a, b) => b.trend[3] - a.trend[3]);
+
+  return (
+    <>
+      <StepCard n="A" icon={<Globe size={17} />} title="Debt-to-GDP — the ten largest economies, 2000 → today">
+        <p style={hintStyle}>
+          Dalio's equilibrium 1 at sovereign scale: debt versus the income that services it. Pick
+          up to four countries to chart the 25-year ratchet — every downturn met with more
+          borrowing, never fully unwound. The table below is sorted by today's level; Japan is the
+          endgame exhibit, China the fastest ratchet, Germany the disciplinarian.
+        </p>
+        <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
+          {COUNTRY_DEBT.map((c) => (
+            <Chip key={c.id} active={sel.includes(c.id)} onClick={() => toggleCountry(c.id)}>
+              {c.name}
+            </Chip>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 4px' }}>Pick up to 4 to chart.</p>
+        <XYLineChart
+          data={chartData}
+          xKey="year"
+          series={COUNTRY_DEBT.filter((c) => sel.includes(c.id)).map((c) => ({ id: c.id, label: c.name }))}
+          height={260}
+        />
+        <div style={{ overflowX: 'auto', marginTop: 10 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Country</th>
+                <th className="num" style={{ textAlign: 'right' }}>2000</th>
+                <th className="num" style={{ textAlign: 'right' }}>2010</th>
+                <th className="num" style={{ textAlign: 'right' }}>2020</th>
+                <th className="num" style={{ textAlign: 'right' }}>~2025</th>
+                <th style={{ textAlign: 'left' }}>The read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {latestSorted.map((c) => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  {c.trend.map((v, i) => (
+                    <td key={i} className="num" style={{ textAlign: 'right', fontWeight: i === 3 ? 700 : 400, color: i === 3 ? (v >= 100 ? 'var(--neg)' : 'var(--text-primary)') : 'var(--text-secondary)' }}>{v}%</td>
+                  ))}
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{c.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{COUNTRY_DEBT_SOURCE}</p>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> the level matters less than the SLOPE against
+          income growth (Dalio's rule 1) and the distance to the zero bound (tab 4's long-cycle
+          odometer). India deleverages through nominal growth at 82%; Japan needs its central bank
+          at 235%; the US at 123% is the tab-11 story — the market has started charging.
+        </p>
+      </StepCard>
+
+      <StepCard n="B" icon={<Landmark size={17} />} title="The US-state version — where the debt hides">
+        <p style={hintStyle}>
+          States can't run federal-style deficits — balanced-budget rules cap their bonded debt at
+          single-digit percentages of state GDP. So the real long-term liability hides in{' '}
+          <strong>pension promises</strong>: Dalio's "liabilities we don't call debt," and the
+          exact reason tab 1's pro forma adds pension to leverage. Top ten state economies:
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>State (GDP rank)</th>
+                <th className="num" style={{ textAlign: 'right' }}>Bonded debt / GSP</th>
+                <th style={{ textAlign: 'left' }}>The pension layer — the number that isn't on this row</th>
+              </tr>
+            </thead>
+            <tbody>
+              {STATE_DEBT.map((st) => (
+                <tr key={st.id}>
+                  <td style={{ fontWeight: 600 }}>{st.name} (#{st.gdpRank})</td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: st.debtGspPct >= 10 ? 'var(--neg)' : st.debtGspPct >= 6 ? 'var(--severity-medium)' : 'var(--pos)' }}>{st.debtGspPct}%</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{st.pensionNote}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{STATE_DEBT_SOURCE}</p>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> read the two columns TOGETHER. New York's 14% with
+          funded pensions is a different animal from New Jersey's 12% with a deep pension hole —
+          and Illinois proves the bonded number can look moderate while the promise layer is the
+          real balance sheet. Same lesson as corporate credit on tab 2: the liabilities you don't
+          see are the ones that bite.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<RefreshCcw size={17} />} title="What is moving geopolitics right now">
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {GEO_CURRENT.map((g) => (
+            <li key={g.slice(0, 40)}>{g}</li>
+          ))}
+        </ul>
+      </StepCard>
+
+      <StepCard n="D" icon={<Cog size={17} />} title="What typically moves geopolitics — the standing watch list">
+        <p style={hintStyle}>
+          Twelve recurring drivers, each mapped to the dial or equilibrium it hits first — so a
+          headline converts into a model input instead of a mood.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+          {GEO_DRIVERS.map((d) => (
+            <GlassCard key={d.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{d.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{d.what}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--accent)', lineHeight: 1.5, marginTop: 6 }}>
+                <strong>Hits first:</strong> {d.hits}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </StepCard>
+
+      <StepCard n="E" icon={<CalendarCheckIcon />} title="The next 24 months — scheduled, by country and by state">
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '0 0 6px' }}>
+          Countries
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>When</th>
+                <th style={{ textAlign: 'left' }}>Where</th>
+                <th style={{ textAlign: 'left' }}>What</th>
+                <th style={{ textAlign: 'left' }}>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              {GEO_CALENDAR_COUNTRIES.map((e) => (
+                <tr key={e.where + e.when}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{e.when}</td>
+                  <td style={{ fontWeight: 600 }}>{e.where}</td>
+                  <td style={{ fontSize: 12 }}>{e.what}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{e.why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '14px 0 6px' }}>
+          US states (the top-10 economies above)
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>When</th>
+                <th style={{ textAlign: 'left' }}>Where</th>
+                <th style={{ textAlign: 'left' }}>What</th>
+                <th style={{ textAlign: 'left' }}>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              {GEO_CALENDAR_STATES.map((e) => (
+                <tr key={e.where + e.when}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{e.when}</td>
+                  <td style={{ fontWeight: 600 }}>{e.where}</td>
+                  <td style={{ fontSize: 12 }}>{e.what}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{e.why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '8px 0 0' }}>{GEO_CALENDAR_NOTE}</p>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> November 2026 is the density point — the US
+          midterms plus governors in 8 of the 10 largest state economies on one night. For the
+          model: election outcomes move the FISCAL dial (tabs 3–4) before any economic data does,
+          and the calendar is the one part of geopolitics you can actually diarize.
+        </p>
+      </StepCard>
+    </>
+  );
+}
+
+function CalendarCheckIcon() {
+  return <ClipboardCheck size={17} />;
+}
+
+// ---------------------------------------------------------------------------
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
@@ -3713,7 +4301,10 @@ function GuidePane({
           {tab === 'rounds' && 'The interview, round by round: HireVue behaviorals, the take-home DCF, and the market anchor.'}
           {tab === 'gapwork' && 'Every former gap as a working calculator, defaulted to your prep session’s exact numbers.'}
           {tab === 'rates' && 'The bond market, level by level: the Fed’s floor, the curve, real yields, and who really sets the long rate.'}
-          {tab === 'realestate' && 'Real estate financing: the 10Y+spread mortgage formula, the payment math, and the CRE lender dashboard.'}{' '}
+          {tab === 'realestate' && 'Real estate financing: the 10Y+spread mortgage formula, the payment math, and the CRE lender dashboard.'}
+          {tab === 'ipo' && 'The IPO decision as three separate windows — market, industry, company — plus the dilution math and the financing menu.'}
+          {tab === 'benchmarks' && 'Industry benchmarks with discipline: observed averages are not healthy ranges, and every vertical has its own metric.'}
+          {tab === 'debtgeo' && 'Sovereign debt-to-GDP for the ten largest economies, the US-state pension layer, and the geopolitical watch list & calendar.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -4209,6 +4800,84 @@ function GuidePane({
               negative leverage (cap rate below loan rate) means the deal needs NOI growth to work;
               a DSCR that breaches ~1.25× under +200bp means fix the rate, pay down, or renegotiate
               BEFORE the reset — tab 1's hedging playbook has the tools.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'ipo' && (
+          <>
+            <GuideSection n="A" title="Why three scores">
+              Because the failure modes are different: IPO-ing into a closed sector window prices
+              you off broken comps; IPO-ing unready turns the first missed quarter into a
+              multi-year discount; and skipping an open window because your sector is quiet may
+              still be right if private capital is flowing (biotech 2025: IPOs −47%, financing
+              +11% to $68.5B). One blended score hides exactly the distinction that matters.
+            </GuideSection>
+            <GuideSection n="B" title="The dilution mechanics">
+              <Eq>post-money = pre-money + primary raised{'\n'}new ownership = primary ÷ post-money</Eq>
+              Primary = new money into the company (dilutes). Secondary = existing holders selling
+              (cash to them, zero dilution). The greenshoe adds up to ~15% more primary if
+              exercised. And §82's flag: issuing equity below intrinsic value transfers value from
+              existing holders — say it out loud before signing it.
+            </GuideSection>
+            <GuideSection n="C" title="EY relevance">
+              This tab is the capital-markets half of the EY conversation: readiness (§78) is
+              literally EY's IPO-advisory checklist, and the H1-2026 numbers (62 vs 34 deals,
+              12 mega-deals, AI-driven, selective buyers) are EY's own published trend data — the
+              market-awareness answer with sources attached.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'benchmarks' && (
+          <>
+            <GuideSection n="A" title="The two disciplines">
+              (1) Classify before comparing: industry → subsector → stage → model — biotech vs
+              pharma is the same sector and a different planet (6.2× vs 2.4× observed leverage).
+              (2) Observed ≠ healthy: an average answers "what does this industry look like," never
+              "what should this company be." Every number here carries its benchmark-type label.
+            </GuideSection>
+            <GuideSection n="B" title="Direction discipline">
+              Higher is not better by default: leverage is worse when higher, margins usually
+              better, cash runway has diminishing returns, and bank leverage isn't even the right
+              metric family. The comparator's reads encode the direction per metric so the
+              conclusion can't flip by accident.
+            </GuideSection>
+            <GuideSection n="C" title="The vertical kits">
+              <Eq>runway = (cash + securities) ÷ monthly burn{'\n'}catalyst coverage = runway − months to catalyst{'\n'}Rule of 40 = revenue growth % + FCF margin %{'\n'}GMROI = GM$ ÷ avg inventory · gap = inv growth − rev growth</Eq>
+              Each industry has ONE number that does the talking: biotech is runway-to-catalyst,
+              SaaS is the growth/profit trade, retail is inventory discipline, banks are capital
+              ratios. The runway bands are an INTERNAL ANALYTICAL HEURISTIC — labeled, not law.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'debtgeo' && (
+          <>
+            <GuideSection n="A" title="How to read the country chart">
+              Levels alone mislead — the read is level × slope × income growth × zero-bound
+              distance. Japan at 235% is stable BECAUSE its central bank absorbs it; the US at
+              123% just started paying a term premium for it (tab 11); China at 88% official is
+              the fastest ratchet with a hidden local-government layer. Dalio's rule 1 is the
+              whole chart: don't let debt rise faster than the income that services it.
+            </GuideSection>
+            <GuideSection n="B" title="Why states look safe and aren't automatically">
+              Balanced-budget rules cap bonded debt, so the state table's percentages look tame —
+              the long-term debt cycle went underground into pensions. Read bonded debt and the
+              pension note as ONE balance sheet: Illinois and New Jersey are the compounding
+              cases, Georgia the discipline benchmark.
+            </GuideSection>
+            <GuideSection n="C" title="Using the geopolitics layer">
+              The driver cards convert headlines into model inputs: every card names the dial or
+              equilibrium it hits first, so "tariff news" becomes "inflation dial up, growth dial
+              down — reprice tabs 1, 3, and 11." The calendar is the diarizable part; the tab-11
+              caveat stands — the biggest movers (auctions, plenums, conflicts) aren't on ballots.
+            </GuideSection>
+            <GuideSection n="D" title="Data honesty">
+              Country figures are approximate IMF-WEO-style values, state figures are internal
+              teaching estimates, and calendar entries are constitutional schedules — all labeled
+              in place, all to be refreshed from imf.org / fiscaldata.treasury.gov / Census of
+              Governments before citing. Same snapshot discipline as tabs 3 and 11.
             </GuideSection>
           </>
         )}
