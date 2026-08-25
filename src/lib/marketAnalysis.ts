@@ -249,6 +249,91 @@ export function impactTrend(
 }
 
 // ---------------------------------------------------------------------------
+// 2b-ii. Inflation up close — CPI vs PCE and their components
+// ---------------------------------------------------------------------------
+//
+// The inflation dial abstracts one number; real inflation-watching happens a
+// level down. Two gauges: CPI (the headline everyone quotes — out-of-pocket
+// urban consumer prices, fixed-ish basket) and PCE (what the FED actually
+// targets at 2% — broader scope including employer-paid healthcare, and a
+// chained formula that lets consumers substitute away from spiking items,
+// which is why PCE usually runs ~0.3–0.4pp BELOW CPI). Each is a weighted
+// average of components with very different personalities: energy is wild
+// and instant, shelter is huge and ~a year late, services are sticky, core
+// goods barely move. The model below runs each component along the projected
+// inflation-dial path with its own beta and lag — teaching values, not data.
+
+export interface InflationComponent {
+  id: string;
+  name: string;
+  /** Approximate CPI basket weight, %. */
+  cpiWeightPct: number;
+  /** Approximate PCE basket weight, %. */
+  pceWeightPct: number;
+  /** Component inflation when the dial is neutral, %/yr. */
+  base: number;
+  /** %-points of component inflation per unit of the inflation dial. */
+  beta: number;
+  /** Quarters the component LAGS the dial (shelter's famous delay). */
+  lagQ: number;
+  note: string;
+}
+
+export const INFLATION_COMPONENTS: InflationComponent[] = [
+  { id: 'shelter', name: 'Shelter (rent & owners’ equivalent)', cpiWeightPct: 35, pceWeightPct: 15, base: 3.2, beta: 0.9, lagQ: 3, note: 'The heavyweight of CPI and its slowest mover — leases reset yearly, so it echoes the dial ~3 quarters late. Its outsized CPI weight (35% vs 15% in PCE) is the main reason the two gauges diverge.' },
+  { id: 'food', name: 'Food', cpiWeightPct: 13, pceWeightPct: 11, base: 2.5, beta: 1.8, lagQ: 1, note: 'Passes commodity and wage shocks through within a couple of quarters — and it is the inflation people FEEL, which drives expectations.' },
+  { id: 'energy', name: 'Energy', cpiWeightPct: 7, pceWeightPct: 5, base: 2.0, beta: 4.5, lagQ: 0, note: 'Small weight, giant swings, zero lag — the reason "core" measures exist. One supply shock moves headline before the Fed can blink.' },
+  { id: 'core-goods', name: 'Core goods', cpiWeightPct: 19, pceWeightPct: 21, base: 0.8, beta: 1.0, lagQ: 1, note: 'Cars, furniture, apparel — globalized supply kept this near zero for decades; tariffs and supply shocks are what wake it up.' },
+  { id: 'core-services', name: 'Core services ex-shelter', cpiWeightPct: 26, pceWeightPct: 48, base: 3.0, beta: 0.8, lagQ: 2, note: 'Haircuts to healthcare to insurance — wage-driven and sticky, the Fed’s favorite "supercore" gauge of underlying pressure. Note the PCE weight: healthcare paid by employers/government counts there, not in CPI.' },
+];
+
+export interface InflationTrendPoint {
+  quarter: string;
+  cpi: number;
+  pce: number;
+  [componentId: string]: number | string;
+}
+
+/** The chained-formula substitution effect: PCE runs below the same basket. */
+export const PCE_FORMULA_EFFECT_PP = 0.25;
+
+/**
+ * Run CPI, PCE, and every component along the projected inflation-dial path:
+ * each component reacts with its own beta and lag, each gauge is its weighted
+ * average (PCE also gets the substitution-formula discount). Neutral dials ⇒
+ * CPI ≈ 2.5%, PCE ≈ 2.25% — the Fed's 2% world with the usual gap.
+ */
+export function inflationTrend(f: MacroFactors, quarters = 8): InflationTrendPoint[] {
+  const path = projectDials(f, quarters);
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return path.map((p, q) => {
+    const row: InflationTrendPoint = { quarter: p.quarter, cpi: 0, pce: 0 };
+    let cpi = 0;
+    let pce = 0;
+    for (const c of INFLATION_COMPONENTS) {
+      const dial = path[Math.max(0, q - c.lagQ)].inflation;
+      const v = c.base + c.beta * dial;
+      row[c.id] = r1(v);
+      cpi += (c.cpiWeightPct / 100) * v;
+      pce += (c.pceWeightPct / 100) * v;
+    }
+    row.cpi = r1(cpi);
+    row.pce = r1(pce - PCE_FORMULA_EFFECT_PP);
+    return row;
+  });
+}
+
+/** CPI vs PCE, the differences that matter — for the guide. */
+export const CPI_PCE_FACTS: string[] = [
+  'CPI is the headline gauge — out-of-pocket prices for urban consumers, the number COLA adjustments and TIPS are tied to.',
+  'PCE is what the Fed targets at 2% — broader scope: it counts what employers and government pay on your behalf (especially healthcare).',
+  'PCE uses a chained formula that lets consumers substitute away from spiking items, so it usually runs ~0.3–0.4pp below CPI.',
+  'Weights are the big divergence: shelter is ~35% of CPI but only ~15% of PCE; healthcare-heavy core services are ~48% of PCE.',
+  '"Core" strips food and energy — not because they don’t matter, but because their noise hides the trend the Fed can actually influence.',
+  'The reading order in a hot print: energy first (instant), food next, then watch whether core services confirm — shelter tells you about LAST year.',
+];
+
+// ---------------------------------------------------------------------------
 // 2c. Asset classes through an industry's eyes
 // ---------------------------------------------------------------------------
 

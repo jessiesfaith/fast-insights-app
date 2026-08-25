@@ -65,7 +65,7 @@ import {
 } from '../components/ui/StepKit';
 import { resolveCSSVar } from '../lib/uiColors';
 import { fmtMoney } from '../lib/format';
-import { ASSET_CLASSES, CUSTOM_SCENARIO_ID, INDUSTRIES, MacroFactors, SCENARIOS } from '../lib/macroModel';
+import { ASSET_CLASSES, CUSTOM_SCENARIO_ID, INDUSTRIES, MacroFactors, SCENARIOS, SUB_INDUSTRIES } from '../lib/macroModel';
 import { MARKET_SNAPSHOT, TODAY_SCENARIO_ID } from '../lib/marketSnapshot';
 import {
   Band,
@@ -101,8 +101,11 @@ import {
   TrendPoint,
   debtPlaybook,
   dialPressures,
+  CPI_PCE_FACTS,
+  INFLATION_COMPONENTS,
   assetLens,
   impactTrend,
+  inflationTrend,
   industryBackdrop,
   levelFor,
   projectDials,
@@ -225,9 +228,10 @@ const BACKDROP_META: Record<'tailwind' | 'neutral' | 'headwind', { label: string
   headwind: { label: 'Headwind', tone: 'var(--neg)' },
 };
 
-const TREND_DEFAULTS: Record<'industries' | 'assets', string[]> = {
+const TREND_DEFAULTS: Record<'industries' | 'assets' | 'subs', string[]> = {
   industries: ['tech', 'financials', 'staples', 'energy'],
   assets: ['stocks', 'bonds-long', 'gold', 'real-estate'],
+  subs: ['ai-semis', 'crypto', 'agriculture', 'housing'],
 };
 
 const CAP_STANCE_META: Record<'offense' | 'balanced' | 'defense', { label: string; tone: string }> = {
@@ -526,16 +530,20 @@ export default function CorporateFinanceLab() {
   const cyclePhase = useMemo(() => shortCyclePhase(factors), [factors]);
   const debtReads = useMemo(() => debtPlaybook(factors), [factors]);
   const trend = useMemo(() => projectDials(factors), [factors]);
-  const [trendGroup, setTrendGroup] = useState<'industries' | 'assets'>('industries');
-  const [trendSel, setTrendSel] = useState<Record<'industries' | 'assets', string[]>>(TREND_DEFAULTS);
+  const [trendGroup, setTrendGroup] = useState<'industries' | 'assets' | 'subs'>('industries');
+  const [trendSel, setTrendSel] = useState<Record<'industries' | 'assets' | 'subs', string[]>>(TREND_DEFAULTS);
   const toggleTrendSel = (id: string) =>
     setTrendSel((s) => {
       const cur = s[trendGroup];
       const next = cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id];
       return { ...s, [trendGroup]: next };
     });
-  const trendTargets = trendGroup === 'industries' ? INDUSTRIES : ASSET_CLASSES;
+  const trendTargets = trendGroup === 'industries' ? INDUSTRIES : trendGroup === 'assets' ? ASSET_CLASSES : SUB_INDUSTRIES;
   const marketTrend = useMemo(() => impactTrend(trendTargets, factors), [trendTargets, factors]);
+  const [inflSel, setInflSel] = useState<string[]>(['shelter', 'energy']);
+  const toggleInflSel = (id: string) =>
+    setInflSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 2 ? cur : [...cur, id]));
+  const inflTrend = useMemo(() => inflationTrend(factors), [factors]);
   const [lensIndustryId, setLensIndustryId] = useState('tech');
   const [lensAssetSel, setLensAssetSel] = useState<string[]>(['stocks', 'bonds-long', 'gold']);
   const toggleLensAsset = (id: string) =>
@@ -1018,6 +1026,9 @@ export default function CorporateFinanceLab() {
                   <Chip active={trendGroup === 'assets'} onClick={() => setTrendGroup('assets')}>
                     Asset classes
                   </Chip>
+                  <Chip active={trendGroup === 'subs'} onClick={() => setTrendGroup('subs')}>
+                    Sub-industries (AI, crypto, agriculture…)
+                  </Chip>
                 </div>
                 <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
                   {trendTargets.map((t) => (
@@ -1036,7 +1047,55 @@ export default function CorporateFinanceLab() {
                 />
               </StepCard>
 
-              <StepCard n="E" icon={<TrendingUp size={17} />} title={`Asset classes by industry — ${scenarioName}`}>
+              <StepCard n="E" icon={<Activity size={17} />} title={`Inflation up close — CPI vs PCE — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The inflation dial, opened up. <strong>CPI</strong> is the headline gauge;{' '}
+                  <strong>PCE</strong> is what the Fed targets at 2% — broader scope, chained
+                  formula, usually ~0.3pp lower. Each is a weighted average of components with very
+                  different personalities: energy is instant and wild, shelter is huge and ~3
+                  quarters late, services are sticky. Both gauges and your chosen components run
+                  along the projected path below.
+                </p>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
+                  {INFLATION_COMPONENTS.map((c) => (
+                    <Chip key={c.id} active={inflSel.includes(c.id)} onClick={() => toggleInflSel(c.id)}>
+                      {c.name}
+                    </Chip>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 4px' }}>
+                  CPI and PCE always chart; pick up to 2 components to overlay.
+                </p>
+                <ImpactTrendChart
+                  data={inflTrend}
+                  series={[
+                    { id: 'cpi', label: 'CPI (headline)' },
+                    { id: 'pce', label: 'PCE (Fed target gauge)' },
+                    ...INFLATION_COMPONENTS.filter((c) => inflSel.includes(c.id)).map((c) => ({ id: c.id, label: c.name })),
+                  ]}
+                  height={240}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
+                  {INFLATION_COMPONENTS.map((c) => (
+                    <GlassCard key={c.id} variant="nested" padding={12}>
+                      <div className="between" style={{ gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{c.name}</span>
+                        <span className="num" style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                          CPI {c.cpiWeightPct}% · PCE {c.pceWeightPct}%
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{c.note}</div>
+                    </GlassCard>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '10px 0 0' }}>
+                  Teaching model, not data: each component follows the projected inflation dial with
+                  its own beta and lag, and the gauges are the weighted averages (PCE less the
+                  substitution-formula effect). Neutral dials ⇒ CPI ≈ 2.5%, PCE ≈ 2.25%.
+                </p>
+              </StepCard>
+
+              <StepCard n="F" icon={<TrendingUp size={17} />} title={`Asset classes by industry — ${scenarioName}`}>
                 <p style={hintStyle}>
                   The breakout: pick an <strong>industry</strong> and see how each{' '}
                   <strong>asset class</strong> performs alongside it under this scenario. The bold
@@ -1123,7 +1182,7 @@ export default function CorporateFinanceLab() {
                 </p>
               </StepCard>
 
-              <StepCard n="F" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
+              <StepCard n="G" icon={<Landmark size={17} />} title="The debt cycles — short term & long term">
                 <p style={hintStyle}>
                   Dalio's frame: the economy runs on two debt cycles stacked on productivity growth.
                   The short one is the business cycle you feel; the long one decides what tools are
@@ -1174,7 +1233,7 @@ export default function CorporateFinanceLab() {
                 </div>
               </StepCard>
 
-              <StepCard n="G" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
+              <StepCard n="H" icon={<Wallet size={17} />} title={`Your debt book — short vs. long term — ${scenarioName}`}>
                 <p style={hintStyle}>
                   The same cycle, seen from your own balance sheet: floating debt reprices with the
                   Fed within days, while long-term fixed debt locks today's rate until the
@@ -3221,11 +3280,18 @@ function GuidePane({
             <GuideSection n="D" title="Reading the market & industry trends">
               Each line is one industry or asset class's modeled 12-month impact, recomputed at
               every projected quarter — the static impact table from Market Scenarios, set in
-              motion. Compare up to four at once (industries or asset classes), and use the
-              industry view as a customer-type screen: a line sliding below zero is a customer
+              motion. Compare up to four at once (industries, asset classes, or the sub-industry
+              lens — AI &amp; semis, crypto, agriculture, housing, travel, defense, biotech,
+              e-commerce, autos, oil &amp; gas), and use the industry views as a customer-type screen: a line sliding below zero is a customer
               segment whose credit you should be re-reading on tab 2.
             </GuideSection>
-            <GuideSection n="E" title="Asset classes by industry">
+            <GuideSection n="E" title="CPI vs PCE — how to read an inflation print">
+              {CPI_PCE_FACTS.slice(0, 4).join(' ')} The reading order when a hot number drops:
+              energy first (instant, noisy), food next, then check whether core services confirm
+              the trend — and remember shelter is telling you about LAST year's leases, not
+              today's. That's why the Fed says "core PCE" when everyone else says "CPI."
+            </GuideSection>
+            <GuideSection n="F" title="Asset classes by industry">
               The bold line is the industry you picked; the rest are asset classes under the same
               scenario. The alignment score below the chart is the cosine of their macro-sensitivity
               vectors: <strong style={{ color: 'var(--neg)' }}>moves with you</strong> means the
@@ -3235,7 +3301,7 @@ function GuidePane({
               risk your operations already carry — and to spot false hedges (long bonds do NOT
               protect a long-duration business from a rate shock).
             </GuideSection>
-            <GuideSection n="F" title="Short-term vs. long-term debt (yours)">
+            <GuideSection n="G" title="Short-term vs. long-term debt (yours)">
               Rule of thumb: <strong>floating debt reprices in days; fixed debt reprices at
               refinancing.</strong> So a hiking cycle punishes floating and protects fixed
               (inflation even erodes fixed debt in real terms), while a cutting cycle rewards

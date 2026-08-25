@@ -217,6 +217,73 @@ export const INDUSTRIES: ImpactTarget[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Sub-industries (a lower-level lens than the eight sectors)
+// ---------------------------------------------------------------------------
+
+export const SUB_INDUSTRIES: ImpactTarget[] = [
+  {
+    id: 'ai-semis',
+    name: 'AI & semiconductors',
+    driver: 'The longest-duration growth story: value sits a decade out, so rate moves swing it hardest — while capex booms feed it regardless of the cycle.',
+    sens: { growth: 7, inflation: -2, policy: -6, fiscal: 0.5 },
+  },
+  {
+    id: 'crypto',
+    name: 'Crypto / bitcoin',
+    driver: 'A pure liquidity asset: easy money and inflation fear lift it, tightening drains it — no cash flows to anchor the price.',
+    sens: { growth: 2, inflation: 2.5, policy: -5, fiscal: 1 },
+  },
+  {
+    id: 'agriculture',
+    name: 'Agriculture & farm inputs',
+    driver: 'Sells food — the most non-negotiable spending there is; rides input-price inflation more than the growth cycle.',
+    sens: { growth: 0.5, inflation: 3, policy: -0.5, fiscal: 0.5 },
+  },
+  {
+    id: 'housing',
+    name: 'Homebuilders & housing',
+    driver: 'Bought with borrowed money at 30-year terms — the single most rate-sensitive corner of the real economy.',
+    sens: { growth: 3, inflation: 0.5, policy: -6, fiscal: 0.5 },
+  },
+  {
+    id: 'travel',
+    name: 'Airlines & travel',
+    driver: 'Peak discretionary spending with a fuel bill: booms with income, squeezed twice when inflation runs (costs up, wallets thinner).',
+    sens: { growth: 5, inflation: -3, policy: -1, fiscal: 0.5 },
+  },
+  {
+    id: 'defense',
+    name: 'Defense & aerospace',
+    driver: 'The customer is the government: driven by budgets and geopolitics, nearly blind to the business cycle.',
+    sens: { growth: 0, inflation: 0.5, policy: 0, fiscal: 3 },
+  },
+  {
+    id: 'biotech',
+    name: 'Biotech (pre-profit)',
+    driver: 'Cash burned today for approvals years away — extreme duration plus funding-window risk: tightening closes the capital markets it lives on.',
+    sens: { growth: 1, inflation: -1, policy: -7, fiscal: 0 },
+  },
+  {
+    id: 'ecommerce',
+    name: 'E-commerce & retail',
+    driver: 'Consumer wallet share in real time — first to feel both the boom and the squeeze on real incomes.',
+    sens: { growth: 5, inflation: -2.5, policy: -2, fiscal: 1 },
+  },
+  {
+    id: 'autos-ev',
+    name: 'Autos & EV',
+    driver: 'Big-ticket, financed purchases: growth-hungry, rate-sensitive at the dealership, and subsidy-sensitive on the EV side.',
+    sens: { growth: 5, inflation: -1, policy: -4, fiscal: 1.5 },
+  },
+  {
+    id: 'oil-gas',
+    name: 'Oil & gas producers',
+    driver: 'The deeper cut of energy: sells the barrel itself — inflation IS its revenue line.',
+    sens: { growth: 2, inflation: 4.5, policy: 0, fiscal: 0 },
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Model math
 // ---------------------------------------------------------------------------
 

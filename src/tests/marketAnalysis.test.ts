@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ASSET_CLASSES, INDUSTRIES, MacroFactors, SCENARIOS, impactPct } from '../lib/macroModel';
+import { ASSET_CLASSES, INDUSTRIES, MacroFactors, SCENARIOS, SUB_INDUSTRIES, impactPct } from '../lib/macroModel';
 import {
+  CPI_PCE_FACTS,
   CROSS_EFFECTS,
   DIAL_PROFILES,
+  INFLATION_COMPONENTS,
   assetLens,
+  inflationTrend,
   debtPlaybook,
   dialPressures,
   impactTrend,
@@ -182,6 +185,64 @@ describe('asset classes through an industry lens', () => {
       expect(typeof r.now).toBe('number');
       expect(['with', 'independent', 'against']).toContain(r.relation);
     }
+  });
+});
+
+describe('inflation up close — CPI vs PCE', () => {
+  const NEUTRAL_F: MacroFactors = { growth: 0, inflation: 0, policy: 0, fiscal: 0 };
+
+  it('components carry weights, betas, lags, and notes; CPI weights sum to 100', () => {
+    expect(INFLATION_COMPONENTS).toHaveLength(5);
+    expect(INFLATION_COMPONENTS.reduce((s, c) => s + c.cpiWeightPct, 0)).toBe(100);
+    expect(INFLATION_COMPONENTS.reduce((s, c) => s + c.pceWeightPct, 0)).toBe(100);
+    for (const c of INFLATION_COMPONENTS) expect(c.note.length).toBeGreaterThan(40);
+  });
+
+  it('neutral dials: CPI ≈ 2.5%, and PCE runs below CPI (the classic gap)', () => {
+    const t = inflationTrend(NEUTRAL_F);
+    expect(t[0].cpi).toBeCloseTo(2.5, 0);
+    for (const row of t) expect(row.pce).toBeLessThan(row.cpi);
+  });
+
+  it('overheating: energy spikes past headline instantly, shelter lags and peaks later', () => {
+    const t = inflationTrend(scenario('overheating'));
+    expect(t[0].energy as number).toBeGreaterThan(t[0].cpi);
+    // shelter echoes the dial ~3 quarters late: its value at Q3 reflects the hot Q0 dial
+    const shelter = t.map((r) => r.shelter as number);
+    expect(shelter[3]).toBeGreaterThanOrEqual(shelter[0]);
+    // energy reacts immediately and cools as the feedback loop bites
+    const energy = t.map((r) => r.energy as number);
+    expect(energy[energy.length - 1]).toBeLessThan(energy[0]);
+  });
+
+  it('the facts cover the CPI/PCE distinctions (target, scope, formula, weights)', () => {
+    const all = CPI_PCE_FACTS.join(' ');
+    expect(all).toMatch(/Fed targets/i);
+    expect(all).toMatch(/substitut/i);
+    expect(all).toMatch(/shelter/i);
+    expect(all).toMatch(/healthcare/i);
+  });
+});
+
+describe('sub-industries — the lower-level lens', () => {
+  it('ships ten named sub-industries with drivers, unique ids, and full trend support', () => {
+    expect(SUB_INDUSTRIES).toHaveLength(10);
+    const ids = SUB_INDUSTRIES.map((x) => x.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const t of SUB_INDUSTRIES) expect(t.driver.length).toBeGreaterThan(40);
+    const trend = impactTrend(SUB_INDUSTRIES, scenario('overheating'));
+    for (const t of SUB_INDUSTRIES) expect(typeof trend[0][t.id]).toBe('number');
+  });
+
+  it('behaves sensibly: biotech and housing are the rate casualties, defense is fiscal-blind to the Fed, oil rides inflation', () => {
+    const f = scenario('overheating');
+    const pct = (id: string) => impactPct(SUB_INDUSTRIES.find((x) => x.id === id)!.sens, f);
+    expect(pct('biotech')).toBeLessThan(pct('ecommerce'));
+    expect(pct('housing')).toBeLessThan(pct('agriculture'));
+    expect(pct('oil-gas')).toBeGreaterThan(0);
+    const defense = SUB_INDUSTRIES.find((x) => x.id === 'defense')!.sens;
+    expect(defense.policy).toBe(0);
+    expect(defense.fiscal).toBeGreaterThan(2);
   });
 });
 
