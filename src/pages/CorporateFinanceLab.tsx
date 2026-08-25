@@ -5324,6 +5324,7 @@ function ReportTab() {
   const [industryId, setIndustryId] = useState('tech');
   const [histFreq, setHistFreq] = useState<HistoryFreq>('monthly');
   const [histSel, setHistSel] = useState<string[]>(MACRO_HISTORY.map((x) => x.id));
+  const [buildOpen, setBuildOpen] = useState(true);
 
   const factors: MacroFactors =
     scenarioId === TODAY_SCENARIO_ID
@@ -5357,7 +5358,7 @@ function ReportTab() {
   const noteText: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 };
 
   let step = 0;
-  const letter = () => String.fromCharCode(69 + step++); // E, F, G… after the fixed A–D
+  const letter = () => String.fromCharCode(67 + step++); // C, D, E… after the fixed A–B
 
   const selectionLine = [
     showCountry ? `Country: ${country.name}` : null,
@@ -5389,27 +5390,56 @@ function ReportTab() {
             alone, "California by industry," or all three. Every section below is pulled live
             from the same models the source tabs use, and carries its tab · step reference.
           </p>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
-              color: 'var(--accent)',
-              background: 'var(--accent-soft)',
-              border: '1px solid var(--accent)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Print / save as PDF
-          </button>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setBuildOpen(!buildOpen)}
+              aria-expanded={buildOpen}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {buildOpen ? 'Collapse ▲' : 'Expand ▼'}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                color: 'var(--accent)',
+                background: 'var(--accent-soft)',
+                border: '1px solid var(--accent)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Print / save as PDF
+            </button>
+          </div>
         </div>
+        {!buildOpen && (
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            {selectionLine}
+          </div>
+        )}
+        {buildOpen && (
         <div className="col" style={{ gap: 10 }}>
           <GlassCard variant="nested" padding={12}>
             <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -5473,31 +5503,11 @@ function ReportTab() {
             </div>
           </GlassCard>
         </div>
+        )}
       </StepCard>
       </div>
 
-      <StepCard n="B" icon={<GraduationCap size={17} />} title="How to read this report">
-        <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          {REPORT_HOW_TO_READ.map((h) => (
-            <li key={h.slice(0, 40)}>{h}</li>
-          ))}
-        </ol>
-      </StepCard>
-
-      <StepCard n="C" icon={<Calculator size={17} />} title="The formulas behind every number here">
-        <div className="col" style={{ gap: 8 }}>
-          {REPORT_FORMULAS.map((f) => (
-            <GlassCard key={f.name} variant="nested" padding={12}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{f.name}</div>
-              <Eq>{f.formula}</Eq>
-              <div style={noteText}>{f.how}</div>
-              <RefLine r={f.ref} />
-            </GlassCard>
-          ))}
-        </div>
-      </StepCard>
-
-      <StepCard n="D" icon={<History size={17} />} title="History — monthly & quarterly trends">
+      <StepCard n="B" icon={<History size={17} />} title="History — monthly & quarterly trends">
         <p style={hintStyle}>
           The last 4½ years of the numbers every section above leans on, reviewable at
           either frequency. Chart lines are official prints at the anchor months (the same
@@ -6963,7 +6973,24 @@ function GuidePane({
               the reference line under each section is the address: "Tab 15 · step A" means go to
               tab 15, section A for the interactive version, worked examples, and guide.
             </GuideSection>
-            <GuideSection n="B" title="Filter recipes">
+            <GuideSection n="B" title="How to read this report">
+              <ol style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
+                {REPORT_HOW_TO_READ.map((h) => (
+                  <li key={h.slice(0, 40)} style={{ marginBottom: 4 }}>{h}</li>
+                ))}
+              </ol>
+            </GuideSection>
+            <GuideSection n="C" title="The formulas behind every number">
+              {REPORT_FORMULAS.map((f) => (
+                <div key={f.name} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{f.name}</div>
+                  <Eq>{f.formula}</Eq>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{f.how}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', marginTop: 2 }}>{refText(f.ref)}</div>
+                </div>
+              ))}
+            </GuideSection>
+            <GuideSection n="D" title="Filter recipes">
               Country only: the four-gauge sovereign health check (debt slope → trade balance →
               currency → politics). State only: the muni lens — bonded debt plus the pension
               truth. Industry only: revenue weather → capital stance → benchmarks → equity
@@ -6971,15 +6998,15 @@ function GuidePane({
               combined read at the bottom, which joins them in one paragraph. All three on:
               the full briefing.
             </GuideSection>
-            <GuideSection n="C" title="What moves and what doesn't">
+            <GuideSection n="E" title="What moves and what doesn't">
               The scenario chips drive ONLY the dial-driven sections — industry backdrop, capital
               stance, sub-lenses, and the combined read. Country and state sections are dated
               snapshot data (approximate teaching values, sources on tab 15) and hold still. If
-              a number surprises you, step C's formula cards show the exact math, each with its
-              own reference.
+              a number surprises you, the formulas section of this guide (always visible beside
+              the report) shows the exact math, each with its own reference.
             </GuideSection>
-            <GuideSection n="D" title="The history step (monthly vs quarterly)">
-              Step D holds 2022→today for CPI, the Fed midpoint, the 10-year, and the PMMS
+            <GuideSection n="F" title="The history step (monthly vs quarterly)">
+              Step B holds 2022→today for CPI, the Fed midpoint, the 10-year, and the PMMS
               mortgage, plus quarterly GDP. Anchor months are official prints — the latest ones
               are pinned by tests to equal tabs 3/11/12's snapshots — and the months between are
               computed linear interpolation, labeled as such. Toggle monthly to find turning
@@ -6987,7 +7014,7 @@ function GuidePane({
               noise hides. The build card at the top stays stuck to the screen, so flip lenses
               and frequencies and watch the sections change in place.
             </GuideSection>
-            <GuideSection n="E" title="The geopolitics layer">
+            <GuideSection n="G" title="The geopolitics layer">
               The last two steps hold the security layer: seven flashpoints (Taiwan, the South
               China Sea island campaign, Iran/Hormuz, Venezuela, the sanctions economy, AI/chips
               &amp; data centers, space), the active conflicts with their market channels, the
@@ -6998,7 +7025,7 @@ function GuidePane({
               the channel — commodities, budgets, or tails — before citing any headline, and
               treat the recent-window digest as illustrative until verified.
             </GuideSection>
-            <GuideSection n="F" title="Belt & Road, routes, and the coverage index">
+            <GuideSection n="H" title="Belt &amp; Road, routes, and the coverage index">
               The Belt and Road Initiative — China's ~$1T port-rail-and-road lending program —
               gets its own step: the BRI facts, the rival corridors (IMEC, Global Gateway,
               Lobito), and the five chokepoints. Every country card carries its OWN route row
@@ -7007,7 +7034,7 @@ function GuidePane({
               index: all 19 tabs and their sections, with exactly how the report uses each —
               pinned by tests, so "is everything in here?" has a checkable answer.
             </GuideSection>
-            <GuideSection n="G" title="Print to PDF — and comparing selections">
+            <GuideSection n="I" title="Print to PDF — and comparing selections">
               Set the lenses and scenario, then hit "Print / save as PDF" (top of the build
               card) and choose <strong>Save as PDF</strong> as the destination in the print
               dialog. The printout is the report alone — app chrome, tab bar, and this guide
@@ -7017,7 +7044,7 @@ function GuidePane({
               to "Texas × Energy, Supply shock" — and read them side by side; the stamped
               headers keep them straight.
             </GuideSection>
-            <GuideSection n="H" title="Using it for the interview">
+            <GuideSection n="J" title="Using it for the interview">
               This is the "walk me through how you'd brief a client on X" rehearsal: pick the
               client's industry and home state, read the report top to bottom out loud, and
               practice ending each section with the so-what. The EY-expected exhibits on tab 7
