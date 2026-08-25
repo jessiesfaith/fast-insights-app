@@ -653,10 +653,12 @@ export default function CorporateFinanceLab() {
                         </Chip>
                       ))}
                     </div>
+                    <span style={dcfHintStyle}>The cash on the table for one move. Example: $1,000,000 — every NPV below is sized on it.</span>
                   </div>
                   <div className="col" style={{ gap: 6 }}>
                     <span style={labelStyle}>Risk-free rate (10-yr Treasury)</span>
                     <PctInput value={waccInputs.riskFree} onChange={(v) => setWaccInputs((w) => ({ ...w, riskFree: v }))} />
+                    <span style={dcfHintStyle}>Today's 10-yr Treasury yield — the price of time with zero credit risk. Example: 4%.</span>
                   </div>
                   <div className="col" style={{ gap: 6 }}>
                     <span style={labelStyle}>Business risk (beta)</span>
@@ -761,25 +763,26 @@ export default function CorporateFinanceLab() {
                     </Chip>
                   ))}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
                   {(
                     [
-                      ['revenue', 'Revenue (annual)'],
-                      ['cogs', 'Cost of goods sold'],
-                      ['ebitda', 'EBITDA'],
-                      ['interest', 'Interest expense'],
-                      ['totalDebt', 'Total debt'],
-                      ['cash', 'Cash'],
-                      ['currentAssets', 'Current assets'],
-                      ['currentLiabilities', 'Current liabilities'],
-                      ['ar', 'Accounts receivable'],
-                      ['inventory', 'Inventory'],
-                      ['ap', 'Accounts payable'],
-                    ] as [keyof CustomerFinancials, string][]
-                  ).map(([key, label]) => (
+                      ['revenue', 'Revenue (annual)', 'Their total sales for the year, from the income statement. Mesa Supply example: $10,000,000.'],
+                      ['cogs', 'Cost of goods sold', 'Direct cost of what they sold — drives the inventory and payables day-counts. Example: $7,000,000.'],
+                      ['ebitda', 'EBITDA', 'Operating profit before interest/tax/depreciation — the cash engine the caps size against. Example: $1,200,000.'],
+                      ['interest', 'Interest expense', 'Their annual interest bill. Coverage = EBITDA ÷ this. Example: $350,000 → 3.4× (watch band).'],
+                      ['totalDebt', 'Total debt', 'All borrowings on the balance sheet. Leverage = this ÷ EBITDA. Example: $3,500,000 → 2.9×.'],
+                      ['cash', 'Cash', 'Cash & equivalents — adds to the liquidity cap. Example: $800,000.'],
+                      ['currentAssets', 'Current assets', 'Everything turning to cash within a year (cash + AR + inventory…). Example: $4,500,000.'],
+                      ['currentLiabilities', 'Current liabilities', 'Everything due within a year — your invoice joins this line. Example: $3,000,000 → current ratio 1.5.'],
+                      ['ar', 'Accounts receivable', 'What their customers owe THEM. DSO = AR ÷ revenue × 365. Example: $1,800,000 → 66 days.'],
+                      ['inventory', 'Inventory', 'Stock on the shelf. DIO = inventory ÷ COGS × 365. Example: $1,600,000 → 83 days.'],
+                      ['ap', 'Accounts payable', 'What they owe suppliers like you. DPO = AP ÷ COGS × 365. Example: $1,400,000 → 73 days.'],
+                    ] as [keyof CustomerFinancials, string, string][]
+                  ).map(([key, label, hint]) => (
                     <div key={key} className="col" style={{ gap: 5 }}>
                       <span style={labelStyle}>{label}</span>
                       <MoneyInput value={fin[key]} onChange={(v) => setFinField(key, v)} width={110} />
+                      <span style={dcfHintStyle}>{hint}</span>
                     </div>
                   ))}
                 </div>
@@ -1472,54 +1475,78 @@ export default function CorporateFinanceLab() {
                 <p style={hintStyle}>
                   A five-year DCF, built the way you'd narrate it in an interview: revenue grows,
                   EBITDA follows the margin, D&amp;A splits out EBIT for tax, then{' '}
-                  <strong>FCF = NOPAT + D&amp;A − capex − ΔNWC</strong>. Set the drivers; the table
-                  and the value bridge recompute live.
+                  <strong>FCF = NOPAT + D&amp;A − capex − ΔNWC</strong>. Every field carries its
+                  instruction <em>with the worked-example number</em> — the defaults ARE the
+                  example (think of it as one company: $10M of sales, 20% margins, $2M of net
+                  debt), and the guide on the right narrates the whole calculation end to end with
+                  whatever the fields currently hold.
                 </p>
-                <div className="row gap-4" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 8 }}>
-                  <div className="col" style={{ gap: 6 }}>
+                <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+                  <Chip
+                    active={JSON.stringify(dcf) === JSON.stringify(DEFAULT_DCF_INPUTS)}
+                    onClick={() => setDcf(DEFAULT_DCF_INPUTS)}
+                  >
+                    Reset to the worked example
+                  </Chip>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+                    Type over any field to make it your own; this chip brings the example back.
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, marginBottom: 8 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>Revenue (LTM)</span>
                     <MoneyInput value={dcf.revenue} onChange={(v) => setDcfField('revenue', v)} width={110} />
+                    <span style={dcfHintStyle}>Sales over the last twelve months — the base everything grows from. Example: $10,000,000.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>EBITDA margin</span>
                     <PctInput value={dcf.ebitdaMarginPct} onChange={(v) => setDcfField('ebitdaMarginPct', v)} max={60} />
+                    <span style={dcfHintStyle}>Operating profit per sales dollar. Example: 20% → $2,000,000 of EBITDA on $10M of revenue.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>Growth (yrs 1–5)</span>
                     <PctInput value={dcf.growthPct} onChange={(v) => setDcfField('growthPct', v)} />
+                    <span style={dcfHintStyle}>Annual revenue growth for the five forecast years. Example: 8%/yr → $10M becomes $10.8M in year 1.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>D&amp;A (% rev)</span>
                     <PctInput value={dcf.daPctRevenue} onChange={(v) => setDcfField('daPctRevenue', v)} />
+                    <span style={dcfHintStyle}>Depreciation &amp; amortization — non-cash, but it shields taxes. Example: 4% of revenue (≈$432k in year 1).</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>Capex (% rev)</span>
                     <PctInput value={dcf.capexPctRevenue} onChange={(v) => setDcfField('capexPctRevenue', v)} />
+                    <span style={dcfHintStyle}>Real cash spent on equipment and buildings. Example: 5% — keep it ≥ D&amp;A while the business is growing.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>ΔNWC (% of growth)</span>
                     <PctInput value={dcf.nwcPctGrowth} onChange={(v) => setDcfField('nwcPctGrowth', v)} max={50} />
+                    <span style={dcfHintStyle}>Working capital each NEW dollar of sales ties up (receivables and inventory build first). Example: 10¢ per new $1.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>WACC</span>
-                    <div className="row gap-2" style={{ alignItems: 'center' }}>
+                    <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                       <PctInput value={dcf.waccPct} onChange={(v) => setDcfField('waccPct', v)} />
                       <Chip active={dcf.waccPct === wacc.wacc} onClick={() => setDcfField('waccPct', wacc.wacc)}>
                         From tab 1 · {wacc.wacc}%
                       </Chip>
                     </div>
+                    <span style={dcfHintStyle}>The discount rate — what capital costs you. Example: 8.6%, tab 1's default (4% + 1.1 × 5.5% equity; 5.3% after-tax debt; 70/30 mix).</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>Terminal growth</span>
                     <PctInput value={dcf.terminalGrowthPct} onChange={(v) => setDcfField('terminalGrowthPct', v)} max={6} />
+                    <span style={dcfHintStyle}>Growth forever AFTER year 5. Example: 2.5% — at or below long-run GDP growth, and always below WACC.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>Peer EV/EBITDA</span>
                     <PctInput value={dcf.peerMultiple} onChange={(v) => setDcfField('peerMultiple', v)} max={30} suffix="×" />
+                    <span style={dcfHintStyle}>What similar companies trade or sell for, as a multiple of EBITDA. Example: 8× — the market-approach cross-check.</span>
                   </div>
-                  <div className="col" style={{ gap: 6 }}>
+                  <div className="col" style={{ gap: 5 }}>
                     <span style={labelStyle}>Net debt</span>
                     <MoneyInput value={dcf.netDebt} onChange={(v) => setDcfField('netDebt', v)} width={100} />
+                    <span style={dcfHintStyle}>Total debt minus cash. Example: $2,000,000 — subtracted from EV to reach what shareholders own.</span>
                   </div>
                 </div>
                 {!dcfResult.valid ? (
@@ -1919,7 +1946,7 @@ export default function CorporateFinanceLab() {
           )}
         </div>
 
-        <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} />
+        <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
       </div>
 
       <footer style={{ marginTop: 48, color: 'var(--text-tertiary)', fontSize: 12, lineHeight: 1.6 }}>
@@ -1937,6 +1964,13 @@ const labelStyle: React.CSSProperties = {
   color: 'var(--text-tertiary)',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
+};
+
+/** Per-field instruction line carrying the worked-example number. */
+const dcfHintStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: 'var(--text-tertiary)',
+  lineHeight: 1.45,
 };
 
 function StatPill({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -2485,6 +2519,8 @@ function GuidePane({
   fin,
   proformaOn,
   proRead,
+  dcf,
+  dcfResult,
 }: {
   tab: TabId;
   wacc: ReturnType<typeof computeWacc>;
@@ -2497,6 +2533,8 @@ function GuidePane({
   fin: CustomerFinancials;
   proformaOn: boolean;
   proRead: ProformaRead;
+  dcf: DcfInputs;
+  dcfResult: ReturnType<typeof runDcf>;
 }) {
   const best = options[0];
   const dso = fin.revenue > 0 ? Math.round((fin.ar / fin.revenue) * 365) : 0;
@@ -2789,6 +2827,31 @@ function GuidePane({
               Say it in that order, then name the two judgment calls: the forecast drivers and the
               discount rate. Everything else is arithmetic — which is exactly what this tab lets
               you practice by feel.
+            </GuideSection>
+            <GuideSection n="A2" title="The worked example, end to end — live">
+              {dcfResult.valid ? (
+                <>
+                  These are YOUR current field values run through the whole chain — change any
+                  field and this paragraph recomputes:
+                  <Eq>
+                    revenue {fmtMoney(dcf.revenue, 0)} grows {dcf.growthPct}%/yr{'\n'}
+                    yr-1: EBITDA {fmtMoney(dcfResult.years[0].ebitda, 0)} → FCF {fmtMoney(dcfResult.years[0].fcf, 0)}{'\n'}
+                    yr-5: FCF {fmtMoney(dcfResult.years[4].fcf, 0)}{'\n'}
+                    PV of 5 yrs = {fmtMoney(dcfResult.pvForecast, 0)}{'\n'}
+                    TV = FCF₅×{(1 + dcf.terminalGrowthPct / 100).toFixed(3)} ÷ ({dcf.waccPct}% − {dcf.terminalGrowthPct}%){'\n'}
+                    PV of TV = {fmtMoney(dcfResult.pvTerminal, 0)} ({dcfResult.tvSharePct}% of value){'\n'}
+                    EV = {fmtMoney(dcfResult.ev, 0)}{'\n'}
+                    − net debt {fmtMoney(dcf.netDebt, 0)} = equity {fmtMoney(dcfResult.equity, 0)}
+                  </Eq>
+                  Cross-check: {dcf.peerMultiple}× peer multiple says {fmtMoney(dcfResult.evExit, 0)};
+                  the DCF implies {dcfResult.impliedForwardMultiple}× forward EV/EBITDA. Practice
+                  loop: predict which of these numbers moves before you change a field — that's how
+                  the fields become intuition.
+                </>
+              ) : (
+                <>Set WACC above terminal growth and the full worked example appears here, computed
+                from your fields.</>
+              )}
             </GuideSection>
             <GuideSection n="B" title="Enterprise vs. equity value">
               EV is the price of the whole operating business, whoever financed it; equity value is
