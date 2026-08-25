@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MacroFactors, SCENARIOS } from '../lib/macroModel';
 import {
+  DALIO_INVEST_PRINCIPLES,
   DALIO_RULES,
   MACHINE_FORCES,
   SHORT_CYCLE_YEARS,
@@ -59,14 +60,14 @@ describe('how the market cycles', () => {
     );
   });
 
-  it('every force card defines itself against all 3 equilibriums, both levers, 2 hypotheticals, and history', () => {
+  it('follows the talk’s order — four big forces, then the two levers — each fully defined', () => {
     expect(MACHINE_FORCES.map((f) => f.id)).toEqual([
-      'monetary',
-      'fiscal',
+      'productivity',
       'short-debt',
       'long-debt',
       'politics',
-      'productivity',
+      'monetary',
+      'fiscal',
     ]);
     for (const f of MACHINE_FORCES) {
       for (const field of [f.what, f.eq1, f.eq2, f.eq3, f.lever, f.history]) {
@@ -75,6 +76,28 @@ describe('how the market cycles', () => {
       expect(f.hypotheticals).toHaveLength(2);
       for (const h of f.hypotheticals) expect(h).toMatch(/^Hypothetical/);
     }
+    // the video's own material is woven in
+    const all = MACHINE_FORCES.map((f) => [f.what, f.eq1, f.eq3, f.lever, f.history].join(' ')).join(' ');
+    expect(all).toMatch(/credit is buying power/i);
+    expect(all).toMatch(/1937/);
+    expect(all).toMatch(/\$400/);
+    expect(all).toMatch(/rising power/i);
+    expect(all).toMatch(/brakes and the gas/i);
+  });
+
+  it('ships the talk’s eight investment principles, each tied to a place in the Lab', () => {
+    expect(DALIO_INVEST_PRINCIPLES).toHaveLength(8);
+    for (const p of DALIO_INVEST_PRINCIPLES) {
+      expect(p.what.length).toBeGreaterThan(60);
+      expect(p.useIt.length).toBeGreaterThan(20);
+    }
+    const all = DALIO_INVEST_PRINCIPLES.map((p) => p.what).join(' ');
+    expect(all).toMatch(/lump-sum payment for a future cash flow/i);
+    expect(all).toMatch(/total spending/i);
+    expect(all).toMatch(/twice the volatility/i);
+    expect(all).toMatch(/poker/i);
+    expect(all).toMatch(/~15 cut it by ~80%/);
+    expect(all).toMatch(/more expensive investment/i);
   });
 
   it('ships all three Dalio rules of thumb', () => {

@@ -23,13 +23,14 @@ describe('the EY gap check', () => {
     for (const must of ['DCF', 'WACC', 'EV/EBITDA', 'sensitivity', 'Three-statement', 'Enterprise value', 'IRR', 'Terminal value']) {
       expect(items).toContain(must);
     }
-    const gaps = GAP_CHECK.filter((g) => g.status === 'gap').map((g) => g.item).join(' ');
-    expect(gaps).toMatch(/PPA/);
-    expect(gaps).toMatch(/impairment/i);
-    expect(gaps).toMatch(/LBO/);
-    // majority of the checklist is covered by the Lab
-    const covered = GAP_CHECK.filter((g) => g.status === 'covered').length;
-    expect(covered).toBeGreaterThan(GAP_CHECK.length / 2);
+    // every former gap is now built into the tool (the tab-11 workbench)
+    const formerGaps = GAP_CHECK.filter((g) => /PPA|impairment|LBO|Cost approach|Accretion|precedent/i.test(g.item));
+    expect(formerGaps.length).toBeGreaterThanOrEqual(6);
+    for (const g of formerGaps) {
+      expect(g.status).toBe('covered');
+      expect(g.where).toMatch(/Tab 11/);
+    }
+    expect(GAP_CHECK.filter((g) => g.status === 'gap')).toHaveLength(0);
   });
 
   it('carries the outlook anchor numbers and the interview format', () => {

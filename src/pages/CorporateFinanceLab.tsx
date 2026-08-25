@@ -118,6 +118,7 @@ import {
   sensitivityGrid,
 } from '../lib/valuation';
 import {
+  DALIO_INVEST_PRINCIPLES,
   DALIO_RULES,
   EQ_STATUS_LABEL,
   EquilibriumRead,
@@ -139,6 +140,34 @@ import {
   INTERVIEW_FORMAT,
   TAKE_HOME_PLAN,
 } from '../lib/eyPrep';
+import {
+  DEFAULT_ACCRETION_INPUTS,
+  DEFAULT_BETA_INPUTS,
+  DEFAULT_BREAKEVEN_INPUTS,
+  DEFAULT_CAGR_INPUTS,
+  DEFAULT_COMPS_INPUTS,
+  DEFAULT_COST_INPUTS,
+  DEFAULT_HURDLE_INPUTS,
+  DEFAULT_IMPAIR_INPUTS,
+  DEFAULT_IRR_INPUTS,
+  DEFAULT_LBO_INPUTS,
+  DEFAULT_PPA_INPUTS,
+  DEFAULT_RNPV_INPUTS,
+  DEFAULT_ROIC_INPUTS,
+  accretionDilution,
+  betaWorkshop,
+  breakEven,
+  cagr,
+  compsCompare,
+  costApproach,
+  expectedPayoff,
+  goodwillImpairment,
+  hurdleBuilder,
+  incrementalRoic,
+  irrLab,
+  lboMini,
+  ppa,
+} from '../lib/gapWorkbench';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
@@ -154,7 +183,8 @@ type TabId =
   | 'formulas'
   | 'eygap'
   | 'drill'
-  | 'rounds';
+  | 'rounds'
+  | 'gapwork';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -167,6 +197,7 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'eygap', label: '8 · EY gap check', icon: ClipboardCheck },
   { id: 'drill', label: '9 · EY interview drill', icon: GraduationCap },
   { id: 'rounds', label: '10 · EY round map', icon: Handshake },
+  { id: 'gapwork', label: '11 · Gap workbench', icon: Landmark },
 ];
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
@@ -1096,10 +1127,13 @@ export default function CorporateFinanceLab() {
                 </div>
                 <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '10px 0 0' }}>
                   Alignment is the cosine of the two macro-sensitivity vectors (−1…+1) — model-space
-                  co-movement, not historical correlation. The Dalio point it teaches: a treasury
-                  built from streams that <em>don't</em> move with your own industry is the only
-                  free reduction in risk — and note the trap the chart exposes: for long-duration
-                  industries like tech, long bonds move <em>with</em> you when rates are the shock.
+                  co-movement, not historical correlation. This is Dalio's <strong>Holy Grail</strong>{' '}
+                  in miniature: his talk's numbers — average stocks are ~60% correlated with each
+                  other, so a thousand of them diversify no better than 5–10; but five{' '}
+                  <em>uncorrelated</em> return streams more than halve your risk, and ~15 cut it by
+                  ~80%, improving return-to-risk about five-fold. Hunt the zero and negative
+                  alignments — and note the trap the chart exposes: for long-duration industries
+                  like tech, long bonds move <em>with</em> you when rates are the shock.
                 </p>
               </StepCard>
 
@@ -1339,12 +1373,15 @@ export default function CorporateFinanceLab() {
                 </div>
               </StepCard>
 
-              <StepCard n="E" icon={<RefreshCcw size={17} />} title="The six forces vs. the three equilibriums">
+              <StepCard n="E" icon={<RefreshCcw size={17} />} title="The four big forces + the two levers — vs. the three equilibriums">
                 <p style={hintStyle}>
-                  Everything that moves the machine, one card each: what the force is, how it hits
-                  each equilibrium, its relationship to the two levers — plus{' '}
-                  <strong>two hypotheticals</strong> and <strong>one real episode from the past</strong>{' '}
-                  so the mechanism sticks.
+                  Dalio's template from the talk, verbatim: <em>"four big forces, three important
+                  equilibriums, and two levers — if you get this down, basically everything through
+                  my eyes is along those lines."</em> The four forces (productivity, the short-term
+                  debt cycle, the long-term debt cycle, politics) and the two levers (monetary,
+                  fiscal), one card each — with the talk's own examples, plus{' '}
+                  <strong>two hypotheticals</strong> and <strong>one real episode</strong> so the
+                  mechanism sticks.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                   {MACHINE_FORCES.map((force) => (
@@ -1465,6 +1502,27 @@ export default function CorporateFinanceLab() {
                     tab 1 then ranks all seven moves with your numbers under this same scenario.
                   </p>
                 </GlassCard>
+              </StepCard>
+
+              <StepCard n="G" icon={<GraduationCap size={17} />} title="Dalio's investment principles — from the same talk">
+                <p style={hintStyle}>
+                  The second half of the video: after the machine, how to invest inside it. Eight
+                  principles, each with where in this Lab you practice it — so the video's examples
+                  are the default setup, not just quotes.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                  {DALIO_INVEST_PRINCIPLES.map((p) => (
+                    <GlassCard key={p.n} variant="nested" padding={14}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+                        {p.n}. {p.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{p.what}</div>
+                      <div style={{ fontSize: 12, color: 'var(--accent)', lineHeight: 1.5, marginTop: 8 }}>
+                        <strong>Practice it:</strong> {p.useIt}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
               </StepCard>
             </>
           )}
@@ -1782,9 +1840,10 @@ export default function CorporateFinanceLab() {
               <StepCard n="A" icon={<ClipboardCheck size={17} />} title="The EY technical checklist — item by item">
                 <p style={hintStyle}>
                   Everything EY names for its Corporate Finance / Valuation, Modeling &amp;
-                  Economics roles, gap-checked against this Lab: where each item lives here, and for
-                  the deliberate gaps, the one-liner to know by name. Compiled from EY's own
-                  postings and service pages (sources in the study repo).
+                  Economics roles, gap-checked against this Lab: where each item lives here — the
+                  former knowledge-only gaps are now working calculators on{' '}
+                  <strong>tab 11, the gap workbench</strong>. Compiled from EY's own postings and
+                  service pages (sources in the study repo).
                 </p>
                 <div className="col" style={{ gap: 10 }}>
                   {GAP_CHECK.map((g) => {
@@ -1944,6 +2003,8 @@ export default function CorporateFinanceLab() {
               </StepCard>
             </>
           )}
+
+          {tab === 'gapwork' && <GapWorkbenchTab />}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
@@ -2504,6 +2565,452 @@ function OptionsSection({
 }
 
 // ---------------------------------------------------------------------------
+// Tab 11 — the gap workbench (self-contained state)
+// ---------------------------------------------------------------------------
+
+function WbField({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+  return (
+    <div className="col" style={{ gap: 5 }}>
+      <span style={labelStyle}>{label}</span>
+      {children}
+      <span style={dcfHintStyle}>{hint}</span>
+    </div>
+  );
+}
+
+const wbGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+  gap: 12,
+  marginBottom: 10,
+};
+
+const wbNote: React.CSSProperties = {
+  fontSize: 12.5,
+  color: 'var(--text-secondary)',
+  lineHeight: 1.6,
+  marginTop: 10,
+};
+
+function GapWorkbenchTab() {
+  const [irr, setIrr] = useState(DEFAULT_IRR_INPUTS);
+  const [beta, setBeta] = useState(DEFAULT_BETA_INPUTS);
+  const [hurdle, setHurdle] = useState(DEFAULT_HURDLE_INPUTS);
+  const [rnpv, setRnpv] = useState(DEFAULT_RNPV_INPUTS);
+  const [roic, setRoic] = useState(DEFAULT_ROIC_INPUTS);
+  const [ppaIn, setPpaIn] = useState(DEFAULT_PPA_INPUTS);
+  const [impair, setImpair] = useState(DEFAULT_IMPAIR_INPUTS);
+  const [comps, setComps] = useState(DEFAULT_COMPS_INPUTS);
+  const [cost, setCost] = useState(DEFAULT_COST_INPUTS);
+  const [lbo, setLbo] = useState(DEFAULT_LBO_INPUTS);
+  const [acc, setAcc] = useState(DEFAULT_ACCRETION_INPUTS);
+  const [be, setBe] = useState(DEFAULT_BREAKEVEN_INPUTS);
+  const [cg, setCg] = useState(DEFAULT_CAGR_INPUTS);
+
+  const irrR = useMemo(() => irrLab(irr), [irr]);
+  const betaR = useMemo(() => betaWorkshop(beta), [beta]);
+  const hurdleR = useMemo(() => hurdleBuilder(hurdle), [hurdle]);
+  const roicR = useMemo(() => incrementalRoic(roic), [roic]);
+  const ppaR = useMemo(() => ppa(ppaIn), [ppaIn]);
+  const impairR = useMemo(() => goodwillImpairment(impair), [impair]);
+  const compsR = useMemo(() => compsCompare(comps), [comps]);
+  const costR = useMemo(() => costApproach(cost), [cost]);
+  const lboR = useMemo(() => lboMini(lbo), [lbo]);
+  const accR = useMemo(() => accretionDilution(acc), [acc]);
+  const beR = useMemo(() => breakEven(be), [be]);
+  const cgR = useMemo(() => cagr(cg), [cg]);
+
+  return (
+    <>
+      <StepCard n="A" icon={<Calculator size={17} />} title="IRR & NPV lab">
+        <p style={hintStyle}>
+          Your prep session's example, live: invest 100 and receive 40 / 50 / 50. The session
+          quoted "≈18.8%" — the exact solve is <strong>18.1%</strong> (at 18.8% the NPV is already
+          negative). That's the "model review" habit in one line: verify every number, even the
+          teacher's. Enter units of anything ($ or $M — they cancel); IRR is the rate where NPV
+          hits zero, and the NPV shown is computed at your hurdle.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Investment (year 0)" hint="Cash out today, entered positive. Example: 100.">
+            <MoneyInput value={irr.investment} onChange={(v) => setIrr((s) => ({ ...s, investment: v }))} width={90} />
+          </WbField>
+          {irr.inflows.map((cf, i) => (
+            <WbField key={i} label={`Inflow year ${i + 1}`} hint={i < 3 ? `Example: ${[40, 50, 50][i]}.` : 'Leave 0 if none.'}>
+              <MoneyInput
+                value={cf}
+                onChange={(v) =>
+                  setIrr((s) => {
+                    const inflows = [...s.inflows] as typeof s.inflows;
+                    inflows[i] = v;
+                    return { ...s, inflows };
+                  })
+                }
+                width={80}
+              />
+            </WbField>
+          ))}
+          <WbField label="Hurdle / required return" hint="The risk-adjusted bar (build one in section C). Example: 10%.">
+            <PctInput value={irr.hurdlePct} onChange={(v) => setIrr((s) => ({ ...s, hurdlePct: v }))} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="IRR" value={irrR.irrPct === null ? 'never breaks even' : `${irrR.irrPct}%`} strong />
+          <StatPill label={`NPV @ ${irr.hurdlePct}%`} value={fmtMoney(irrR.npv, 0)} />
+          <StatPill label="Payback" value={irrR.paybackYears === null ? 'beyond horizon' : `${irrR.paybackYears} yrs`} />
+        </div>
+        <p style={wbNote}>
+          The three-line answer from your session: <strong>NPV = dollars</strong> (value created) ·{' '}
+          <strong>IRR = percentage</strong> (implied return) · <strong>payback = time</strong>. And
+          the trap: a $1M project at 40% IRR creates $200k; a $100M project at 18% creates $15M —
+          when mutually exclusive rankings conflict, trust NPV. Timing is everything: $100 → $150 in
+          one year is a 50% IRR; the same $150 in year five is ≈8.45%.
+        </p>
+      </StepCard>
+
+      <StepCard n="B" icon={<Activity size={17} />} title="Beta workshop — unlever, relever, CAPM">
+        <p style={hintStyle}>
+          Your session's exact example: a comparable with levered beta 1.4, $300 debt / $700
+          equity, 25% tax → <strong>unlevered β ≈ 1.06</strong>; relever at a 20/80 target →{' '}
+          <strong>β ≈ 1.26</strong> → CAPM. This is how you value a business whose financing
+          differs from its peers.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Peer levered beta" hint="The comparable's observed equity beta. Example: 1.4.">
+            <PctInput value={beta.peerLeveredBeta} onChange={(v) => setBeta((s) => ({ ...s, peerLeveredBeta: v }))} max={3} suffix="β" />
+          </WbField>
+          <WbField label="Peer debt" hint="Example: 300 — with equity 700, D/E = 0.43.">
+            <MoneyInput value={beta.peerDebt} onChange={(v) => setBeta((s) => ({ ...s, peerDebt: v }))} width={80} />
+          </WbField>
+          <WbField label="Peer equity" hint="Market value of the comparable's equity. Example: 700.">
+            <MoneyInput value={beta.peerEquity} onChange={(v) => setBeta((s) => ({ ...s, peerEquity: v }))} width={80} />
+          </WbField>
+          <WbField label="Tax rate" hint="For the (1−T) in both formulas. Example: 25%.">
+            <PctInput value={beta.taxPct} onChange={(v) => setBeta((s) => ({ ...s, taxPct: v }))} max={50} />
+          </WbField>
+          <WbField label="Target debt %" hint="YOUR sustainable structure, not the peer's. Example: 20% debt / 80% equity.">
+            <PctInput value={beta.targetDebtPct} onChange={(v) => setBeta((s) => ({ ...s, targetDebtPct: v }))} max={90} />
+          </WbField>
+          <WbField label="Risk-free rate" hint="Example: 4% (10-yr Treasury).">
+            <PctInput value={beta.riskFreePct} onChange={(v) => setBeta((s) => ({ ...s, riskFreePct: v }))} />
+          </WbField>
+          <WbField label="Equity risk premium" hint="Example: 5.5% — the extra stocks must pay over risk-free.">
+            <PctInput value={beta.erpPct} onChange={(v) => setBeta((s) => ({ ...s, erpPct: v }))} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Unlevered β (business risk)" value={String(betaR.unleveredBeta)} />
+          <StatPill label="Relevered β (your structure)" value={String(betaR.releveredBeta)} />
+          <StatPill label="Cost of equity (CAPM)" value={`${betaR.costOfEquityPct}%`} strong />
+        </div>
+        <p style={wbNote}>
+          The sentence to say: <em>"I unlever comparable betas to isolate operating risk from each
+          peer's financing, then relever at a sustainable target structure so the cost of equity
+          reflects the risk of the business I'm actually valuing."</em> In practice you'd do this
+          across 5–10 comparables and take the median.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<ShieldCheck size={17} />} title="Risk-adjusted hurdle builder + rNPV">
+        <p style={hintStyle}>
+          Not "WACC + 3%": a <strong>project-specific WACC</strong>. Your session's build: project
+          beta 1.4 (riskier than the parent) plus a 2% country-risk premium → cost of equity
+          13.7% → blended hurdle ≈ 11.6%. The rNPV piece handles binary risk (drug trials, big
+          launches) by probability-adjusting the cash flow instead.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Risk-free rate" hint="Example: 4%.">
+            <PctInput value={hurdle.riskFreePct} onChange={(v) => setHurdle((s) => ({ ...s, riskFreePct: v }))} />
+          </WbField>
+          <WbField label="Project beta" hint="The PROJECT's risk, from comparables in that business — not the parent's. Example: 1.4 (biotech vs a 0.9 device maker).">
+            <PctInput value={hurdle.projectBeta} onChange={(v) => setHurdle((s) => ({ ...s, projectBeta: v }))} max={3} suffix="β" />
+          </WbField>
+          <WbField label="Equity risk premium" hint="Example: 5.5%.">
+            <PctInput value={hurdle.erpPct} onChange={(v) => setHurdle((s) => ({ ...s, erpPct: v }))} />
+          </WbField>
+          <WbField label="Country risk premium" hint="0 for domestic; add for political/currency/legal risk. Example: 2%.">
+            <PctInput value={hurdle.countryRiskPct} onChange={(v) => setHurdle((s) => ({ ...s, countryRiskPct: v }))} max={10} />
+          </WbField>
+          <WbField label="Project debt %" hint="The project's own financing mix. Example: 30%.">
+            <PctInput value={hurdle.debtPct} onChange={(v) => setHurdle((s) => ({ ...s, debtPct: v }))} max={90} />
+          </WbField>
+          <WbField label="Project cost of debt" hint="What lenders charge THIS project — a speculative project borrows dearer than the parent. Example: 9%.">
+            <PctInput value={hurdle.costOfDebtPct} onChange={(v) => setHurdle((s) => ({ ...s, costOfDebtPct: v }))} />
+          </WbField>
+          <WbField label="Tax rate" hint="Example: 25% — check the shield is actually usable.">
+            <PctInput value={hurdle.taxPct} onChange={(v) => setHurdle((s) => ({ ...s, taxPct: v }))} max={50} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Project cost of equity" value={`${hurdleR.costOfEquityPct}%`} />
+          <StatPill label="After-tax cost of debt" value={`${hurdleR.afterTaxDebtPct}%`} />
+          <StatPill label="Risk-adjusted hurdle" value={`${hurdleR.hurdlePct}%`} strong />
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 14 }}>
+          <WbField label="Probability of success" hint="Example: 30% (a clinical phase).">
+            <PctInput value={rnpv.successPct} onChange={(v) => setRnpv((s) => ({ ...s, successPct: v }))} max={100} />
+          </WbField>
+          <WbField label="Payoff if it works" hint="Example: 300 ($M).">
+            <MoneyInput value={rnpv.payoff} onChange={(v) => setRnpv((s) => ({ ...s, payoff: v }))} width={90} />
+          </WbField>
+          <StatPill label="Probability-adjusted cash flow" value={fmtMoney(expectedPayoff(rnpv), 0)} strong />
+        </div>
+        <p style={wbNote}>
+          The Manager-level warning from your session: <strong>don't double-count risk</strong> —
+          if the cash flows are already probability-adjusted for failure, don't also pile a huge
+          failure premium into the discount rate.
+        </p>
+      </StepCard>
+
+      <StepCard n="D" icon={<TrendingUp size={17} />} title="Incremental ROIC vs. WACC">
+        <p style={hintStyle}>
+          "Where can incremental capital earn attractive returns relative to its risk-adjusted
+          cost?" — your session's capital-allocation core. Example: $100 invested producing $15 of
+          incremental NOPAT = 15% against a 9% WACC → a +6pp value-creation spread.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Δ NOPAT (annual)" hint="Extra after-tax operating profit the investment produces. Example: 15.">
+            <MoneyInput value={roic.deltaNopat} onChange={(v) => setRoic((s) => ({ ...s, deltaNopat: v }))} width={80} />
+          </WbField>
+          <WbField label="Δ invested capital" hint="What it takes to get it. Example: 100.">
+            <MoneyInput value={roic.deltaCapital} onChange={(v) => setRoic((s) => ({ ...s, deltaCapital: v }))} width={80} />
+          </WbField>
+          <WbField label="WACC / required return" hint="Example: 9%.">
+            <PctInput value={roic.waccPct} onChange={(v) => setRoic((s) => ({ ...s, waccPct: v }))} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Incremental ROIC" value={`${roicR.roicPct}%`} />
+          <StatPill label="Spread vs WACC" value={`${roicR.spreadPct > 0 ? '+' : ''}${roicR.spreadPct}pp`} strong />
+        </div>
+        <p style={wbNote}>
+          <strong style={{ color: roicR.creatingValue ? 'var(--pos)' : 'var(--neg)' }}>
+            {roicR.creatingValue ? 'Creating value' : 'Destroying value'}
+          </strong>{' '}
+          — ROIC {roicR.creatingValue ? '>' : '≤'} WACC. But timing still matters: $20 of NOPAT
+          starting in year 7 can lose to $15 starting next year — that's why you pair this with the
+          DCF, never use it alone.
+        </p>
+      </StepCard>
+
+      <StepCard n="E" icon={<ClipboardCheck size={17} />} title="PPA (ASC 805) & goodwill impairment (ASC 350)">
+        <p style={hintStyle}>
+          The deal's accounting afterlife. First allocate the price to what you can identify at
+          fair value — the leftover is goodwill; later, test that goodwill: if the unit's fair
+          value falls below carrying value, write it down. Default: the $800M biotech deal from
+          your prep questions.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Purchase price" hint="What you paid for the business. Example: 800 ($M).">
+            <MoneyInput value={ppaIn.purchasePrice} onChange={(v) => setPpaIn((s) => ({ ...s, purchasePrice: v }))} width={80} />
+          </WbField>
+          <WbField label="Tangibles at fair value" hint="Plant, inventory, receivables — revalued to today. Example: 300.">
+            <MoneyInput value={ppaIn.tangiblesFV} onChange={(v) => setPpaIn((s) => ({ ...s, tangiblesFV: v }))} width={80} />
+          </WbField>
+          <WbField label="Identified intangibles" hint="Patents, customer lists, brands, developed tech. Example: 350.">
+            <MoneyInput value={ppaIn.intangiblesFV} onChange={(v) => setPpaIn((s) => ({ ...s, intangiblesFV: v }))} width={80} />
+          </WbField>
+          <WbField label="Liabilities assumed" hint="Debt and obligations that come with the business. Example: 100.">
+            <MoneyInput value={ppaIn.liabilitiesFV} onChange={(v) => setPpaIn((s) => ({ ...s, liabilitiesFV: v }))} width={80} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Net identifiable assets" value={fmtMoney(ppaR.netAssetsFV, 0)} />
+          <StatPill label="Goodwill" value={fmtMoney(ppaR.goodwill, 0)} strong />
+        </div>
+        {ppaR.bargainPurchase && (
+          <p style={{ ...wbNote, color: 'var(--severity-medium)', fontWeight: 600 }}>
+            Negative goodwill = a bargain purchase — booked as a gain, and in practice a signal to
+            re-check the fair values before believing it.
+          </p>
+        )}
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 14 }}>
+          <WbField label="Unit carrying value" hint="Book value of the reporting unit incl. goodwill. Example: 800.">
+            <MoneyInput value={impair.carryingValue} onChange={(v) => setImpair((s) => ({ ...s, carryingValue: v }))} width={80} />
+          </WbField>
+          <WbField label="of which goodwill" hint="The PPA leftover being tested. Example: 250.">
+            <MoneyInput value={impair.goodwill} onChange={(v) => setImpair((s) => ({ ...s, goodwill: v }))} width={80} />
+          </WbField>
+          <WbField label="Unit fair value today" hint="What it's actually worth now (DCF/comps). Example: 650.">
+            <MoneyInput value={impair.fairValue} onChange={(v) => setImpair((s) => ({ ...s, fairValue: v }))} width={80} />
+          </WbField>
+          <StatPill label="Impairment charge" value={fmtMoney(impairR.impairment, 0)} strong />
+          <StatPill label="Goodwill remaining" value={fmtMoney(impairR.remainingGoodwill, 0)} />
+        </div>
+        <p style={wbNote}>
+          Impairment is the deal's promise not showing up in the numbers — capped at the goodwill
+          balance, tested at least annually, never reversed.
+        </p>
+      </StepCard>
+
+      <StepCard n="F" icon={<BarChart3 size={17} />} title="Trading vs. precedent comps — and the cost approach">
+        <p style={hintStyle}>
+          The market approach, split properly: trading comps price minority stakes at today's
+          market; precedent transactions price whole companies actually bought — the gap between
+          them is roughly the <strong>control premium</strong>. The cost approach is the third leg:
+          what rebuilding the assets would cost.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="EBITDA" hint="The subject company's EBITDA. Example: 100 ($M).">
+            <MoneyInput value={comps.ebitda} onChange={(v) => setComps((s) => ({ ...s, ebitda: v }))} width={80} />
+          </WbField>
+          <WbField label="Trading multiple" hint="Where comparable public companies trade. Example: 8×.">
+            <PctInput value={comps.tradingMultiple} onChange={(v) => setComps((s) => ({ ...s, tradingMultiple: v }))} max={30} suffix="×" />
+          </WbField>
+          <WbField label="Precedent multiple" hint="What acquirers actually paid in recent deals. Example: 9.5×.">
+            <PctInput value={comps.precedentMultiple} onChange={(v) => setComps((s) => ({ ...s, precedentMultiple: v }))} max={30} suffix="×" />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="EV — trading" value={fmtMoney(compsR.evTrading, 0)} />
+          <StatPill label="EV — precedent" value={fmtMoney(compsR.evPrecedent, 0)} />
+          <StatPill label="Implied control premium" value={`${compsR.controlPremiumPct}%`} strong />
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 14 }}>
+          <WbField label="Replacement cost" hint="What rebuilding the assets from scratch would cost. Example: 400.">
+            <MoneyInput value={cost.replacementCost} onChange={(v) => setCost((s) => ({ ...s, replacementCost: v }))} width={80} />
+          </WbField>
+          <WbField label="Obsolescence" hint="Wear + technological aging haircut. Example: 25%.">
+            <PctInput value={cost.obsolescencePct} onChange={(v) => setCost((s) => ({ ...s, obsolescencePct: v }))} max={90} />
+          </WbField>
+          <WbField label="Liabilities" hint="Netted off the assets. Example: 120.">
+            <MoneyInput value={cost.liabilities} onChange={(v) => setCost((s) => ({ ...s, liabilities: v }))} width={80} />
+          </WbField>
+          <StatPill label="Cost-approach value" value={fmtMoney(costR.equityValue, 0)} strong />
+        </div>
+        <p style={wbNote}>
+          Name all three approaches in an interview — <strong>income</strong> (tab 6's DCF),{' '}
+          <strong>market</strong> (these comps), <strong>cost</strong> (this floor, used for
+          asset-heavy or no-cash-flow situations) — and say which you'd weight and why.
+        </p>
+      </StepCard>
+
+      <StepCard n="G" icon={<Briefcase size={17} />} title="LBO mini-model">
+        <p style={hintStyle}>
+          Buy with mostly debt, pay it down with the company's own cash flow, sell — returns come
+          from three sources, and the attribution below is exact. Peripheral for EY, but one clean
+          run makes the sentence stick.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Entry EBITDA" hint="Example: 50 ($M).">
+            <MoneyInput value={lbo.entryEbitda} onChange={(v) => setLbo((s) => ({ ...s, entryEbitda: v }))} width={80} />
+          </WbField>
+          <WbField label="Entry multiple" hint="Price paid ÷ EBITDA. Example: 8× → $400M EV.">
+            <PctInput value={lbo.entryMultiple} onChange={(v) => setLbo((s) => ({ ...s, entryMultiple: v }))} max={30} suffix="×" />
+          </WbField>
+          <WbField label="Debt %" hint="Share of the price funded with debt. Example: 60% → $240M debt, $160M equity.">
+            <PctInput value={lbo.debtPct} onChange={(v) => setLbo((s) => ({ ...s, debtPct: v }))} max={90} />
+          </WbField>
+          <WbField label="EBITDA growth" hint="Annual operating improvement. Example: 8%/yr.">
+            <PctInput value={lbo.ebitdaGrowthPct} onChange={(v) => setLbo((s) => ({ ...s, ebitdaGrowthPct: v }))} />
+          </WbField>
+          <WbField label="FCF conversion" hint="Share of each year's EBITDA that pays down debt. Example: 40%.">
+            <PctInput value={lbo.fcfConversionPct} onChange={(v) => setLbo((s) => ({ ...s, fcfConversionPct: v }))} max={90} />
+          </WbField>
+          <WbField label="Exit multiple" hint="Assume the same 8× unless you can argue expansion — that discipline is the point.">
+            <PctInput value={lbo.exitMultiple} onChange={(v) => setLbo((s) => ({ ...s, exitMultiple: v }))} max={30} suffix="×" />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Entry equity" value={fmtMoney(lboR.entryEquity, 0)} />
+          <StatPill label="Exit equity" value={fmtMoney(lboR.exitEquity, 0)} />
+          <StatPill label="MOIC" value={`${lboR.moic}×`} />
+          <StatPill label="Equity IRR" value={lboR.irrPct === null ? 'n/m' : `${lboR.irrPct}%`} strong />
+        </div>
+        <p style={wbNote}>
+          Attribution of the {fmtMoney(lboR.exitEquity - lboR.entryEquity, 0)} equity gain:{' '}
+          <strong>EBITDA growth {fmtMoney(lboR.fromGrowth, 0)}</strong> ·{' '}
+          <strong>multiple expansion {fmtMoney(lboR.fromMultiple, 0)}</strong> ·{' '}
+          <strong>deleveraging {fmtMoney(lboR.fromDeleveraging, 0)}</strong>. A high IRR produced
+          mostly by leverage doesn't mean the business improved — and leverage cuts both ways.
+        </p>
+      </StepCard>
+
+      <StepCard n="H" icon={<RefreshCcw size={17} />} title="Accretion / dilution">
+        <p style={hintStyle}>
+          Pro-forma EPS vs. standalone. Default: a buyer at a 10× P/E paying $900M for $60M of
+          earnings, half stock half debt — check whether EPS rises, then remember the distinction
+          your session flagged: <strong>EPS accretion is not value creation</strong>.
+        </p>
+        <div style={wbGrid}>
+          <WbField label="Acquirer net income" hint="Example: 500 ($M).">
+            <MoneyInput value={acc.acqNetIncome} onChange={(v) => setAcc((s) => ({ ...s, acqNetIncome: v }))} width={80} />
+          </WbField>
+          <WbField label="Acquirer shares" hint="Example: 100 (M) → standalone EPS $5.00.">
+            <MoneyInput value={acc.acqShares} onChange={(v) => setAcc((s) => ({ ...s, acqShares: v }))} width={80} />
+          </WbField>
+          <WbField label="Acquirer share price" hint="Example: 50 → P/E 10×.">
+            <MoneyInput value={acc.acqSharePrice} onChange={(v) => setAcc((s) => ({ ...s, acqSharePrice: v }))} width={80} />
+          </WbField>
+          <WbField label="Target net income" hint="Earnings you acquire. Example: 60.">
+            <MoneyInput value={acc.tgtNetIncome} onChange={(v) => setAcc((s) => ({ ...s, tgtNetIncome: v }))} width={80} />
+          </WbField>
+          <WbField label="Offer value" hint="Price paid for the target's equity. Example: 900 → 15× the target's earnings.">
+            <MoneyInput value={acc.offerValue} onChange={(v) => setAcc((s) => ({ ...s, offerValue: v }))} width={80} />
+          </WbField>
+          <WbField label="% stock" hint="Funded by issuing shares. Example: 50% → 9M new shares at $50.">
+            <PctInput value={acc.pctStock} onChange={(v) => setAcc((s) => ({ ...s, pctStock: v }))} max={100} />
+          </WbField>
+          <WbField label="% debt" hint="Funded by borrowing; the rest is cash on hand. Example: 50%.">
+            <PctInput value={acc.pctDebt} onChange={(v) => setAcc((s) => ({ ...s, pctDebt: v }))} max={100} />
+          </WbField>
+          <WbField label="Debt rate" hint="Cost of the new borrowing. Example: 6% (after tax 4.5%).">
+            <PctInput value={acc.debtRatePct} onChange={(v) => setAcc((s) => ({ ...s, debtRatePct: v }))} />
+          </WbField>
+          <WbField label="Cash yield forgone" hint="What the cash was earning. Example: 4%.">
+            <PctInput value={acc.cashYieldPct} onChange={(v) => setAcc((s) => ({ ...s, cashYieldPct: v }))} />
+          </WbField>
+          <WbField label="Tax rate" hint="Example: 25%.">
+            <PctInput value={acc.taxPct} onChange={(v) => setAcc((s) => ({ ...s, taxPct: v }))} max={50} />
+          </WbField>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Standalone EPS" value={`$${accR.standaloneEps.toFixed(2)}`} />
+          <StatPill label="Pro-forma EPS" value={`$${accR.proFormaEps.toFixed(2)}`} />
+          <StatPill label={accR.accretive ? 'Accretive' : 'Dilutive'} value={`${accR.deltaPct > 0 ? '+' : ''}${accR.deltaPct}%`} strong />
+        </div>
+        <p style={wbNote}>
+          The quick rule: compare the target's earnings yield with the cost of the consideration.
+          And the interview distinction: a bad deal can still be accretive — value lives in whether
+          synergies exceed the premium, not in the EPS artifact.
+        </p>
+      </StepCard>
+
+      <StepCard n="I" icon={<Wallet size={17} />} title="Operator quick kit — break-even & CAGR">
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <WbField label="Fixed costs" hint="Costs you pay regardless of volume. Example: $200,000.">
+            <MoneyInput value={be.fixedCosts} onChange={(v) => setBe((s) => ({ ...s, fixedCosts: v }))} width={100} />
+          </WbField>
+          <WbField label="Price / unit" hint="Example: $50.">
+            <MoneyInput value={be.pricePerUnit} onChange={(v) => setBe((s) => ({ ...s, pricePerUnit: v }))} width={70} />
+          </WbField>
+          <WbField label="Variable cost / unit" hint="Example: $30 → $20 contribution per unit.">
+            <MoneyInput value={be.variableCostPerUnit} onChange={(v) => setBe((s) => ({ ...s, variableCostPerUnit: v }))} width={70} />
+          </WbField>
+          <StatPill label="Break-even" value={beR.breakEvenUnits === null ? 'never (CM ≤ 0)' : `${beR.breakEvenUnits.toLocaleString('en-US')} units`} strong />
+          <StatPill label="Contribution margin" value={`${beR.contributionMarginPct}%`} />
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 14 }}>
+          <WbField label="Beginning value" hint="Example: 100.">
+            <MoneyInput value={cg.beginValue} onChange={(v) => setCg((s) => ({ ...s, beginValue: v }))} width={80} />
+          </WbField>
+          <WbField label="Ending value" hint="Example: 200.">
+            <MoneyInput value={cg.endValue} onChange={(v) => setCg((s) => ({ ...s, endValue: v }))} width={80} />
+          </WbField>
+          <WbField label="Years" hint="Example: 5 → doubling in five years ≈ 14.9%/yr.">
+            <PctInput value={cg.years} onChange={(v) => setCg((s) => ({ ...s, years: v }))} max={50} suffix="yrs" />
+          </WbField>
+          <StatPill label="CAGR" value={cgR === null ? 'n/m' : `${cgR}%/yr`} strong />
+        </div>
+        <p style={wbNote}>
+          Break-even = fixed costs ÷ contribution per unit — deceptively useful for new products,
+          plants, pricing, and AI programs. CAGR smooths: a 15% CAGR does not mean 15% every year.
+        </p>
+      </StepCard>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
@@ -2556,7 +3063,8 @@ function GuidePane({
           {tab === 'formulas' && 'The reference: every formula, grouped by the decision it serves, plus the full glossary.'}
           {tab === 'eygap' && 'The EY checklist, gap-checked: what the Lab covers, and the one-liners for what it deliberately leaves out.'}
           {tab === 'drill' && 'Practice mode: answer out loud first, then reveal the model answer and compare.'}
-          {tab === 'rounds' && 'The interview, round by round: HireVue behaviorals, the take-home DCF, and the market anchor.'}{' '}
+          {tab === 'rounds' && 'The interview, round by round: HireVue behaviorals, the take-home DCF, and the market anchor.'}
+          {tab === 'gapwork' && 'Every former gap as a working calculator, defaulted to your prep session’s exact numbers.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -2794,12 +3302,13 @@ function GuidePane({
               near the top). Productivity stays a straight line on purpose: no dial moves it,
               because no lever can. Click through the presets and watch the path from "now" flip.
             </GuideSection>
-            <GuideSection n="F" title="The six forces">
-              Two levers (monetary, fiscal), two debt cycles (short, long), and two forces from
-              outside the model (politics, productivity). Each card gives the definition, the hit
-              on all three equilibriums, two hypotheticals, and a real episode — learn them as
-              pairs: the hypothetical is the mechanism, the history is the proof it actually
-              happens that way.
+            <GuideSection n="F" title="The template: 4 forces · 3 equilibriums · 2 levers">
+              Learn it the way the talk numbers it: FOUR big forces (productivity, the short-term
+              debt cycle, the long-term debt cycle, politics), THREE equilibriums the machine pulls
+              toward, TWO levers that steer it. Each force card gives the definition, the hit on
+              all three equilibriums, two hypotheticals, and a real episode — the hypothetical is
+              the mechanism, the history is the proof. Section G adds the talk's second half: the
+              eight investment principles, each mapped to the tab where you practice it.
             </GuideSection>
             <GuideSection n="G" title="The capital recommendation — what it needs">
               The advice runs on three inputs: (1) the <strong>scenario dials</strong> above, (2)
@@ -2936,6 +3445,33 @@ function GuidePane({
               Every technical card names where to practice it live. In the interview, "I built
               this into a working model — here's what surprised me" turns a memorized answer into
               evidence.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'gapwork' && (
+          <>
+            <GuideSection n="A" title="What this tab is">
+              Everything tab 8's gap check used to mark "know the one-liner" is now a working
+              calculator — and the defaults are the exact worked numbers from your prep session:
+              the 100 → 40/50/50 IRR (~18.8%), the 1.4 → 1.06 → 1.26 beta chain, the 13.7% project
+              cost of equity with country risk, 30% × $300M rNPV, the 15-vs-9 ROIC spread, and the
+              $800M deal for the PPA. Verify each by hand once, then change one field and predict
+              the result before it updates.
+            </GuideSection>
+            <GuideSection n="B" title="The chain every answer should walk">
+              <Eq>market change → business driver → financial statements{'\n'}→ cash flow → valuation / capital → scenarios → decision</Eq>
+              Your session's core frame, and EY's: never stop at "rates are high." Rates → cost of
+              debt → interest and refinancing → FCF → WACC → valuation → capital allocation →{' '}
+              <em>what should management do?</em> Each calculator here is one link of that chain in
+              isolation; tabs 1–6 are the chain assembled.
+            </GuideSection>
+            <GuideSection n="C" title="Judgment beats formulas">
+              What separates the answers your session called Manager-level: don't double-count risk
+              (cash flows OR discount rate), don't crown the highest IRR (dollars beat
+              percentages), don't blindly apply corporate WACC to a risky project, don't confuse
+              EPS accretion with value creation, and don't quote a peer multiple without saying why
+              the subject deserves a premium or discount.
             </GuideSection>
           </>
         )}
