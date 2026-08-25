@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   COUNTRY_DEBT,
+  CURRENCY_TRENDS,
+  GDP_IMPACT_COUNTRIES,
+  GSP_IMPACT_STATES,
+  KOREA_CASE,
+  POPULISM_WATCH,
+  TRADE_BALANCES,
+  currencyRows,
+  tradeBalanceB,
   COUNTRY_DEBT_SOURCE,
   DEBT_TREND_YEARS,
   GEO_CALENDAR_COUNTRIES,
@@ -58,6 +66,62 @@ describe('US state debt', () => {
     expect(by('il').pensionNote).toMatch(/worst-funded/i);
     expect(by('nj').pensionNote).toMatch(/pension hole/i);
     expect(by('ga').debtGspPct).toBe(Math.min(...STATE_DEBT.map((s) => s.debtGspPct)));
+  });
+});
+
+describe('trade, currency, and the Korea case', () => {
+  it('trade covers the top-10 countries plus South Korea, balances computed with the right signs', () => {
+    expect(TRADE_BALANCES).toHaveLength(11);
+    const bal = (id: string) => tradeBalanceB(TRADE_BALANCES.find((t) => t.id === id)!);
+    // surpluses and deficits land where the world puts them
+    expect(bal('china')).toBeGreaterThan(0);
+    expect(bal('germany')).toBeGreaterThan(0);
+    expect(bal('skorea')).toBeGreaterThan(0);
+    expect(bal('us')).toBeLessThan(0);
+    expect(bal('india')).toBeLessThan(0);
+    // the US runs the largest deficit, China the largest surplus
+    const balances = TRADE_BALANCES.map(tradeBalanceB);
+    expect(Math.min(...balances)).toBe(bal('us'));
+    expect(Math.max(...balances)).toBe(bal('china'));
+  });
+
+  it('currency trends: all start at 100; the won and yen are the weakest; rows chart-ready', () => {
+    for (const c of CURRENCY_TRENDS) expect(c.index[0]).toBe(100);
+    const last = (id: string) => CURRENCY_TRENDS.find((c) => c.id === id)!.index[5];
+    const lasts = CURRENCY_TRENDS.map((c) => c.index[5]).sort((a, b) => a - b);
+    expect([last('jpy'), last('krw')].sort((a, b) => a - b)).toEqual(lasts.slice(0, 2));
+    const rows = currencyRows();
+    expect(rows).toHaveLength(6);
+    expect(rows[0]['krw']).toBe(100);
+  });
+
+  it('the Korea case carries the chain: politics → outflows → won → BoK bind, with the cited anchors', () => {
+    const all = [...KOREA_CASE.facts, ...KOREA_CASE.chain, KOREA_CASE.lesson].join(' ');
+    expect(all).toMatch(/1,470/);
+    expect(all).toMatch(/martial-law/i);
+    expect(all).toMatch(/Korea discount/i);
+    expect(all).toMatch(/weakest since (the )?2009/i);
+    expect(KOREA_CASE.chain.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('populism watch covers ten countries with pipeline and impact per row', () => {
+    expect(POPULISM_WATCH).toHaveLength(10);
+    for (const r of POPULISM_WATCH) {
+      expect(r.fiscalPipeline.length).toBeGreaterThan(30);
+      expect(r.impact.length).toBeGreaterThan(30);
+    }
+    expect(POPULISM_WATCH.find((r) => r.country === 'South Korea')!.pressure).toBe('acute');
+  });
+
+  it('the GDP/GSP impact watch is keyed to the SAME top-10 lists, all three channels filled', () => {
+    expect(GDP_IMPACT_COUNTRIES.map((r) => r.id).sort()).toEqual(COUNTRY_DEBT.map((c) => c.id).sort());
+    expect(GSP_IMPACT_STATES.map((r) => r.id).sort()).toEqual(STATE_DEBT.map((c) => c.id).sort());
+    for (const r of [...GDP_IMPACT_COUNTRIES, ...GSP_IMPACT_STATES]) {
+      expect(r.health.length).toBeGreaterThan(20);
+      expect(r.food.length).toBeGreaterThan(15);
+      expect(r.education.length).toBeGreaterThan(15);
+      expect(r.read.length).toBeGreaterThan(30);
+    }
   });
 });
 

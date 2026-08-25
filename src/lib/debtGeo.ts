@@ -71,6 +71,170 @@ export const STATE_DEBT_SOURCE =
   'State + local bonded debt as % of state GDP — INTERNAL TEACHING ESTIMATES. The teaching point: balanced-budget rules cap states’ bonded debt, so the real long-term liability hides in pension promises (Dalio’s "liabilities we don’t call debt" — the same reason tab 1’s pro forma adds pension to leverage). Refresh from Census of Governments / state CAFRs before citing.';
 
 // ---------------------------------------------------------------------------
+// Trade balances, currency trends, and the Korea case
+// ---------------------------------------------------------------------------
+//
+// APPROXIMATE TEACHING VALUES (~2025, goods + services, $B, rounded) —
+// refresh from Census/BEA (US), national statistics offices, and IMF before
+// citing. The balance column is COMPUTED (exports − imports), never typed.
+
+export interface TradeBalance {
+  id: string;
+  name: string;
+  exportsB: number;
+  importsB: number;
+  note: string;
+}
+
+export const TRADE_BALANCES: TradeBalance[] = [
+  { id: 'us', name: 'United States', exportsB: 3100, importsB: 4000, note: 'The world’s deficit: it consumes more than it sells, financed by the reserve currency — the flip side of tab 11’s Treasury supply.' },
+  { id: 'china', name: 'China', exportsB: 3600, importsB: 2700, note: 'The world’s surplus: exports absorb the demand its own consumers don’t supply — the mirror of the US deficit, and the tariff war’s target.' },
+  { id: 'germany', name: 'Germany', exportsB: 2000, importsB: 1750, note: 'The export machine inside a currency union — a surplus it cannot revalue away, which is half of euro-area politics.' },
+  { id: 'skorea', name: 'South Korea', exportsB: 770, importsB: 700, note: 'A surplus built on chips and ships: trade is a huge share of GDP, so the won and the KOSPI live and die with the export cycle — the case study below.' },
+  { id: 'japan', name: 'Japan', exportsB: 920, importsB: 940, note: 'The old surplus giant now near balance: energy imports and offshored production — the income comes home as investment returns instead.' },
+  { id: 'uk', name: 'United Kingdom', exportsB: 1100, importsB: 1180, note: 'Services surplus, goods deficit — the pound absorbs the difference.' },
+  { id: 'france', name: 'France', exportsB: 1050, importsB: 1130, note: 'A persistent deficit inside the euro — no currency valve, so competitiveness fights happen through politics.' },
+  { id: 'india', name: 'India', exportsB: 820, importsB: 1080, note: 'A growth deficit: importing energy and capital goods to build — sustainable while capital inflows fund it; the rupee slides when they pause.' },
+  { id: 'italy', name: 'Italy', exportsB: 700, importsB: 650, note: 'Quiet surplus: machinery, luxury, agrifood — the export engine that keeps the debt table’s 137% financeable.' },
+  { id: 'brazil', name: 'Brazil', exportsB: 390, importsB: 320, note: 'Commodity surplus — the real is a commodity-price thermometer.' },
+  { id: 'canada', name: 'Canada', exportsB: 720, importsB: 740, note: 'Near balance, hostage to one customer: the US takes ~3/4 of exports, so US tariff politics IS Canadian trade policy.' },
+];
+
+export const TRADE_SOURCE =
+  'Goods + services, ~2025, $B — APPROXIMATE TEACHING VALUES (rounded); balance computed as exports − imports. Refresh from Census/BEA, national statistics, and the IMF before citing.';
+
+/** Computed, never typed: exports − imports. */
+export function tradeBalanceB(t: TradeBalance): number {
+  return t.exportsB - t.importsB;
+}
+
+/** Currency value vs the US dollar, indexed 2021 = 100. Lower = weaker. */
+export const CURRENCY_YEARS = ['2021', '2022', '2023', '2024', '2025', '2026'] as const;
+
+export interface CurrencyTrend {
+  id: string;
+  name: string;
+  /** Index of the currency's USD value per CURRENCY_YEARS entry (2021 = 100). */
+  index: [number, number, number, number, number, number];
+  note: string;
+}
+
+export const CURRENCY_TRENDS: CurrencyTrend[] = [
+  { id: 'jpy', name: 'Japanese yen', index: [100, 84, 81, 75, 72, 71], note: 'The biggest slide: zero-bound holdout while the Fed hiked — carry-trade fuel, import-inflation pain (~¥110 → ~¥155/$).' },
+  { id: 'krw', name: 'Korean won', index: [100, 88, 86, 82, 76, 75], note: 'Weakest since 2009 during the Dec-2024 political crisis (~₩1,100 → ~₩1,470/$) — the case study’s spine.' },
+  { id: 'cny', name: 'Chinese yuan', index: [100, 95, 91, 89, 89, 88], note: 'Managed drift lower — a weaker yuan cushions tariffs, but too fast invites outflows.' },
+  { id: 'inr', name: 'Indian rupee', index: [100, 94, 90, 88, 86, 85], note: 'The growth-deficit slide: steady, managed depreciation as imports outrun exports.' },
+  { id: 'eur', name: 'Euro', index: [100, 91, 92, 92, 90, 91], note: 'One down-leg in 2022 (energy shock), then range-bound — the union mutes the moves and moves the fight into politics.' },
+  { id: 'gbp', name: 'British pound', index: [100, 91, 92, 93, 92, 92], note: 'The 2022 gilt episode inside the dip — bond markets discipline mid-size sovereigns through the currency too.' },
+  { id: 'cad', name: 'Canadian dollar', index: [100, 97, 94, 92, 90, 91], note: 'Grinding lower with rate differentials and tariff risk on the one big customer.' },
+  { id: 'brl', name: 'Brazilian real', index: [100, 97, 102, 96, 92, 93], note: 'High real rates defend it; fiscal-credibility scares knock it — the EM pattern in one line.' },
+];
+
+export const CURRENCY_SOURCE =
+  'Currency value vs USD, indexed 2021 = 100 (lower = weaker) — APPROXIMATE TEACHING VALUES from the documented moves (¥110→~155, ₩1,100→~1,470, €1.20→~1.09…). Refresh from official/market sources before citing.';
+
+/** Chart rows: {year, [currencyId]: index}. */
+export function currencyRows(): Record<string, number | string>[] {
+  return CURRENCY_YEARS.map((year, i) => {
+    const row: Record<string, number | string> = { year };
+    for (const c of CURRENCY_TRENDS) row[c.id] = c.index[i];
+    return row;
+  });
+}
+
+/** The South Korea case — trade, currency, equities, and politics in one chain. */
+export const KOREA_CASE = {
+  title: 'Case study: South Korea — when politics hits the exchange rate',
+  facts: [
+    'An export economy: trade flows are a very large share of GDP, concentrated in semiconductors, autos, and ships — the won and the KOSPI are levered to the global capex cycle.',
+    'The won slid from ~₩1,100/$ (2021) to ~₩1,470/$ — its weakest since the 2009 crisis — with the sharpest leg landing around the December 2024 martial-law declaration and impeachment crisis.',
+    'The "Korea discount": the KOSPI persistently trades below global peers on governance (chaebol cross-holdings, weak minority-shareholder rights) — political risk priced as a permanent equity discount.',
+    'The central bank’s bind: defending the won argues for higher rates; a slowing, export-dependent economy argues for cuts — the torn reading, currency edition.',
+  ],
+  chain: [
+    'Political shock (martial-law crisis, impeachment) → foreign investors reprice governance risk',
+    '→ capital outflows from the KOSPI → won sells off to ~₩1,470 (weakest since 2009)',
+    '→ imports (energy, food) cost more in won → inflation pressure at home',
+    '→ the Bank of Korea is trapped: defend the currency (hike) or defend growth (cut) — not both',
+    '→ a weaker won DOES flatter exporters’ won-revenues… which is why surplus economies tolerate slides — until the outflow becomes the story',
+    '→ the health check in one glance: trade balance (still surplus?) × currency trend (orderly or disorderly?) × equity discount (widening?) × politics (resolving or compounding?)',
+  ],
+  lesson:
+    'The lesson for reading ANY country: surplus vs deficit tells you the cash engine; the currency trend tells you whether the world still wants the claim; the equity discount tells you what governance costs; and politics is the accelerant that turns a slide into a run. Korea in 2024–26 shows all four gauges moving at once — and why the drivers list below has "elections & leadership" at the top.',
+};
+
+/**
+ * GDP & GSP impact watch — the NON-fiscal items that move output over the
+ * next ~24 months: disease & health policy (FDA / health departments), food
+ * & agriculture, and education/workforce changes. Keyed to the SAME top-10
+ * country and top-10 state lists as the debt tables. Qualitative teaching
+ * reads compiled 2026-08 — verify before citing.
+ */
+export interface GdpImpactRow {
+  /** Matches COUNTRY_DEBT ids / STATE_DEBT ids. */
+  id: string;
+  name: string;
+  health: string;
+  food: string;
+  education: string;
+  read: string;
+}
+
+export const GDP_IMPACT_COUNTRIES: GdpImpactRow[] = [
+  { id: 'us', name: 'United States', health: 'FDA approval & drug-pricing policy shifts; avian-flu waves hitting poultry/eggs; ACA subsidy cliffs moving household budgets.', food: 'Avian flu and drought swings feed straight into tab 3’s food line; tariffs raise imported-food costs.', education: 'Student-loan and school-funding fights; workforce pipelines for chips/EV plants the industrial policy just funded.', read: 'Channels: food CPI (inflation dial), labor supply (growth dial), and health spending ~1/6 of GDP — small policy shifts move big numbers.' },
+  { id: 'china', name: 'China', health: 'Aging at unprecedented speed — health-system costs compound the property-debt drag.', food: 'Grain self-sufficiency drive; pork-cycle swings are a CPI event.', education: 'Youth-unemployment / degree-mismatch — the demographic dividend running in reverse.', read: 'Demography IS the 24-month story: fewer workers, more dependents — a structural drag no stimulus plenum fixes.' },
+  { id: 'japan', name: 'Japan', health: 'Super-aging: healthcare and long-term-care absorb an ever-larger GDP share.', food: 'Heavy import dependence — the weak yen (currency chart) is imported food inflation.', education: 'Shrinking cohorts closing schools and universities.', read: 'The aging-plus-weak-currency squeeze: output flat, costs imported — why the yen slide is a living-standards event.' },
+  { id: 'germany', name: 'Germany', health: 'Aging workforce meets a care-worker shortage.', food: 'Energy-linked processing costs; CAP politics.', education: 'The vaunted vocational system straining to re-skill for electrification.', read: 'Labor supply is the binding constraint — immigration and re-skilling policy are GDP policy.' },
+  { id: 'uk', name: 'United Kingdom', health: 'NHS backlogs keeping working-age people out of the labor force — a measured GDP drag.', food: 'Post-Brexit trade frictions keeping food inflation sticky.', education: 'University funding model cracking; skills gaps.', read: 'Health-related inactivity is the quiet growth-dial story — treatment waiting lists are labor-supply policy.' },
+  { id: 'france', name: 'France', health: 'Health spending inside every budget standoff.', food: 'Farmer protests and CAP fights — agriculture is street politics.', education: 'Reform attempts colliding with the street.', read: 'Every social-policy change risks a political crisis (see populism table) — the fiscal and the social pipelines are the same pipe.' },
+  { id: 'india', name: 'India', health: 'Public-health infrastructure build-out; heat-stress on labor.', food: 'THE channel: monsoon → food prices → RBI policy — food weights dominate the CPI basket.', education: 'The demographic-dividend test: educating the world’s largest cohort into productive work.', read: 'A bad monsoon is a monetary-policy event; a good education decade is the whole growth model.' },
+  { id: 'italy', name: 'Italy', health: 'Europe’s oldest population after Japan — care costs vs the 137% debt stock.', food: 'Weather-sensitive agrifood exports (the surplus’s backbone).', education: 'Brain drain of graduates north — exporting the workforce it educated.', read: 'Demography against the debt table: fewer workers servicing more debt is equilibrium 1 in slow motion.' },
+  { id: 'brazil', name: 'Brazil', health: 'Climate-driven disease burden (dengue) straining public health.', food: 'Harvest cycles swing the trade surplus and the real (currency chart).', education: 'Productivity-limiting education gaps — the reason high rates bite so hard.', read: 'The harvest is the macro: one drought moves the trade balance, the currency, and the policy rate together.' },
+  { id: 'canada', name: 'Canada', health: 'Wait-time-driven labor-force effects; provincial health budgets dominating spending.', food: 'Prairie harvests and one-customer export exposure.', education: 'Immigration-driven enrollment surges and the housing collision.', read: 'Immigration policy is simultaneously education, housing, and GDP policy — one lever, three dials.' },
+];
+
+export const GSP_IMPACT_STATES: GdpImpactRow[] = [
+  { id: 'ca', name: 'California', health: 'Medi-Cal budget squeeze in every deficit year.', food: 'The #1 farm state: drought and water allocation move national produce prices.', education: 'UC/CSU funding vs enrollment; K-12 swings with the boom-bust revenue base.', read: 'Water is the GSP item: an allocation cut is simultaneously a food-price and farm-employment event.' },
+  { id: 'tx', name: 'Texas', health: 'Rural hospital closures shrinking regional labor markets.', food: 'Drought/cattle cycles; avian flu in poultry.', education: 'School-funding and voucher fights; chip-plant workforce pipelines.', read: 'The workforce pipeline is the constraint on the industrial build-out the state just won.' },
+  { id: 'ny', name: 'New York', health: 'Hospital-system finances and Medicaid share of the budget.', food: 'Dense-metro food-price sensitivity — CPI politics.', education: 'Enrollment decline vs the school-funding formula.', read: 'Out-migration is the GSP watch: each leaver takes taxable income and a student seat.' },
+  { id: 'fl', name: 'Florida', health: 'Hurricane-driven public-health and insurance stress.', food: 'Citrus greening disease shrinking a signature crop.', education: 'Enrollment boom vs teacher shortages.', read: 'The insurance market is the balance-sheet risk (as the debt table notes) — one storm season moves the budget.' },
+  { id: 'il', name: 'Illinois', health: 'Public-health spending crowded out by pension math.', food: 'Corn/soy harvests swing downstate income.', education: 'Chicago school finances — the pension story’s twin.', read: 'The pension crowd-out IS the GSP story: every service competes with the promise layer.' },
+  { id: 'pa', name: 'Pennsylvania', health: 'Rural health access shrinking labor participation.', food: 'Dairy consolidation.', education: 'State-system university consolidation.', read: 'A slow-demography state: the 24-month items are all about keeping workers in the workforce.' },
+  { id: 'oh', name: 'Ohio', health: 'Opioid-legacy costs still in the budget.', food: 'Corn/soy cycles.', education: 'Workforce training for the chips/EV plants — the state’s bet.', read: 'Execution risk on the industrial bet: the plants are funded; the trained workforce is the open question.' },
+  { id: 'ga', name: 'Georgia', health: 'Rural hospital closures vs the Atlanta boom.', food: 'Top poultry state — avian flu is a GSP event here.', education: 'HOPE scholarship pipeline feeding the logistics/film/tech mix.', read: 'One avian-flu wave hits the #1 poultry state’s farm income and the national egg price at once.' },
+  { id: 'nj', name: 'New Jersey', health: 'Health costs inside the strained budget (see the pension hole).', food: 'Metro food-price sensitivity.', education: 'School-funding formula litigation, perennially.', read: 'Like Illinois: the promise layer crowds the services — the GSP watch is budget arithmetic.' },
+  { id: 'wa', name: 'Washington', health: 'Behavioral-health system rebuild.', food: 'Apples/wheat — tariff-retaliation exposure on export crops.', education: 'Tech-workforce demand vs housing costs.', read: 'The export-crop + tariff link: state farm income moves with trade policy set in Washington DC, not Olympia.' },
+];
+
+export const GDP_IMPACT_NOTE =
+  'Qualitative 24-month watch items, keyed to the same top-10 country and top-10 state lists as the debt tables — the NON-fiscal channels (disease & health policy incl. FDA/health departments, food & agriculture, education/workforce) through which GDP and GSP move. Compiled 2026-08; verify before citing.';
+
+/** Populism pressure and the fiscal-policy pipeline, by country. */
+export interface PopulismRow {
+  country: string;
+  pressure: 'acute' | 'high' | 'rising' | 'moderate' | 'n/a';
+  expression: string;
+  fiscalPipeline: string;
+  impact: string;
+}
+
+export const POPULISM_WATCH: PopulismRow[] = [
+  { country: 'United States', pressure: 'high', expression: 'Populism of both flanks: tariffs, industrial policy, anti-establishment tax fights — Dalio’s widest party polarity since 1900.', fiscalPipeline: 'Tariff schedules in force; tax-cut extension fight and debt-ceiling rounds ahead; Nov-2026 midterms decide whether the fiscal lever moves at all.', impact: 'Deficit path → Treasury supply → the tab-11 term premium; tariffs feed tab 3’s energy/goods lines.' },
+  { country: 'France', pressure: 'high', expression: 'Hard-right and hard-left blocs squeeze every budget; pension politics chronically explosive.', fiscalPipeline: 'Annual budget standoffs through the 2027 presidential; each one risks a government.', impact: 'The France–Germany spread is the market’s live vote; a bloc win in 2027 is a capital-flows event.' },
+  { country: 'Germany', pressure: 'rising', expression: 'AfD pressure against the establishment; the debt-brake orthodoxy under strain.', fiscalPipeline: 'Defense/infrastructure spending vs the constitutional debt brake — the definitional fiscal fight of the window.', impact: 'If the brake bends, the euro area’s anchor issuer adds supply — bunds, and every spread priced off them, reprice.' },
+  { country: 'United Kingdom', pressure: 'rising', expression: 'Reform’s anti-establishment surge squeezing both major parties.', fiscalPipeline: 'Fiscal rules vs spending demands at every budget; the gilt market referees (2022 showed how fast).', impact: 'Gilt yields and sterling take the strain first — the mid-size-sovereign discipline case.' },
+  { country: 'Italy', pressure: 'moderate', expression: 'Populism in office and institutionalizing — the pattern where governing moderates the rhetoric.', fiscalPipeline: 'Budgets vs EU deficit rules, 2026–27, with the ECB backstop as the quiet constraint.', impact: 'The BTP–bund spread is the euro area’s stress gauge (tab 15’s debt table: 137% of GDP).' },
+  { country: 'South Korea', pressure: 'acute', expression: 'The martial-law crisis and impeachment — institutional shock, not just party polarity.', fiscalPipeline: 'Post-crisis budgets, chaebol-governance reform attempts, chip-industry support packages.', impact: 'The case study above: won, KOSPI discount, and the BoK’s bind — politics pricing straight into the exchange rate.' },
+  { country: 'Japan', pressure: 'moderate', expression: 'Cost-of-living politics pressuring consumption-tax and subsidy policy.', fiscalPipeline: 'Stimulus supplements vs the world’s largest debt stock; any push on the BoJ tests the yen.', impact: 'The yen is the release valve (see the currency chart) — and the carry trade the world borrows through.' },
+  { country: 'India', pressure: 'moderate', expression: 'Welfare-populism auctions around the state-election cycle.', fiscalPipeline: 'Subsidy expansions into 2027–28 state elections; deficit vs the growth-deleveraging math.', impact: 'High nominal growth absorbs a lot — the deficit matters when growth slips, not before.' },
+  { country: 'Brazil', pressure: 'high', expression: 'Polarized left-right cycle with fiscal credibility the recurring casualty.', fiscalPipeline: 'The fiscal framework’s credibility test into the Oct-2026 general election.', impact: 'The real and the high-real-rate regime: every credibility wobble is paid for in the policy rate.' },
+  { country: 'China', pressure: 'n/a', expression: 'No electoral populism — but the same wealth-gap pressures managed by policy: "common prosperity," property deleveraging.', fiscalPipeline: 'Plenum-cycle decisions: stimulus vs deleveraging, local-government debt workouts, industrial policy.', impact: 'Arrives by announcement, not ballot — commodity demand and the yuan’s managed drift are the tells.' },
+];
+
+export const POPULISM_NOTE =
+  'The Dalio frame from tab 4: the wealth gap (top 0.1% ≈ bottom 90%; 40% can’t raise $400) produces populism of BOTH flanks, and populism owns the fiscal lever — so this table is the pipeline through which internal politics becomes deficits, tariffs, and ultimately the term premium. Assessments are qualitative teaching reads compiled 2026-08; verify before citing.';
+
+// ---------------------------------------------------------------------------
 // Geopolitics: what is moving now, what typically moves, what is scheduled
 // ---------------------------------------------------------------------------
 

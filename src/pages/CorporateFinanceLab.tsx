@@ -240,7 +240,17 @@ import {
 import {
   COUNTRY_DEBT,
   COUNTRY_DEBT_SOURCE,
+  CURRENCY_SOURCE,
+  CURRENCY_TRENDS,
   DEBT_TREND_YEARS,
+  GDP_IMPACT_COUNTRIES,
+  GDP_IMPACT_NOTE,
+  GSP_IMPACT_STATES,
+  KOREA_CASE,
+  POPULISM_NOTE,
+  POPULISM_WATCH,
+  TRADE_BALANCES,
+  TRADE_SOURCE,
   GEO_CALENDAR_COUNTRIES,
   GEO_CALENDAR_NOTE,
   GEO_CALENDAR_STATES,
@@ -248,6 +258,8 @@ import {
   GEO_DRIVERS,
   STATE_DEBT,
   STATE_DEBT_SOURCE,
+  currencyRows,
+  tradeBalanceB,
 } from '../lib/debtGeo';
 import { DEFAULT_FULL_CYCLE, FullCycleInputs, runFullCycle } from '../lib/fullCycle';
 import {
@@ -4167,6 +4179,11 @@ function DebtGeoTab() {
     return row;
   });
   const latestSorted = [...COUNTRY_DEBT].sort((a, b) => b.trend[3] - a.trend[3]);
+  const [fxSel, setFxSel] = useState<string[]>(['krw', 'jpy', 'eur', 'cny']);
+  const toggleFx = (id: string) =>
+    setFxSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id]));
+  const fxRows = useMemo(() => currencyRows(), []);
+  const tradeSorted = [...TRADE_BALANCES].sort((a, b) => tradeBalanceB(b) - tradeBalanceB(a));
 
   return (
     <>
@@ -4232,6 +4249,27 @@ function DebtGeoTab() {
           <strong>pension promises</strong>: Dalio's "liabilities we don't call debt," and the
           exact reason tab 1's pro forma adds pension to leverage. Top ten state economies:
         </p>
+        <div style={{ height: 240 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={STATE_DEBT.map((st) => ({ name: st.name.length > 10 ? st.name.slice(0, 10) + '…' : st.name, pct: st.debtGspPct }))} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fill: 'var(--text-tertiary)', fontSize: 10 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} interval={0} angle={-25} textAnchor="end" height={50} />
+              <YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} width={36} tickFormatter={(v) => `${v}%`} />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-elevated-2)', border: '1px solid var(--border-strong)', borderRadius: 10, color: 'var(--text-primary)' }}
+                itemStyle={{ color: 'var(--text-primary)' }}
+                labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+                formatter={(value: number) => [`${value}% of GSP`, 'Bonded debt']}
+                cursor={{ fill: 'var(--accent-soft)' }}
+              />
+              <Bar dataKey="pct" radius={4} maxBarSize={34}>
+                {STATE_DEBT.map((st) => (
+                  <Cell key={st.id} fill={st.debtGspPct >= 10 ? 'var(--neg)' : st.debtGspPct >= 6 ? 'var(--severity-medium)' : 'var(--pos)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="fin-table" style={{ width: '100%' }}>
             <thead>
@@ -4262,7 +4300,222 @@ function DebtGeoTab() {
         </p>
       </StepCard>
 
-      <StepCard n="C" icon={<RefreshCcw size={17} />} title="What is moving geopolitics right now">
+      <StepCard n="C" icon={<BarChart3 size={17} />} title="Imports vs exports — surplus and deficit, the top ten (+ South Korea)">
+        <p style={hintStyle}>
+          The cash engine of each economy: what it sells the world against what it buys. The
+          balance column is COMPUTED (exports − imports). Surplus economies earn the world's
+          currency; deficit economies borrow it — which is why the trade line, the currency line
+          below, and the debt table above are one story.
+        </p>
+        <div style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={tradeSorted.map((t) => ({ name: t.name.replace('United States', 'US').replace('United Kingdom', 'UK').replace('South Korea', 'S. Korea'), exports: t.exportsB, imports: t.importsB }))} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fill: 'var(--text-tertiary)', fontSize: 10 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} interval={0} angle={-25} textAnchor="end" height={55} />
+              <YAxis tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} width={44} tickFormatter={(v) => `$${v}B`} />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-elevated-2)', border: '1px solid var(--border-strong)', borderRadius: 10, color: 'var(--text-primary)' }}
+                itemStyle={{ color: 'var(--text-primary)' }}
+                labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+                formatter={(value: number, name: string) => [`$${value}B`, name === 'exports' ? 'Exports' : 'Imports']}
+                cursor={{ fill: 'var(--accent-soft)' }}
+              />
+              <Legend formatter={(v) => (v === 'exports' ? 'Exports' : 'Imports')} wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="exports" fill="var(--pos)" radius={3} maxBarSize={18} />
+              <Bar dataKey="imports" fill="var(--neg)" radius={3} maxBarSize={18} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{ overflowX: 'auto', marginTop: 10 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Country</th>
+                <th className="num" style={{ textAlign: 'right' }}>Exports</th>
+                <th className="num" style={{ textAlign: 'right' }}>Imports</th>
+                <th className="num" style={{ textAlign: 'right' }}>Balance</th>
+                <th style={{ textAlign: 'left' }}>The read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tradeSorted.map((t) => {
+                const bal = tradeBalanceB(t);
+                return (
+                  <tr key={t.id}>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t.name}</td>
+                    <td className="num" style={{ textAlign: 'right' }}>${t.exportsB}B</td>
+                    <td className="num" style={{ textAlign: 'right' }}>${t.importsB}B</td>
+                    <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: bal >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{bal >= 0 ? '+' : '−'}${Math.abs(bal)}B</td>
+                    <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{t.note}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{TRADE_SOURCE}</p>
+      </StepCard>
+
+      <StepCard n="D" icon={<TrendingUp size={17} />} title="Currency trends vs the dollar (2021 → 2026)">
+        <p style={hintStyle}>
+          The world's verdict on each economy's claim, indexed to 2021 = 100 — lower means the
+          currency bought fewer dollars. The won and the yen are the two big slides; the euro
+          mutes its members' moves and pushes the fight into politics instead. Pick up to four.
+        </p>
+        <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
+          {CURRENCY_TRENDS.map((c) => (
+            <Chip key={c.id} active={fxSel.includes(c.id)} onClick={() => toggleFx(c.id)}>
+              {c.name}
+            </Chip>
+          ))}
+        </div>
+        <XYLineChart
+          data={fxRows}
+          xKey="year"
+          series={CURRENCY_TRENDS.filter((c) => fxSel.includes(c.id)).map((c) => ({ id: c.id, label: c.name }))}
+          height={250}
+          ySuffix=""
+        />
+        <div className="col" style={{ gap: 4, marginTop: 8 }}>
+          {CURRENCY_TRENDS.filter((c) => fxSel.includes(c.id)).map((c) => (
+            <div key={c.id} style={{ fontSize: 11.5, lineHeight: 1.5 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{c.name}:</strong>{' '}
+              <span style={{ color: 'var(--text-secondary)' }}>{c.note}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{CURRENCY_SOURCE}</p>
+        <p style={decisionLine}>
+          <strong>Reading the two graphs together:</strong> a surplus economy with a sliding
+          currency (Korea, Japan) is the interesting case — the trade engine is fine but capital
+          is leaving anyway, which means the story is politics, rates, or governance, not trade.
+          That is the case study below.
+        </p>
+      </StepCard>
+
+      <StepCard n="E" icon={<Globe size={17} />} title={KOREA_CASE.title}>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {KOREA_CASE.facts.map((f) => (
+            <li key={f.slice(0, 40)}>{f}</li>
+          ))}
+        </ul>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: 10, background: 'var(--bg-elevated-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+          {KOREA_CASE.chain.map((step) => (
+            <div key={step.slice(0, 40)}>{step}</div>
+          ))}
+        </div>
+        <p style={decisionLine}>
+          <strong>The lesson:</strong> {KOREA_CASE.lesson}
+        </p>
+      </StepCard>
+
+      <StepCard n="F" icon={<Landmark size={17} />} title="Populism & the fiscal-policy pipeline — by country">
+        <p style={hintStyle}>
+          The Dalio chain: wealth gap → populism of both flanks → populism owns the fiscal lever →
+          deficits, tariffs, and ultimately the term premium. Per country: how the pressure is
+          expressing, what fiscal decisions are in the pipeline over the next 24 months, and the
+          economic channel they would hit.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Country</th>
+                <th style={{ textAlign: 'left' }}>Pressure</th>
+                <th style={{ textAlign: 'left' }}>How it's expressing</th>
+                <th style={{ textAlign: 'left' }}>Fiscal pipeline (24 mo)</th>
+                <th style={{ textAlign: 'left' }}>Potential impact</th>
+              </tr>
+            </thead>
+            <tbody>
+              {POPULISM_WATCH.map((r) => (
+                <tr key={r.country}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.country}</td>
+                  <td>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: r.pressure === 'acute' || r.pressure === 'high' ? 'var(--neg)' : r.pressure === 'rising' ? 'var(--severity-medium)' : 'var(--text-tertiary)', border: `1px solid ${r.pressure === 'acute' || r.pressure === 'high' ? 'var(--neg)' : r.pressure === 'rising' ? 'var(--severity-medium)' : 'var(--border-strong)'}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                      {r.pressure}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: 11.5 }}>{r.expression}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.fiscalPipeline}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{r.impact}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{POPULISM_NOTE}</p>
+      </StepCard>
+
+      <StepCard n="G" icon={<Activity size={17} />} title="GDP & GSP impact watch — health, food, education (next 24 months)">
+        <p style={hintStyle}>
+          The NON-fiscal items that move output: disease and health policy (FDA / health
+          departments), food and agriculture, and education/workforce changes — keyed to the SAME
+          top-ten country and top-ten state lists as the debt tables above.
+        </p>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '0 0 6px' }}>
+          By the top-ten countries
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Country</th>
+                <th style={{ textAlign: 'left' }}>Health / disease / FDA-equivalent</th>
+                <th style={{ textAlign: 'left' }}>Food & agriculture</th>
+                <th style={{ textAlign: 'left' }}>Education / workforce</th>
+                <th style={{ textAlign: 'left' }}>The GDP read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {GDP_IMPACT_COUNTRIES.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.name}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.health}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.food}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.education}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{r.read}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '14px 0 6px' }}>
+          By the top-ten states
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>State</th>
+                <th style={{ textAlign: 'left' }}>Health / health department</th>
+                <th style={{ textAlign: 'left' }}>Food & agriculture</th>
+                <th style={{ textAlign: 'left' }}>Education / workforce</th>
+                <th style={{ textAlign: 'left' }}>The GSP read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {GSP_IMPACT_STATES.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.name}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.health}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.food}</td>
+                  <td style={{ fontSize: 11.5 }}>{r.education}</td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{r.read}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{GDP_IMPACT_NOTE}</p>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> the dials don't move themselves — an avian-flu
+          wave is the food line of tab 3, NHS backlogs are a growth-dial item, a monsoon is
+          India's monetary policy. This table is where "etc etc" becomes a checklist.
+        </p>
+      </StepCard>
+
+      <StepCard n="H" icon={<RefreshCcw size={17} />} title="What is moving geopolitics right now">
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
           {GEO_CURRENT.map((g) => (
             <li key={g.slice(0, 40)}>{g}</li>
@@ -4270,7 +4523,7 @@ function DebtGeoTab() {
         </ul>
       </StepCard>
 
-      <StepCard n="D" icon={<Cog size={17} />} title="What typically moves geopolitics — the standing watch list">
+      <StepCard n="I" icon={<Cog size={17} />} title="What typically moves geopolitics — the standing watch list">
         <p style={hintStyle}>
           Twelve recurring drivers, each mapped to the dial or equilibrium it hits first — so a
           headline converts into a model input instead of a mood.
@@ -4288,7 +4541,7 @@ function DebtGeoTab() {
         </div>
       </StepCard>
 
-      <StepCard n="E" icon={<CalendarCheckIcon />} title="The next 24 months — scheduled, by country and by state">
+      <StepCard n="J" icon={<CalendarCheckIcon />} title="The next 24 months — scheduled, by country and by state">
         <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '0 0 6px' }}>
           Countries
         </div>
@@ -5404,6 +5657,20 @@ function GuidePane({
               the long-term debt cycle went underground into pensions. Read bonded debt and the
               pension note as ONE balance sheet: Illinois and New Jersey are the compounding
               cases, Georgia the discipline benchmark.
+            </GuideSection>
+            <GuideSection n="B2" title="Trade × currency × equities — the health check">
+              Four gauges, read together: the trade balance (the cash engine), the currency trend
+              (does the world still want the claim?), the equity discount (what governance
+              costs), and politics (the accelerant). Korea 2024–26 moves all four at once — a
+              SURPLUS economy with a sliding won tells you the story is politics and governance,
+              not trade. Balances are computed (exports − imports); currency indexed 2021 = 100.
+            </GuideSection>
+            <GuideSection n="B3" title="Populism → the fiscal pipeline">
+              The wealth gap produces populism of both flanks; populism owns the fiscal lever; the
+              fiscal lever writes deficits and tariffs; deficits and tariffs price the term
+              premium. The table names each country's next 24 months of that pipe — and the
+              GDP/GSP watch below it adds the non-fiscal movers (disease/FDA, food, education)
+              keyed to the same top-ten lists.
             </GuideSection>
             <GuideSection n="C" title="Using the geopolitics layer">
               The driver cards convert headlines into model inputs: every card names the dial or
