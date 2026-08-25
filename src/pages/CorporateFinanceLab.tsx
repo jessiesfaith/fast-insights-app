@@ -2185,6 +2185,8 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
               borderRadius: 10,
               color: 'var(--text-primary)',
             }}
+            itemStyle={{ color: 'var(--text-primary)' }}
+            labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
             formatter={(value: number, name: string) => [String(value), DIAL_NAME[name as keyof MacroFactors] ?? name]}
           />
           <Legend formatter={(value) => DIAL_NAME[value as keyof MacroFactors] ?? value} wrapperStyle={{ fontSize: 12 }} />
@@ -2236,6 +2238,8 @@ function ImpactTrendChart({
               borderRadius: 10,
               color: 'var(--text-primary)',
             }}
+            itemStyle={{ color: 'var(--text-primary)' }}
+            labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
             formatter={(value: number, name: string) => [`${value > 0 ? '+' : ''}${value}%`, labelOf[name] ?? name]}
           />
           {series.length > 1 && <Legend formatter={(value) => labelOf[value] ?? value} wrapperStyle={{ fontSize: 12 }} />}
@@ -2280,6 +2284,8 @@ function MachineChart({ data }: { data: MachinePoint[] }) {
               borderRadius: 10,
               color: 'var(--text-primary)',
             }}
+            itemStyle={{ color: 'var(--text-primary)' }}
+            labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
             labelFormatter={(label) => `Year ${label}`}
             formatter={(value: number, name: string) => [String(value), MACHINE_LINE_LABEL[name] ?? name]}
           />
@@ -2400,6 +2406,8 @@ function OptionsSection({
                 maxWidth: 320,
                 whiteSpace: 'normal',
               }}
+              itemStyle={{ color: 'var(--text-primary)' }}
+              labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
               formatter={(value: number, _name, props) => {
                 const row = props?.payload as OptionResult | undefined;
                 if (!row) return [`${fmtSignedPct(Number(value))}`, ''];
