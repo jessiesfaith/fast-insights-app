@@ -50,7 +50,10 @@ describe('IPO by sector over time (spec §76)', () => {
   it('teaches the three shapes: 2022 is every sector’s trough, AI’s half-year beats its every full year, consumer stays flat', () => {
     for (const t of SECTOR_IPO_TRENDS) {
       // 2022 is the trough among FULL years (H1 2026 is a half year and can't be compared as a level)
-      expect(Math.min(...t.counts.slice(0, 5))).toBe(t.counts[1]);
+      // — for every sector EXCEPT biotech, whose slide continued to a 2025 trough: the divergence itself.
+      const fullYearMin = Math.min(...t.counts.slice(0, 5));
+      if (t.id === 'biotech') expect(fullYearMin).toBe(t.counts[4]);
+      else expect(fullYearMin).toBe(t.counts[1]);
     }
     const ai = SECTOR_IPO_TRENDS.find((t) => t.id === 'ai')!;
     expect(ai.counts[5]).toBe(Math.max(...ai.counts));

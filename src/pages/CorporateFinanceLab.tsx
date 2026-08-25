@@ -3796,7 +3796,7 @@ function IpoTab() {
       <StepCard n="B" icon={<TrendingUp size={17} />} title="IPO by sector — the trend over time (2021 → H1 2026)">
         <p style={hintStyle}>
           The §76 view: sector windows over time, not one market. Pick up to four lines — the
-          shape is the lesson: the 2021 mania, the 2022 collapse in EVERY sector, the slow thaw,
+          shape is the lesson: the 2021 mania, the 2022 collapse across sectors (biotech alone kept sliding to a 2025 trough), the slow thaw,
           and a reopening led by AI while biotech's line kept falling (−47% in 2025) even as its
           private financing rose. H1 2026 is a HALF year — read the shape, not the last bar.
         </p>
@@ -5337,8 +5337,8 @@ function GuidePane({
         {tab === 'ipo' && (
           <>
             <GuideSection n="A0" title="Reading the sector trend chart">
-              Three shapes to memorize: the UNIVERSAL trough (2022 — every sector collapsed
-              together, because the discount rate is shared), the DIVERGENT reopening (AI's
+              Three shapes to memorize: the SHARED trough (2022 — sectors collapsed together,
+              because the discount rate is shared; biotech alone slid on to a 2025 trough), the DIVERGENT reopening (AI's
               half-year beats its every full year while biotech keeps falling — windows are
               sector-specific), and the SUBSTITUTION effect (biotech IPOs −47% with private
               financing +11% — a closed public window reroutes capital, it doesn't stop it).
