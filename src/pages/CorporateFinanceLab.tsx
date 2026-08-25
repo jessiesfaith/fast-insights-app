@@ -105,6 +105,7 @@ import {
   INFLATION_COMPONENTS,
   assetLens,
   impactTrend,
+  inflationNow,
   inflationTrend,
   industryBackdrop,
   levelFor,
@@ -544,6 +545,7 @@ export default function CorporateFinanceLab() {
   const toggleInflSel = (id: string) =>
     setInflSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 2 ? cur : [...cur, id]));
   const inflTrend = useMemo(() => inflationTrend(factors), [factors]);
+  const inflNow = useMemo(() => inflationNow(), []);
   const [lensIndustryId, setLensIndustryId] = useState('tech');
   const [lensAssetSel, setLensAssetSel] = useState<string[]>(['stocks', 'bonds-long', 'gold']);
   const toggleLensAsset = (id: string) =>
@@ -1056,6 +1058,32 @@ export default function CorporateFinanceLab() {
                   quarters late, services are sticky. Both gauges and your chosen components run
                   along the projected path below.
                 </p>
+                <GlassCard variant="nested" padding={14} style={{ marginBottom: 12 }}>
+                  <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Current state — as of {inflNow.asOf}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{inflNow.source}</span>
+                  </div>
+                  <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+                    <StatPill label="CPI (official print)" value={`${inflNow.cpi}% YoY`} strong />
+                    <StatPill label="Core CPI (official)" value={`${inflNow.coreCpi}%`} />
+                    <StatPill label="PCE (model-implied)" value={`≈${inflNow.pce}%`} />
+                    <StatPill label="Core PCE (model-implied)" value={`≈${inflNow.corePce}%`} />
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '10px 0 0' }}>
+                    {inflNow.detail}
+                  </p>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '6px 0 0' }}>
+                    The consistency check the tests pin: the component readings below, CPI-weighted,
+                    reproduce the official print ({inflNow.weightedCpi}% vs {inflNow.cpi}%), and PCE
+                    is DERIVED from the same components with the PCE weights and the substitution
+                    formula — the model's claim about how the two gauges relate, applied to today.
+                    Under your scenario the model's quarter-0 CPI reads {inflTrend[0].cpi}% —
+                    the gap between a model's anchor and the actual print is exactly what markets
+                    trade on.
+                  </p>
+                </GlassCard>
                 <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
                   {INFLATION_COMPONENTS.map((c) => (
                     <Chip key={c.id} active={inflSel.includes(c.id)} onClick={() => toggleInflSel(c.id)}>
@@ -1083,6 +1111,9 @@ export default function CorporateFinanceLab() {
                         <span className="num" style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                           CPI {c.cpiWeightPct}% · PCE {c.pceWeightPct}%
                         </span>
+                      </div>
+                      <div className="num" style={{ fontSize: 16, fontWeight: 700, color: toneFor(-(inflNow.componentsNow[c.id] ?? 0) + 2.5), textAlign: 'left', marginBottom: 4 }}>
+                        now ≈ {inflNow.componentsNow[c.id]}%
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{c.note}</div>
                     </GlassCard>
@@ -3289,7 +3320,11 @@ function GuidePane({
               {CPI_PCE_FACTS.slice(0, 4).join(' ')} The reading order when a hot number drops:
               energy first (instant, noisy), food next, then check whether core services confirm
               the trend — and remember shelter is telling you about LAST year's leases, not
-              today's. That's why the Fed says "core PCE" when everyone else says "CPI."
+              today's. That's why the Fed says "core PCE" when everyone else says "CPI." The current-state
+              panel is anchored to the official BLS print (same one-small-file snapshot pattern as
+              "today's market," refreshed by hand until the automation lands) — and PCE is derived
+              from the same components, so you can watch the model's claim about the CPI–PCE gap
+              hold against real numbers.
             </GuideSection>
             <GuideSection n="F" title="Asset classes by industry">
               The bold line is the industry you picked; the rest are asset classes under the same

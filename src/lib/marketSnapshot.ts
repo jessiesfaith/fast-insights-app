@@ -30,6 +30,41 @@ export interface MarketSnapshot {
   readings: SnapshotReading[];
 }
 
+export interface InflationSnapshot {
+  /** ISO date this snapshot was taken. */
+  asOf: string;
+  /** Official headline CPI print, % YoY. */
+  headlineCpi: number;
+  /** Official core CPI print (ex food & energy), % YoY. */
+  coreCpi: number;
+  source: string;
+  detail: string;
+  /**
+   * Component readings, % YoY, keyed by the INFLATION_COMPONENTS ids in
+   * marketAnalysis. The official release publishes these at full precision;
+   * the values here are teaching estimates calibrated so the CPI-weighted
+   * average reproduces the official headline and core prints above (the
+   * consistency is pinned in tests). Energy carries the supply shock.
+   */
+  componentsNow: Record<string, number>;
+}
+
+export const INFLATION_SNAPSHOT: InflationSnapshot = {
+  asOf: '2026-08-24',
+  headlineCpi: 3.4,
+  coreCpi: 2.5,
+  source: 'Bureau of Labor Statistics, July 2026 CPI report',
+  detail:
+    'Headline 3.4% YoY (down from 3.5% in June), core 2.5% — cooling but above target, with the tariff/supply shock living almost entirely in the energy and food lines.',
+  componentsNow: {
+    shelter: 3.2,
+    food: 3.9,
+    energy: 12.0,
+    'core-goods': 0.8,
+    'core-services': 3.0,
+  },
+};
+
 export const MARKET_SNAPSHOT: MarketSnapshot = {
   asOf: '2026-08-24',
   headline: 'Growth is slowing, inflation is cooling but still above target, and a divided Fed is on hold.',

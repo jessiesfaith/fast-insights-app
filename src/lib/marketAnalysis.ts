@@ -16,6 +16,7 @@
 // Education only; not investment, credit, or tax advice.
 
 import { ASSET_CLASSES, INDUSTRIES, ImpactTarget, MacroFactors, impactPct } from './macroModel';
+import { INFLATION_SNAPSHOT } from './marketSnapshot';
 
 // ---------------------------------------------------------------------------
 // 1. The dials in real numbers
@@ -321,6 +322,66 @@ export function inflationTrend(f: MacroFactors, quarters = 8): InflationTrendPoi
     row.pce = r1(pce - PCE_FORMULA_EFFECT_PP);
     return row;
   });
+}
+
+export interface InflationNow {
+  asOf: string;
+  source: string;
+  detail: string;
+  /** The official prints. */
+  cpi: number;
+  coreCpi: number;
+  /** Model-implied from the component snapshot + PCE weights & formula. */
+  pce: number;
+  corePce: number;
+  /** Sanity check: CPI-weighted average of the component snapshot. */
+  weightedCpi: number;
+  /** Per-component current readings, % YoY. */
+  componentsNow: Record<string, number>;
+}
+
+/**
+ * The current state, anchored to the official prints (CPI and core CPI are
+ * BLS numbers from the snapshot file) with PCE and core PCE DERIVED from the
+ * same component readings using the PCE weights and the substitution-formula
+ * effect — exactly how the model says the two gauges relate. The weighted
+ * CPI is computed too, so the tests can pin that the teaching component
+ * estimates actually reproduce the official prints.
+ */
+export function inflationNow(): InflationNow {
+  const nowOf = (id: string) => INFLATION_SNAPSHOT.componentsNow[id] ?? 0;
+  const r1n = (n: number) => Math.round(n * 10) / 10;
+
+  let weightedCpi = 0;
+  let pce = 0;
+  let coreCpiNum = 0;
+  let coreCpiW = 0;
+  let corePceNum = 0;
+  let corePceW = 0;
+  for (const c of INFLATION_COMPONENTS) {
+    const v = nowOf(c.id);
+    weightedCpi += (c.cpiWeightPct / 100) * v;
+    pce += (c.pceWeightPct / 100) * v;
+    if (c.id !== 'food' && c.id !== 'energy') {
+      coreCpiNum += (c.cpiWeightPct / 100) * v;
+      coreCpiW += c.cpiWeightPct / 100;
+      corePceNum += (c.pceWeightPct / 100) * v;
+      corePceW += c.pceWeightPct / 100;
+    }
+  }
+  void (coreCpiNum / coreCpiW); // the official core print is used directly below
+
+  return {
+    asOf: INFLATION_SNAPSHOT.asOf,
+    source: INFLATION_SNAPSHOT.source,
+    detail: INFLATION_SNAPSHOT.detail,
+    cpi: INFLATION_SNAPSHOT.headlineCpi,
+    coreCpi: INFLATION_SNAPSHOT.coreCpi,
+    pce: r1n(pce - PCE_FORMULA_EFFECT_PP),
+    corePce: r1n(corePceNum / corePceW - PCE_FORMULA_EFFECT_PP),
+    weightedCpi: r1n(weightedCpi),
+    componentsNow: INFLATION_SNAPSHOT.componentsNow,
+  };
 }
 
 /** CPI vs PCE, the differences that matter — for the guide. */

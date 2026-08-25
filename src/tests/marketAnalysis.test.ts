@@ -6,6 +6,7 @@ import {
   DIAL_PROFILES,
   INFLATION_COMPONENTS,
   assetLens,
+  inflationNow,
   inflationTrend,
   debtPlaybook,
   dialPressures,
@@ -213,6 +214,27 @@ describe('inflation up close — CPI vs PCE', () => {
     // energy reacts immediately and cools as the feedback loop bites
     const energy = t.map((r) => r.energy as number);
     expect(energy[energy.length - 1]).toBeLessThan(energy[0]);
+  });
+
+  it('the current-state snapshot is internally consistent with the official prints', () => {
+    const now = inflationNow();
+    // the official July 2026 prints from the snapshot file
+    expect(now.cpi).toBe(3.4);
+    expect(now.coreCpi).toBe(2.5);
+    // the teaching component estimates, CPI-weighted, reproduce the headline
+    expect(Math.abs(now.weightedCpi - now.cpi)).toBeLessThanOrEqual(0.1);
+    // PCE derived from the same components runs below CPI — the classic gap
+    expect(now.pce).toBeLessThan(now.cpi);
+    expect(now.corePce).toBeLessThan(now.coreCpi);
+    // the supply shock lives in energy — the hottest component by far
+    const values = Object.entries(now.componentsNow);
+    expect(values).toHaveLength(5);
+    const hottest = values.sort((a, b) => b[1] - a[1])[0][0];
+    expect(hottest).toBe('energy');
+    // every trend component has a current reading
+    for (const c of INFLATION_COMPONENTS) expect(now.componentsNow[c.id]).toBeGreaterThan(0);
+    expect(now.asOf).toBe('2026-08-24');
+    expect(now.source).toMatch(/Bureau of Labor Statistics/);
   });
 
   it('the facts cover the CPI/PCE distinctions (target, scope, formula, weights)', () => {
