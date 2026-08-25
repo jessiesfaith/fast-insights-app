@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MacroFactors, SCENARIOS } from '../lib/macroModel';
 import {
   DALIO_RULES,
+  MACHINE_FORCES,
   SHORT_CYCLE_YEARS,
   equilibriumReads,
   leverInterplay,
@@ -20,9 +21,9 @@ function scenario(id: string): MacroFactors {
 const eq = (f: MacroFactors, id: string) => equilibriumReads(f, 4)!.find((e) => e.id === id)!;
 
 describe('how the market cycles', () => {
-  it('draws 76 points: a rising trend with two waves around it', () => {
+  it('draws a 40-year path: a rising trend with two waves around it', () => {
     const c = machineCurve();
-    expect(c).toHaveLength(76);
+    expect(c).toHaveLength(41);
     // productivity is a straight line up
     for (let i = 1; i < c.length; i++) expect(c[i].productivity).toBeGreaterThan(c[i - 1].productivity);
     // the waves oscillate around the trend: above it at some point, below at another
@@ -37,6 +38,43 @@ describe('how the market cycles', () => {
     const dev = (t: number) => c[t].shortTerm - c[t].productivity;
     expect(dev(SHORT_CYCLE_YEARS)).toBeCloseTo(dev(0), 5);
     expect(dev(SHORT_CYCLE_YEARS / 4)).toBeGreaterThan(0); // quarter-wave peak
+  });
+
+  it('the chart responds to the dials: year 0 is positioned by growth and the Fed', () => {
+    const dev = (f: MacroFactors) => {
+      const c = machineCurve(f);
+      return { d0: c[0].shortTerm - c[0].productivity, d1: c[1].shortTerm - c[1].productivity };
+    };
+    // overheating: above trend and rolling over
+    const hot = dev(scenario('overheating'));
+    expect(hot.d0).toBeGreaterThan(0);
+    expect(hot.d1).toBeLessThan(hot.d0);
+    // recession + easing: below trend and climbing out
+    const cold = dev(scenario('recession'));
+    expect(cold.d0).toBeLessThan(0);
+    expect(cold.d1).toBeGreaterThan(cold.d0);
+    // different scenarios draw genuinely different paths
+    expect(machineCurve(scenario('overheating'))[3].economy).not.toBe(
+      machineCurve(scenario('recession'))[3].economy,
+    );
+  });
+
+  it('every force card defines itself against all 3 equilibriums, both levers, 2 hypotheticals, and history', () => {
+    expect(MACHINE_FORCES.map((f) => f.id)).toEqual([
+      'monetary',
+      'fiscal',
+      'short-debt',
+      'long-debt',
+      'politics',
+      'productivity',
+    ]);
+    for (const f of MACHINE_FORCES) {
+      for (const field of [f.what, f.eq1, f.eq2, f.eq3, f.lever, f.history]) {
+        expect(field.length).toBeGreaterThan(40);
+      }
+      expect(f.hypotheticals).toHaveLength(2);
+      for (const h of f.hypotheticals) expect(h).toMatch(/^Hypothetical/);
+    }
   });
 
   it('ships all three Dalio rules of thumb', () => {

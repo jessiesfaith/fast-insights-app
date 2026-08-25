@@ -36,18 +36,38 @@ export interface MachinePoint {
 export const SHORT_CYCLE_YEARS = 8;
 export const LONG_CYCLE_YEARS = 70;
 
+const NEUTRAL_FACTORS: MacroFactors = { growth: 0, inflation: 0, policy: 0, fiscal: 0 };
+
 /**
- * The classic three-line chart: productivity as a straight line, the
- * short-term debt cycle as a ~8-year wave around it, and the long-term debt
- * cycle as a ~70-year swell underneath — above trend while leverage builds,
- * below it through the deleveraging. Illustrative amplitudes.
+ * The classic three-line chart, made live: productivity as a straight line,
+ * the short-term debt cycle as a ~8-year wave, the long-term debt cycle as a
+ * ~70-year swell — with YEAR 0 = TODAY, positioned by the dials:
+ *   - The short wave starts where growth says we are (above/below trend) and
+ *     heads where policy says we're going — tightening means past the peak
+ *     and rolling over, easing means climbing out of the trough.
+ *   - The long wave's position follows the credit stance: sustained easing
+ *     is the leveraging-up phase; hard tightening sits near the top where
+ *     deleveraging pressure starts.
+ * Move the dials and the path from "now" changes — that's the point.
+ * Illustrative amplitudes; direction of travel, not a forecast.
  */
-export function machineCurve(years = 75): MachinePoint[] {
+export function machineCurve(f: MacroFactors = NEUTRAL_FACTORS, years = 40): MachinePoint[] {
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  // Short cycle: sin(φ) = today's deviation from trend (growth dial);
+  // policy picks the side of the wave — tightening = past the peak (falling
+  // side), easing or neutral = the rising side.
+  const g0 = clamp(f.growth / 2, -0.95, 0.95);
+  const shortPhase = f.policy > 0 ? Math.PI - Math.asin(g0) : Math.asin(g0);
+  // Long cycle: the credit stance (easing = leveraging up, early in the
+  // swell; tightening = late, near the peak where deleveraging starts).
+  const creditStance = clamp(-f.policy / 2, -1, 1); // +1 max easing … −1 max tightening
+  const longPhase = Math.PI * (0.3 - 0.25 * creditStance);
+
   const out: MachinePoint[] = [];
   for (let t = 0; t <= years; t++) {
     const productivity = 100 + 2 * t;
-    const shortWave = 10 * Math.sin((2 * Math.PI * t) / SHORT_CYCLE_YEARS);
-    const longWave = 22 * Math.sin((2 * Math.PI * t) / LONG_CYCLE_YEARS);
+    const shortWave = 10 * Math.sin((2 * Math.PI * t) / SHORT_CYCLE_YEARS + shortPhase);
+    const longWave = 22 * Math.sin((2 * Math.PI * t) / LONG_CYCLE_YEARS + longPhase);
     const r = (v: number) => Math.round(v * 10) / 10;
     out.push({
       year: t,
@@ -64,6 +84,114 @@ export const DALIO_RULES: string[] = [
   "Don't have debt rise faster than income — your debts will eventually crush you.",
   "Don't have income rise faster than productivity — you'll eventually become uncompetitive.",
   'Do all that you can to raise your productivity — in the long run, that is what matters most.',
+];
+
+// ---------------------------------------------------------------------------
+// 1b. The six forces, read against the three equilibriums and two levers
+// ---------------------------------------------------------------------------
+
+export interface MachineForce {
+  id: string;
+  name: string;
+  /** What this force IS, in one breath. */
+  what: string;
+  /** How it hits each of the three equilibriums. */
+  eq1: string;
+  eq2: string;
+  eq3: string;
+  /** Its relationship to the two levers. */
+  lever: string;
+  /** Two hypotheticals: what a change in this force would do. */
+  hypotheticals: [string, string];
+  /** A real episode from the past. */
+  history: string;
+}
+
+export const MACHINE_FORCES: MachineForce[] = [
+  {
+    id: 'monetary',
+    name: 'Monetary policy (lever 1 — the Fed)',
+    what: 'The price and quantity of credit: the fed funds rate plus the balance sheet (QE/QT). The fastest-acting steering input the machine has.',
+    eq1: 'Sets how fast debt grows: cheap money invites borrowing beyond income growth; dear money forces debt growth back below it.',
+    eq2: 'The thermostat — hikes cool an overheating economy with a 12–18 month lag, cuts warm a cold one.',
+    eq3: 'Sets the cash yield the whole premium stack is built on: tightening compresses premiums (cash competes), easing stretches them (capital pushed out the risk curve).',
+    lever: 'IS the first lever. Works best with room to cut; at the zero bound only QE is left — the long cycle’s constraint.',
+    hypotheticals: [
+      'Hypothetical A: the Fed surprises with +100bp of hikes → floating-rate interest bills jump within days, long-duration assets (tech, long bonds, real estate) reprice down, and 12–18 months later growth and inflation cool.',
+      'Hypothetical B: the Fed cuts 150bp into a slowdown → refinancing waves, housing and capex revive, risk premiums stretch, and the next leveraging-up leg of the debt cycle begins.',
+    ],
+    history: '1980: Volcker pushed rates near 20% to break double-digit inflation — two recessions, then two decades of disinflation. 2022 was the same play smaller: ~525bp of hikes compressed every risk premium and repriced tech hardest.',
+  },
+  {
+    id: 'fiscal',
+    name: 'Fiscal policy (lever 2 — the government)',
+    what: 'Taxes and spending — demand injected or drained by law. Chosen politically, so it pushes the machine but is never pushed back by it.',
+    eq1: 'Deficits are new borrowing at the sovereign level: stimulus grows debt faster than income unless growth answers; austerity does the reverse.',
+    eq2: 'The fastest demand lever: checks and contracts hit spending within quarters — powerful for warming a cold economy, inflationary in a hot one.',
+    eq3: 'Big deficits mean more Treasury issuance, pressuring the bond leg of the stack; stimulus in a hot economy forces the Fed to tighten against it.',
+    lever: 'IS the second lever. Coordination matters: pushing with the Fed is maximum force (2020); pushing against it makes rates carry the whole burden (2022).',
+    hypotheticals: [
+      'Hypothetical A: a $1T infrastructure program passes in a soft economy → industrials and capacity investment lead, growth answers within a year, and the deficit ratchets the long-term debt stock higher.',
+      'Hypothetical B: austerity — spending cuts and tax rises in a weak economy → demand leaks out faster than debt falls, and the Fed is forced to ease against the drag.',
+    ],
+    history: '2020–21: pandemic stimulus (~25% of GDP with QE alongside) was both levers at maximum — the fastest recovery on record, followed by the inflation of 2022. Post-2010 Eurozone austerity is the reverse example: a decade of grind.',
+  },
+  {
+    id: 'short-debt',
+    name: 'The short-term debt cycle (~7–10 years)',
+    what: 'The business cycle you feel: credit expands → boom → inflation → the Fed brakes → downturn → cuts → repeat. One person’s spending is another’s income, and credit amplifies both directions.',
+    eq1: 'Is the equilibrium-1 correction loop in action: over-borrowing brings the brakes, credit droughts bring the cuts.',
+    eq2: 'The operating rate oscillates around "just right" — the cycle IS the economy overshooting equilibrium 2 in both directions.',
+    eq3: 'Premiums breathe with it: compressed at the late-cycle top (tight money), stretched at the easing bottom.',
+    lever: 'Driven almost entirely by the monetary lever leaning against the credit swings.',
+    hypotheticals: [
+      'Hypothetical A: banks loosen lending standards late in an expansion → credit grows ahead of income (equilibrium 1 breaks upward), the boom gets one more leg, and the eventual brake has to be harder.',
+      'Hypothetical B: a credit crunch — lenders pull lines at once → spending falls, which is someone else’s income falling, and the spiral runs until the Fed floors rates.',
+    ],
+    history: '2004–2009 in one cycle: easy credit → housing boom → 17 straight hikes → the bust and the crunch — the textbook short cycle, ending at the zero bound.',
+  },
+  {
+    id: 'long-debt',
+    name: 'The long-term debt cycle (~50–75 years)',
+    what: 'Across many short cycles, debt ratchets up faster than income — each downturn is met with lower rates, so leverage never fully resets — until rates hit zero and printing (QE) is the only lever left. Then: deleveraging.',
+    eq1: 'Is equilibrium 1 violated in slow motion for decades — the ratchet — and then restored all at once through deleveraging (austerity, restructuring, redistribution, printing).',
+    eq2: 'During deleveraging the economy runs cold for years no matter what rates do — the "lost decade" pattern.',
+    eq3: 'At the zero bound cash yields nothing, so QE stretches premiums to force capital out the risk curve — the stack held open by policy.',
+    lever: 'Defined by the monetary lever running out: distance to the zero bound is the cycle’s odometer. Fiscal (and the printing press) takes over at the end.',
+    hypotheticals: [
+      'Hypothetical A: rates reach zero with debt-service still crushing incomes → cutting is spent, QE begins, and the deleveraging question becomes who eats the losses: savers (inflation), creditors (default), or taxpayers (bailouts).',
+      'Hypothetical B: a "beautiful deleveraging" — printing balanced against defaults and austerity so debt burdens fall while the economy still grows nominally.',
+    ],
+    history: '1932 and 2008 — the two American zero-bound moments. Post-2008 QE plus slow deleveraging was the "beautiful" version; the 1930s, without it at first, was the ugly one.',
+  },
+  {
+    id: 'politics',
+    name: 'Politics (elections, tariffs, geopolitics)',
+    what: 'The force that CHOOSES the fiscal lever and can shock supply directly: elections set taxes and spending; tariffs and wars reprice inputs and reroute trade. Not a dial in this model — it moves the dials.',
+    eq1: 'Debt-ceiling fights, entitlement math, and war spending decide the sovereign side of debt-vs-income; populist stimulus ratchets it.',
+    eq2: 'Supply shocks (tariffs, embargoes, conflict) hit equilibrium 2 from the cost side: LESS output at HIGHER prices — the stagflationary "torn" reading.',
+    eq3: 'Geopolitical risk widens risk premiums on its own — capital demands more to cross uncertain borders.',
+    lever: 'Owns the fiscal lever outright and constrains the monetary one (central-bank independence is itself a political settlement).',
+    hypotheticals: [
+      'Hypothetical A: a broad tariff wave → import costs jump (inflation up), export markets retaliate (growth down) — the one shock that pushes both mandates the wrong way at once.',
+      'Hypothetical B: an election flips fiscal from austerity to stimulus → the Gov’t dial jumps a year before any economic data would have moved it.',
+    ],
+    history: 'The 1973 oil embargo made the 1970s stagflation; the 2018–19 tariff wave and the 2022 energy shock are the modern rhymes — politics writing itself into the inflation dial.',
+  },
+  {
+    id: 'productivity',
+    name: 'Productivity (the slow force)',
+    what: 'Output per hour — knowledge, tools, and organization compounding. Slow, powerful, and the only force that raises living standards permanently; the straight rising line under both debt cycles.',
+    eq1: 'The honest way to satisfy equilibrium 1: productivity-driven income growth carries debt without borrowing more. Dalio’s third rule — do all you can to raise it.',
+    eq2: 'Raises the speed limit itself: with higher productivity the economy can run faster without overheating.',
+    eq3: 'Real earnings growth is what ultimately pays the equity risk premium — productivity is why stocks beat bonds over decades.',
+    lever: 'Neither lever creates it directly; policy can only fund its ingredients (research, infrastructure, education) and avoid smothering it.',
+    hypotheticals: [
+      'Hypothetical A: AI adoption adds 1pp to productivity growth → trend growth rises, inflation stays tamer at the same demand, and the Fed can run the machine hotter — every hurdle in tab 1 gets easier to clear.',
+      'Hypothetical B: productivity stalls for a decade → income growth relies on borrowing alone, equilibrium 1 strains, and the machine becomes pure debt-cycle with no trend underneath.',
+    ],
+    history: 'The late-1990s IT boom: productivity growth near 3% let the Fed hold rates through a boom with inflation falling — the Goldilocks years. The 2010s slowdown to ~1% is the counterexample: slow trend, slow rates, slow everything.',
+  },
 ];
 
 // ---------------------------------------------------------------------------

@@ -120,12 +120,14 @@ import {
   DALIO_RULES,
   EQ_STATUS_LABEL,
   EquilibriumRead,
+  MACHINE_FORCES,
   MachinePoint,
   equilibriumReads,
   leverInterplay,
   leverWatch,
   machineCurve,
 } from '../lib/economicMachine';
+import { INDUSTRY_PROFILES, adviseCapital } from '../lib/industryPlaybook';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
@@ -152,6 +154,12 @@ const BACKDROP_META: Record<'tailwind' | 'neutral' | 'headwind', { label: string
 const TREND_DEFAULTS: Record<'industries' | 'assets', string[]> = {
   industries: ['tech', 'financials', 'staples', 'energy'],
   assets: ['stocks', 'bonds-long', 'gold', 'real-estate'],
+};
+
+const CAP_STANCE_META: Record<'offense' | 'balanced' | 'defense', { label: string; tone: string }> = {
+  offense: { label: 'Offense — deploy', tone: 'var(--pos)' },
+  balanced: { label: 'Balanced — stage it', tone: 'var(--severity-medium)' },
+  defense: { label: 'Defense — preserve', tone: 'var(--neg)' },
 };
 
 const EQ_STATUS_TONE: Record<EquilibriumRead['status'], string> = {
@@ -465,7 +473,12 @@ export default function CorporateFinanceLab() {
   );
 
   // Tab 5 state (also derived from the shared scenario).
-  const machineData = useMemo(() => machineCurve(), []);
+  const machineData = useMemo(() => machineCurve(factors), [factors]);
+  const [advIndustryId, setAdvIndustryId] = useState('tech');
+  const advice = useMemo(
+    () => adviseCapital(advIndustryId, effInputs.riskFree, factors),
+    [advIndustryId, effInputs, factors],
+  );
 
   // Tab 6 state (valuation workbench).
   const [dcf, setDcf] = useState<DcfInputs>(DEFAULT_DCF_INPUTS);
@@ -1058,7 +1071,10 @@ export default function CorporateFinanceLab() {
                   powerful, always up over time), the <strong>short-term debt cycle</strong> (~
                   7–10 years — the business cycle you feel), and the <strong>long-term debt
                   cycle</strong> (~50–75 years — leverage building above the trend, then the
-                  deleveraging below it). The economy you live in is the sum of all three.
+                  deleveraging below it). <strong>Year 0 is today, positioned by your dials</strong>:
+                  growth sets where the short wave starts, the Fed sets which way it's heading and
+                  where the long swell sits — move the buttons above and watch the path from "now"
+                  change.
                 </p>
                 <MachineChart data={machineData} />
                 <div
@@ -1178,6 +1194,134 @@ export default function CorporateFinanceLab() {
                     </GlassCard>
                   ))}
                 </div>
+              </StepCard>
+
+              <StepCard n="E" icon={<RefreshCcw size={17} />} title="The six forces vs. the three equilibriums">
+                <p style={hintStyle}>
+                  Everything that moves the machine, one card each: what the force is, how it hits
+                  each equilibrium, its relationship to the two levers — plus{' '}
+                  <strong>two hypotheticals</strong> and <strong>one real episode from the past</strong>{' '}
+                  so the mechanism sticks.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+                  {MACHINE_FORCES.map((force) => (
+                    <GlassCard key={force.id} variant="nested" padding={16}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{force.name}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{force.what}</div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '10px 0 4px' }}>
+                        Against the three equilibriums
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        <li><strong style={{ color: 'var(--text-primary)' }}>1 · Debt vs income:</strong> {force.eq1}</li>
+                        <li><strong style={{ color: 'var(--text-primary)' }}>2 · Operating rate:</strong> {force.eq2}</li>
+                        <li><strong style={{ color: 'var(--text-primary)' }}>3 · Risk premiums:</strong> {force.eq3}</li>
+                      </ul>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 8 }}>
+                        <strong style={{ color: 'var(--accent)' }}>The two levers:</strong> {force.lever}
+                      </div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '10px 0 4px' }}>
+                        Two hypotheticals
+                      </div>
+                      {force.hypotheticals.map((h) => (
+                        <div key={h} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>{h}</div>
+                      ))}
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--text-secondary)',
+                          background: 'var(--bg-elevated-2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          marginTop: 6,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, marginRight: 6 }}>
+                          From the past
+                        </span>
+                        {force.history}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </StepCard>
+
+              <StepCard n="F" icon={<Briefcase size={17} />} title={`What to do with capital — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  The live recommendation: pick your industry, and the tab-1 capital engine re-runs
+                  with that industry's assumptions (beta → cost of equity, credit standing →
+                  borrowing spread), colored by the industry's macro backdrop. Change the scenario
+                  buttons above and watch the advice turn.
+                </p>
+                <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 12 }}>
+                  {INDUSTRY_PROFILES.map((p) => (
+                    <Chip key={p.id} active={advIndustryId === p.id} onClick={() => setAdvIndustryId(p.id)}>
+                      {p.name}
+                    </Chip>
+                  ))}
+                </div>
+                <GlassCard variant="nested" padding={16} style={{ border: `1px solid ${CAP_STANCE_META[advice.stance].tone}` }}>
+                  <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: CAP_STANCE_META[advice.stance].tone }}>
+                      {CAP_STANCE_META[advice.stance].label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        color: BACKDROP_META[advice.backdrop.level].tone,
+                        border: `1px solid ${BACKDROP_META[advice.backdrop.level].tone}`,
+                        borderRadius: 999,
+                        padding: '3px 10px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Industry {BACKDROP_META[advice.backdrop.level].label.toLowerCase()}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{advice.summary}</div>
+                  <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 12 }}>
+                    <StatPill label="Industry beta" value={String(advice.profile.beta)} />
+                    <StatPill label="Spread tier" value={`${advice.profile.spreadTier} · +${advice.waccInputs.creditSpread}%`} />
+                    <StatPill label="Industry WACC" value={`${advice.wacc.wacc}%`} strong />
+                    <StatPill label="Modeled backdrop" value={`${advice.backdrop.now >= 0 ? '+' : ''}${advice.backdrop.now}%`} />
+                  </div>
+                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '12px 0 4px' }}>
+                    The ranked moves at this industry's WACC
+                  </div>
+                  <div className="col" style={{ gap: 4 }}>
+                    {[...advice.top, advice.safe].map((o) => {
+                      const meta = VERDICT_META[o.verdict];
+                      return (
+                        <div key={o.id} style={{ fontSize: 12, lineHeight: 1.5 }}>
+                          <strong style={{ color: 'var(--text-primary)' }}>{o.name}</strong>{' '}
+                          <span className="num" style={{ color: toneFor(o.spread) }}>{fmtSignedPct(o.spread)}</span>{' '}
+                          <span style={{ color: meta.tone, fontWeight: 600 }}>· {meta.label}</span>
+                          {o.id === advice.safe.id && <span style={{ color: 'var(--text-tertiary)' }}> · the safe benchmark</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <details style={{ marginTop: 12 }}>
+                    <summary style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}>
+                      The assumptions this uses — the {advice.profile.name} master list
+                    </summary>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      {advice.profile.assumptions.map((a) => (
+                        <li key={a}>{a}</li>
+                      ))}
+                      <li>Risk-free rate {effInputs.riskFree}% and $1M of capital — set on tab 1 (the risk-free chip there feeds this directly).</li>
+                    </ul>
+                  </details>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '10px 0 0' }}>
+                    To make this YOUR answer rather than the sector's: on tab 1, set your real beta,
+                    your borrowing spread (or pro forma — pension included), and your capital amount;
+                    tab 1 then ranks all seven moves with your numbers under this same scenario.
+                  </p>
+                </GlassCard>
               </StepCard>
             </>
           )}
@@ -1814,11 +1958,11 @@ function MachineChart({ data }: { data: MachinePoint[] }) {
           <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis
             dataKey="year"
-            ticks={[0, 10, 20, 30, 40, 50, 60, 70]}
+            ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40]}
             tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }}
             axisLine={{ stroke: 'var(--border)' }}
             tickLine={false}
-            tickFormatter={(v) => `yr ${v}`}
+            tickFormatter={(v) => (v === 0 ? 'now' : `+${v}y`)}
           />
           <YAxis tick={false} axisLine={{ stroke: 'var(--border)' }} tickLine={false} width={10} />
           <Tooltip
@@ -2275,7 +2419,31 @@ function GuidePane({
               your dials — which is the point: this whole page is those two levers plus their
               consequences.
             </GuideSection>
-            <GuideSection n="E" title="Why this matters for tabs 1–4">
+            <GuideSection n="E" title="Reading the live cycle chart">
+              Year 0 is today. The <strong>growth</strong> dial sets where the short wave starts
+              (above or below trend); the <strong>Fed</strong> dial sets which side of the wave
+              you're on — tightening means past the peak and rolling over, easing means climbing
+              out — and positions the long swell (easy money = leveraging up, hard tightening =
+              near the top). Productivity stays a straight line on purpose: no dial moves it,
+              because no lever can. Click through the presets and watch the path from "now" flip.
+            </GuideSection>
+            <GuideSection n="F" title="The six forces">
+              Two levers (monetary, fiscal), two debt cycles (short, long), and two forces from
+              outside the model (politics, productivity). Each card gives the definition, the hit
+              on all three equilibriums, two hypotheticals, and a real episode — learn them as
+              pairs: the hypothetical is the mechanism, the history is the proof it actually
+              happens that way.
+            </GuideSection>
+            <GuideSection n="G" title="The capital recommendation — what it needs">
+              The advice runs on three inputs: (1) the <strong>scenario dials</strong> above, (2)
+              your <strong>industry</strong> — which supplies beta, a borrowing-spread tier, and
+              macro sensitivities from the master list (expand "assumptions" on the card to see
+              exactly what's assumed), and (3) the <strong>risk-free rate and capital</strong> from
+              tab 1. Offense = tailwind and a move clears its hurdle; defense = headwind or nothing
+              clears; balanced = in between. It's the sector's answer, not yours — replace beta and
+              spread with your own numbers (or pro forma) on tab 1 to personalize it.
+            </GuideSection>
+            <GuideSection n="H" title="Why this matters for tabs 1–4">
               The equilibriums price everything upstream: equilibrium 3 sets your WACC inputs (tab
               1), equilibrium 1 decides how easily your customer refinances (tab 2), and the levers
               drive every hedge verdict (tab 3) and trend (tab 4). Dalio's frame: you don't need to
