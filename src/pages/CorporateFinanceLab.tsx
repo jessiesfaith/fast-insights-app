@@ -33,6 +33,7 @@ import {
   Percent,
   RefreshCcw,
   Rocket,
+  Workflow,
   Scale,
   ShieldCheck,
   Sparkles,
@@ -243,6 +244,7 @@ import {
   STATE_DEBT,
   STATE_DEBT_SOURCE,
 } from '../lib/debtGeo';
+import { DEFAULT_FULL_CYCLE, FullCycleInputs, runFullCycle } from '../lib/fullCycle';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
@@ -263,7 +265,8 @@ type TabId =
   | 'realestate'
   | 'ipo'
   | 'benchmarks'
-  | 'debtgeo';
+  | 'debtgeo'
+  | 'fullcycle';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -281,6 +284,7 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'ipo', label: '13 · IPO & capital markets', icon: Rocket },
   { id: 'benchmarks', label: '14 · Industry benchmarks', icon: Scale },
   { id: 'debtgeo', label: '15 · Debt & geopolitics', icon: Globe },
+  { id: 'fullcycle', label: '16 · The full cycle (EV·ROIC·WACC)', icon: Workflow },
 ];
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
@@ -684,6 +688,8 @@ export default function CorporateFinanceLab() {
       <style>{`
         .ms-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
         .ms-guide { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+        .sticky-conditions { position: sticky; top: 8px; z-index: 40; border-radius: var(--radius-lg, 16px); background: var(--bg, var(--bg-elevated)); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+        .sticky-conditions > * { backdrop-filter: none; background: var(--bg-elevated); }
         @media (max-width: 1040px) {
           .ms-layout { grid-template-columns: 1fr; }
           .ms-guide { position: static; max-height: none; }
@@ -823,13 +829,17 @@ export default function CorporateFinanceLab() {
                 </div>
               </StepCard>
 
+              <div className="sticky-conditions">
               <StepCard n="B" icon={<Compass size={17} />} title="Market conditions">
                 <p style={hintStyle}>
                   The same four forces as Market Scenarios. They shift each option's expected return —
-                  deals get cheap in downturns, long-payoff bets suffer when rates rise.
+                  deals get cheap in downturns, long-payoff bets suffer when rates rise. This card
+                  stays pinned as you scroll, so you can flip the dials and watch the sections
+                  below react.
                 </p>
                 <ScenarioPicker scenarioId={scenarioId} factors={factors} onToday={pickToday} onPreset={pickPreset} onDial={setDial} />
               </StepCard>
+              </div>
 
               <StepCard n="C" icon={<BarChart3 size={17} />} title={`Which move clears its hurdle — ${scenarioName}`}>
                 <p style={hintStyle}>
@@ -1062,13 +1072,17 @@ export default function CorporateFinanceLab() {
 
           {tab === 'analysis' && (
             <>
+              <div className="sticky-conditions">
               <StepCard n="A" icon={<Compass size={17} />} title="Market conditions">
                 <p style={hintStyle}>
                   The same four dials as everywhere else — set them here and the readings below
-                  translate each one into real numbers, cross-pressures, and a cycle read.
+                  translate each one into real numbers, cross-pressures, and a cycle read. This
+                  card stays pinned as you scroll, so you can flip a dial and watch every chart
+                  below move.
                 </p>
                 <ScenarioPicker scenarioId={scenarioId} factors={factors} onToday={pickToday} onPreset={pickPreset} onDial={setDial} />
               </StepCard>
+              </div>
 
               <StepCard n="B" icon={<Activity size={17} />} title="The dials in real numbers">
                 <p style={hintStyle}>
@@ -1394,13 +1408,16 @@ export default function CorporateFinanceLab() {
 
           {tab === 'machine' && (
             <>
+              <div className="sticky-conditions">
               <StepCard n="A" icon={<Compass size={17} />} title="Market conditions">
                 <p style={hintStyle}>
                   Ray Dalio's economic machine, made interactive. Set the dials — the equilibrium
-                  readings and the lever watch below respond live.
+                  readings and the lever watch below respond live. This card stays pinned as you
+                  scroll, so the cycle chart and equilibrium cards react in view.
                 </p>
                 <ScenarioPicker scenarioId={scenarioId} factors={factors} onToday={pickToday} onPreset={pickPreset} onDial={setDial} />
               </StepCard>
+              </div>
 
               <StepCard n="B" icon={<Cog size={17} />} title="How the market cycles">
                 <p style={hintStyle}>
@@ -2175,6 +2192,8 @@ export default function CorporateFinanceLab() {
           {tab === 'benchmarks' && <BenchmarksTab />}
 
           {tab === 'debtgeo' && <DebtGeoTab />}
+
+          {tab === 'fullcycle' && <FullCycleTab />}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
@@ -4247,6 +4266,195 @@ function CalendarCheckIcon() {
 }
 
 // ---------------------------------------------------------------------------
+// Tab 16 — the full cycle: one company, every number, start to finish
+// ---------------------------------------------------------------------------
+
+function FullCycleTab() {
+  const [inp, setInp] = useState<FullCycleInputs>(DEFAULT_FULL_CYCLE);
+  const set = (k: keyof FullCycleInputs, v: number) => setInp((x) => ({ ...x, [k]: v }));
+  const r = useMemo(() => runFullCycle(inp), [inp]);
+  const m = (n: number) => fmtMoney(n, 0);
+
+  return (
+    <>
+      <StepCard n="A" icon={<Workflow size={17} />} title="The company — every input, one place">
+        <p style={hintStyle}>
+          One worked company flows through every calculation below, each stage's output feeding
+          the next — the full cycle, no step skipped. Change any input and watch the whole chain
+          recompute. Defaults: a $100M-revenue company at a $30 share price, weighing a $50M
+          project.
+        </p>
+        <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+          <Chip active={JSON.stringify(inp) === JSON.stringify(DEFAULT_FULL_CYCLE)} onClick={() => setInp(DEFAULT_FULL_CYCLE)}>
+            Reset to the worked example
+          </Chip>
+        </div>
+        <div style={wbGrid}>
+          <WbField label="Revenue" hint="Example: $100,000,000."><MoneyInput value={inp.revenue} onChange={(v) => set('revenue', v)} width={110} /></WbField>
+          <WbField label="EBITDA margin" hint="Example: 25% → $25M EBITDA."><PctInput value={inp.ebitdaMarginPct} onChange={(v) => set('ebitdaMarginPct', v)} max={60} /></WbField>
+          <WbField label="D&A" hint="Example: $5M → EBIT $20M."><MoneyInput value={inp.da} onChange={(v) => set('da', v)} width={90} /></WbField>
+          <WbField label="Tax rate" hint="Example: 25%."><PctInput value={inp.taxPct} onChange={(v) => set('taxPct', v)} max={50} /></WbField>
+          <WbField label="Debt / coupon" hint="Example: $40M at 6% → $2.4M interest.">
+            <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <MoneyInput value={inp.debt} onChange={(v) => set('debt', v)} width={90} />
+              <PctInput value={inp.interestRatePct} onChange={(v) => set('interestRatePct', v)} max={15} />
+            </div>
+          </WbField>
+          <WbField label="Cash" hint="Example: $10M → net debt $30M."><MoneyInput value={inp.cash} onChange={(v) => set('cash', v)} width={90} /></WbField>
+          <WbField label="Book equity" hint="For invested capital. Example: $60M → IC $100M."><MoneyInput value={inp.bookEquity} onChange={(v) => set('bookEquity', v)} width={90} /></WbField>
+          <WbField label="Shares / price" hint="Example: 10M shares at $30 → $300M market equity.">
+            <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <MoneyInput value={inp.shares} onChange={(v) => set('shares', v)} width={90} />
+              <MoneyInput value={inp.sharePrice} onChange={(v) => set('sharePrice', v)} width={60} />
+            </div>
+          </WbField>
+          <WbField label="Beta / Rf / ERP" hint="Example: 1.1 / 4% / 5.5% → Re 10.05%.">
+            <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <PctInput value={inp.beta} onChange={(v) => set('beta', v)} max={3} suffix="β" />
+              <PctInput value={inp.riskFreePct} onChange={(v) => set('riskFreePct', v)} />
+              <PctInput value={inp.erpPct} onChange={(v) => set('erpPct', v)} />
+            </div>
+          </WbField>
+          <WbField label="Capex / ΔNWC" hint="Example: $6M / $1M → FCF $13M.">
+            <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <MoneyInput value={inp.capex} onChange={(v) => set('capex', v)} width={80} />
+              <MoneyInput value={inp.deltaNwc} onChange={(v) => set('deltaNwc', v)} width={70} />
+            </div>
+          </WbField>
+          <WbField label="Long-run growth" hint="Your assumption for the valuation perpetuity. Example: 4%."><PctInput value={inp.growthPct} onChange={(v) => set('growthPct', v)} max={8} /></WbField>
+          <WbField label="Project: cost / EBITDA / D&A" hint="The move to finance. Example: $50M cost, $10M EBITDA, $2M D&A → NOPAT $6M.">
+            <div className="row gap-2" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <MoneyInput value={inp.projectCost} onChange={(v) => set('projectCost', v)} width={80} />
+              <MoneyInput value={inp.projectEbitda} onChange={(v) => set('projectEbitda', v)} width={80} />
+              <MoneyInput value={inp.projectDa} onChange={(v) => set('projectDa', v)} width={70} />
+            </div>
+          </WbField>
+          <WbField label="New-bond coupon" hint="If debt-funded. Example: 6.5%."><PctInput value={inp.newDebtRatePct} onChange={(v) => set('newDebtRatePct', v)} max={15} /></WbField>
+        </div>
+      </StepCard>
+
+      <StepCard n="B" icon={<Calculator size={17} />} title="Stage 1 — the operating engine">
+        <Eq>{`EBITDA = revenue × margin = ${m(inp.revenue)} × ${inp.ebitdaMarginPct}% = ${m(r.s1.ebitda)}
+EBIT = EBITDA − D&A = ${m(r.s1.ebitda)} − ${m(inp.da)} = ${m(r.s1.ebit)}
+NOPAT = EBIT × (1 − ${inp.taxPct}%) = ${m(r.s1.nopat)}   ← the debt-free operating profit
+interest = ${m(inp.debt)} × ${inp.interestRatePct}% = ${m(r.s1.interest)}
+net income = (EBIT − interest) × (1 − tax) = ${m(r.s1.netIncome)}
+EPS = net income ÷ ${m(inp.shares)} shares = $${r.s1.eps}`}</Eq>
+        <p style={decisionLine}>
+          <strong>What feeds forward:</strong> NOPAT (the whole-business profit, before financing)
+          goes to ROIC and FCF; net income and EPS (the shareholders' slice, after interest) go to
+          the financing decision. Keeping those two straight is half of corporate finance.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<TrendingUp size={17} />} title="Stage 2 — ROIC and the project's ROI">
+        <Eq>{`invested capital = debt + book equity = ${m(inp.debt)} + ${m(inp.bookEquity)} = ${m(r.s2.investedCapital)}
+ROIC = NOPAT ÷ invested capital = ${m(r.s1.nopat)} ÷ ${m(r.s2.investedCapital)} = ${r.s2.roicPct}%
+project NOPAT = (EBITDA − D&A) × (1 − tax) = ${m(r.s2.projectNopat)}
+project ROI(C) = ${m(r.s2.projectNopat)} ÷ ${m(inp.projectCost)} = ${r.s2.projectRoicPct}%`}</Eq>
+        <p style={decisionLine}>
+          <strong>What feeds forward:</strong> ROIC is what the capital already inside the business
+          earns; the project's ROI is what the NEXT dollar would earn. Both are meaningless until
+          stage 3 gives them something to beat.
+        </p>
+      </StepCard>
+
+      <StepCard n="D" icon={<Percent size={17} />} title="Stage 3 — the cost of capital (WACC), market-weighted">
+        <Eq>{`market equity = shares × price = ${m(inp.shares)} × $${inp.sharePrice} = ${m(r.s3.equityMarket)}
+weights: equity ${r.s3.weightEquityPct}% · debt ${r.s3.weightDebtPct}%   (MARKET values, not book)
+Re = Rf + β×ERP = ${inp.riskFreePct}% + ${inp.beta} × ${inp.erpPct}% = ${r.s3.rePct}%
+Rd after tax = ${inp.interestRatePct}% × (1 − ${inp.taxPct}%) = ${r.s3.rdAfterTaxPct}%
+WACC = ${r.s3.weightEquityPct}% × ${r.s3.rePct}% + ${r.s3.weightDebtPct}% × ${r.s3.rdAfterTaxPct}% = ${r.s3.waccPct}%`}</Eq>
+        <p style={decisionLine}>
+          <strong>What feeds forward:</strong> {r.s3.waccPct}% is the bar for everything — stage
+          4's value test, stage 5's discount rate, and stage 6's hurdle for the project. Note the
+          circularity the pros manage: the weights use the market equity value that stage 5 is
+          about to question.
+        </p>
+      </StepCard>
+
+      <StepCard n="E" icon={<Activity size={17} />} title="Stage 4 — the value test: ROIC vs WACC">
+        <Eq>{`spread = ROIC − WACC = ${r.s2.roicPct}% − ${r.s3.waccPct}% = ${r.s4.spreadPct > 0 ? '+' : ''}${r.s4.spreadPct}pp
+economic profit = spread × invested capital = ${r.s4.spreadPct}% × ${m(r.s2.investedCapital)} = ${m(r.s4.economicProfit)}/yr`}</Eq>
+        <p style={decisionLine}>
+          <strong>{r.s4.spreadPct > 0 ? 'Creating value' : 'Destroying value'}:</strong> every year
+          this company earns {m(Math.abs(r.s4.economicProfit))} {r.s4.spreadPct > 0 ? 'more than' : 'less than'}{' '}
+          its capital costs. This single line is what "value creation" means in dollars — and the
+          project's {r.s2.projectRoicPct}% vs {r.s3.waccPct}% is the same test for the next dollar.
+        </p>
+      </StepCard>
+
+      <StepCard n="F" icon={<BarChart3 size={17} />} title="Stage 5 — valuation: EV → EQV → per share, vs the market">
+        {r.s5.valid ? (
+          <>
+            <Eq>{`FCF = NOPAT + D&A − capex − ΔNWC = ${m(r.s1.nopat)} + ${m(inp.da)} − ${m(inp.capex)} − ${m(inp.deltaNwc)} = ${m(r.s5.fcf)}
+EV = FCF×(1+g) ÷ (WACC − g) = ${m(r.s5.fcf)}×${(1 + inp.growthPct / 100).toFixed(2)} ÷ (${r.s3.waccPct}% − ${inp.growthPct}%) = ${m(r.s5.ev)}
+net debt = ${m(inp.debt)} − ${m(inp.cash)} = ${m(r.s5.netDebt)}
+EQV = EV − net debt = ${m(r.s5.eqv)}
+intrinsic per share = EQV ÷ ${m(inp.shares)} = $${r.s5.perShareIntrinsic}   vs market $${inp.sharePrice}
+market EV = market equity + net debt = ${m(r.s5.marketEv)}
+implied growth in the market price: g* = ${r.s5.impliedGrowthPct}%   (your assumption: ${inp.growthPct}%)`}</Eq>
+            <p style={decisionLine}>
+              <strong>What this tells you:</strong> at YOUR {inp.growthPct}% growth the shares are
+              worth ${r.s5.perShareIntrinsic}; the market pays ${inp.sharePrice} — a{' '}
+              {r.s5.premiumPct > 0 ? `${r.s5.premiumPct}% premium` : `${Math.abs(r.s5.premiumPct)}% discount`}, which is the market
+              betting on {r.s5.impliedGrowthPct}% growth forever. The disagreement between those two
+              growth numbers IS the investment debate — and it decides stage 6. (Tab 5 runs the
+              full five-year version of this valuation.)
+            </p>
+          </>
+        ) : (
+          <p style={{ fontSize: 12.5, color: 'var(--neg)', fontWeight: 600 }}>Growth must be below WACC for the perpetuity — lower g or raise the discount rate.</p>
+        )}
+      </StepCard>
+
+      <StepCard n="G" icon={<Handshake size={17} />} title={`Stage 6 — fund the ${m(inp.projectCost)} project: bonds vs stock`}>
+        <Eq>{`project value = project FCF ÷ WACC = ${m(r.s2.projectNopat)} ÷ ${r.s3.waccPct}% = ${m(r.s6.projectValue)}
+project NPV = value − cost = ${m(r.s6.projectValue)} − ${m(inp.projectCost)} = ${m(r.s6.projectNpv)}`}</Eq>
+        <div style={{ overflowX: 'auto', marginTop: 8 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Lens</th>
+                <th className="num" style={{ textAlign: 'right' }}>{r.s6.bonds.label}</th>
+                <th className="num" style={{ textAlign: 'right' }}>{r.s6.stock.label}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>New shares issued</td><td className="num" style={{ textAlign: 'right' }}>0</td><td className="num" style={{ textAlign: 'right' }}>{m(r.s6.stock.newShares)}</td></tr>
+              <tr><td>Total debt</td><td className="num" style={{ textAlign: 'right' }}>{m(r.s6.bonds.totalDebt)}</td><td className="num" style={{ textAlign: 'right' }}>{m(r.s6.stock.totalDebt)}</td></tr>
+              <tr><td>Net income</td><td className="num" style={{ textAlign: 'right' }}>{m(r.s6.bonds.netIncome)}</td><td className="num" style={{ textAlign: 'right' }}>{m(r.s6.stock.netIncome)}</td></tr>
+              <tr>
+                <td style={{ fontWeight: 700 }}>EPS (was ${r.s1.eps})</td>
+                <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: toneFor(r.s6.bonds.epsChangePct) }}>${r.s6.bonds.eps} ({r.s6.bonds.epsChangePct > 0 ? '+' : ''}{r.s6.bonds.epsChangePct}%)</td>
+                <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: toneFor(r.s6.stock.epsChangePct) }}>${r.s6.stock.eps} ({r.s6.stock.epsChangePct > 0 ? '+' : ''}{r.s6.stock.epsChangePct}%)</td>
+              </tr>
+              <tr><td>Debt / EBITDA</td><td className="num" style={{ textAlign: 'right' }}>{r.s6.bonds.debtToEbitda}×</td><td className="num" style={{ textAlign: 'right' }}>{r.s6.stock.debtToEbitda}×</td></tr>
+              <tr><td>EBIT interest coverage</td><td className="num" style={{ textAlign: 'right' }}>{r.s6.bonds.coverage}×</td><td className="num" style={{ textAlign: 'right' }}>{r.s6.stock.coverage}×</td></tr>
+              <tr><td>Pro-forma WACC</td><td className="num" style={{ textAlign: 'right' }}>{r.s6.bonds.waccPct}%</td><td className="num" style={{ textAlign: 'right' }}>{r.s6.stock.waccPct}%</td></tr>
+              <tr>
+                <td style={{ fontWeight: 700 }}>Intrinsic value / share (was ${r.s5.perShareIntrinsic})</td>
+                <td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>${r.s6.bonds.perShareIntrinsic}</td>
+                <td className="num" style={{ textAlign: 'right', fontWeight: 700 }}>${r.s6.stock.perShareIntrinsic}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 8 }}>
+          <div><strong style={{ color: 'var(--text-primary)' }}>Bonds:</strong> {r.s6.bonds.read}</div>
+          <div style={{ marginTop: 4 }}><strong style={{ color: 'var(--text-primary)' }}>Stock:</strong> {r.s6.stock.read}</div>
+        </div>
+        <div className="col" style={{ gap: 4, marginTop: 10 }}>
+          {r.s6.verdict.map((v) => (
+            <p key={v.slice(0, 30)} style={{ ...decisionLine, marginTop: 0 }}>{v}</p>
+          ))}
+        </div>
+      </StepCard>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
@@ -4304,7 +4512,8 @@ function GuidePane({
           {tab === 'realestate' && 'Real estate financing: the 10Y+spread mortgage formula, the payment math, and the CRE lender dashboard.'}
           {tab === 'ipo' && 'The IPO decision as three separate windows — market, industry, company — plus the dilution math and the financing menu.'}
           {tab === 'benchmarks' && 'Industry benchmarks with discipline: observed averages are not healthy ranges, and every vertical has its own metric.'}
-          {tab === 'debtgeo' && 'Sovereign debt-to-GDP for the ten largest economies, the US-state pension layer, and the geopolitical watch list & calendar.'}{' '}
+          {tab === 'debtgeo' && 'Sovereign debt-to-GDP for the ten largest economies, the US-state pension layer, and the geopolitical watch list & calendar.'}
+          {tab === 'fullcycle' && 'One company traced through every formula — operating engine → ROIC → WACC → economic profit → valuation → the bonds-vs-stock decision.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -4878,6 +5087,39 @@ function GuidePane({
               teaching estimates, and calendar entries are constitutional schedules — all labeled
               in place, all to be refreshed from imf.org / fiscaldata.treasury.gov / Census of
               Governments before citing. Same snapshot discipline as tabs 3 and 11.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'fullcycle' && (
+          <>
+            <GuideSection n="A" title="How to use this tab">
+              This is the full cycle you asked for: every number derived on screen, with the
+              substituted arithmetic shown, and each stage's output named as it feeds the next.
+              The learning move: change ONE input in step A, predict which downstream numbers
+              move, then scroll and check. When you can predict stage 6 from a stage-A change,
+              you own the chain.
+            </GuideSection>
+            <GuideSection n="B" title="The chain in one glance">
+              <Eq>revenue → EBITDA → EBIT → NOPAT (and NI/EPS){'\n'}NOPAT ÷ invested capital = ROIC{'\n'}CAPM + market weights = WACC{'\n'}(ROIC − WACC) × capital = economic profit{'\n'}FCF ÷ (WACC − g) → EV → −net debt → EQV → per share{'\n'}project NPV + financing mix → the decision</Eq>
+              Two numbers to never confuse: NOPAT (whole-business, pre-financing — feeds ROIC and
+              FCF) vs net income (shareholders' slice, post-interest — feeds EPS). And two value
+              views: intrinsic (your model) vs market (the price) — stage 5 computes the growth
+              rate that reconciles them, which is where every debate actually lives.
+            </GuideSection>
+            <GuideSection n="C" title="Reading the bonds-vs-stock table">
+              Three lenses that legitimately disagree: EPS (bonds usually win — cheap after-tax
+              coupons beat share count), intrinsic value per share (depends on whether the market
+              price is rich or cheap vs your intrinsic — issuing expensive stock HELPS existing
+              holders even as EPS calls it dilution), and risk (stock always wins — no coupons in
+              the downside). Manager-level is naming which lens rules and why, then adding §54:
+              no plan survives being unable to service the debt in the bad scenario.
+            </GuideSection>
+            <GuideSection n="D" title="Where the deeper versions live">
+              Tab 5: the five-year DCF with terminal value and the sensitivity grid. Tab 10: the
+              beta workshop (where the 1.1 should really come from), accretion/dilution, and
+              incremental ROIC. Tab 13: the dilution and windows machinery if the answer is
+              equity. Tab 11: why the coupon is what it is.
             </GuideSection>
           </>
         )}
