@@ -27,7 +27,9 @@ import {
   Compass,
   GraduationCap,
   Handshake,
+  Home,
   Landmark,
+  Percent,
   RefreshCcw,
   ShieldCheck,
   Sparkles,
@@ -172,6 +174,36 @@ import {
   lboMini,
   ppa,
 } from '../lib/gapWorkbench';
+import {
+  AUCTION_BUYERS,
+  BOND_BASICS,
+  CUTS_VS_TENYEAR,
+  PRACTICAL_SHIFT,
+  RATES_SNAPSHOT,
+  RATE_STACK,
+  SCALE_STORY,
+  SNAP_REASONS,
+  TERM_PREMIUM_DEF,
+  THREE_WAYS_DOWN,
+  breakevens,
+  curveShape,
+  curveSlopes,
+} from '../lib/ratesCurve';
+import {
+  CRE_BENCHMARKS,
+  CRE_TRANSMISSION,
+  DEFAULT_CRE_INPUTS,
+  DEFAULT_PAYMENT_INPUTS,
+  RESI_TRANSMISSION,
+  RE_DECISION_READS,
+  capRateSensitivity,
+  creKpis,
+  creRateStress,
+  housingPaymentRatioPct,
+  monthlyPayment,
+  mortgageBenchmark,
+  paymentSensitivity,
+} from '../lib/realEstate';
 
 // ---------------------------------------------------------------------------
 // Small local pieces
@@ -187,7 +219,9 @@ type TabId =
   | 'eygap'
   | 'drill'
   | 'rounds'
-  | 'gapwork';
+  | 'gapwork'
+  | 'rates'
+  | 'realestate';
 
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
@@ -200,6 +234,8 @@ const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'drill', label: '8 · EY interview drill', icon: GraduationCap },
   { id: 'rounds', label: '9 · EY round map', icon: Handshake },
   { id: 'gapwork', label: '10 · Gap workbench', icon: Landmark },
+  { id: 'rates', label: '11 · Rates & the bond market', icon: Percent },
+  { id: 'realestate', label: '12 · Real estate financing', icon: Home },
 ];
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
@@ -635,7 +671,9 @@ export default function CorporateFinanceLab() {
           and levers — <strong>value a business</strong> with a DCF, comps, and the sensitivity
           grid — and keep the <strong>formula reference</strong> with every equation, decision
           flow, and acronym. Tabs 7–9 are <strong>EY interview prep</strong>: the gap check, the
-          Q&amp;A drill, and the round map.{' '}
+          Q&amp;A drill, and the round map; tab 10 is the <strong>gap workbench</strong>; tabs
+          11–12 open the <strong>bond market and real-estate financing</strong> — the yield curve,
+          real rates, and the 10Y-plus-spread machinery that actually prices mortgages and CRE.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginTop: 18 }}>
@@ -2081,6 +2119,10 @@ export default function CorporateFinanceLab() {
           )}
 
           {tab === 'gapwork' && <GapWorkbenchTab />}
+
+          {tab === 'rates' && <RatesTab />}
+
+          {tab === 'realestate' && <RealEstateTab />}
         </div>
 
         <GuidePane tab={tab} wacc={wacc} waccInputs={effInputs} options={options} capital={capital} credit={credit} requested={requested} termsDays={termsDays} fin={fin} proformaOn={proformaOn} proRead={proRead} dcf={dcf} dcfResult={dcfResult} />
@@ -3087,6 +3129,536 @@ function GapWorkbenchTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Tabs 11 & 12 — rates & the bond market, real estate financing
+// ---------------------------------------------------------------------------
+
+function XYLineChart({
+  data,
+  xKey,
+  series,
+  height,
+}: {
+  data: Record<string, number | string | null>[];
+  xKey: string;
+  series: { id: string; label: string }[];
+  height: number;
+}) {
+  useThemeVersion();
+  const palette = [
+    resolveCSSVar('var(--accent)'),
+    resolveCSSVar('var(--pos)'),
+    resolveCSSVar('var(--neg)'),
+    resolveCSSVar('var(--severity-medium)'),
+  ];
+  const labelOf = Object.fromEntries(series.map((x) => [x.id, x.label]));
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis dataKey={xKey} tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+          <YAxis
+            tick={{ fill: 'var(--text-tertiary)', fontSize: 11 }}
+            axisLine={{ stroke: 'var(--border)' }}
+            tickLine={false}
+            width={42}
+            domain={['auto', 'auto']}
+            tickFormatter={(v) => `${v}%`}
+          />
+          <Tooltip
+            contentStyle={{
+              background: 'var(--bg-elevated-2)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 10,
+              color: 'var(--text-primary)',
+            }}
+            itemStyle={{ color: 'var(--text-primary)' }}
+            labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+            formatter={(value: number, name: string) => [`${value}%`, labelOf[name] ?? name]}
+          />
+          {series.length > 1 && <Legend formatter={(value) => labelOf[value] ?? value} wrapperStyle={{ fontSize: 12 }} />}
+          {series.map((x, i) => (
+            <Line key={x.id} type="monotone" dataKey={x.id} stroke={palette[i % palette.length]} strokeWidth={2} dot={{ r: 2 }} connectNulls />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+const decisionLine: React.CSSProperties = {
+  fontSize: 12.5,
+  color: 'var(--text-secondary)',
+  lineHeight: 1.6,
+  marginTop: 10,
+  borderLeft: '3px solid var(--accent)',
+  paddingLeft: 10,
+};
+
+function RatesTab() {
+  const snap = RATES_SNAPSHOT;
+  const slopes = curveSlopes();
+  const shape = curveShape();
+  const bes = breakevens();
+  const curveData = snap.curve.map((c) => ({ maturity: c.maturity, nominal: c.yieldPct, real: c.realPct }));
+  const be10 = bes.find((b) => b.maturity === '10Y')!;
+
+  return (
+    <>
+      <StepCard n="A" icon={<Percent size={17} />} title={`The two numbers that are not the same number — as of ${snap.asOf}`}>
+        <p style={hintStyle}>
+          The Fed's rate is {snap.fedFundsTarget}. Your mortgage is priced off a number near{' '}
+          {snap.curve.find((c) => c.maturity === '10Y')!.yieldPct}% that the Fed does not control —
+          and never has. The Fed doesn't ORDER its rate either: it pays banks{' '}
+          {snap.iorbPct}% (IORB) to park money risk-free, so no bank lends overnight for less.
+          The rate is floored up by a better offer, not commanded down — which is exactly why the
+          Fed's power stops where the time horizon stretches.
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Fed funds target" value={snap.fedFundsTarget} strong />
+          <StatPill label="EFFR (actual overnight)" value={`${snap.effrPct}%`} />
+          <StatPill label="IORB (the floor)" value={`${snap.iorbPct}%`} />
+          <StatPill label="SOFR" value={`≈${snap.sofrPct}%`} />
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+          <StatPill label="2Y Treasury" value="4.24%" />
+          <StatPill label="10Y Treasury" value="4.70%" strong />
+          <StatPill label={`30Y Treasury (peak ${snap.thirtyYearWeekPeakPct}%)`} value="5.23%" />
+          <StatPill label="30Y fixed mortgage" value={`${snap.mortgage30Pct}%`} strong />
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> Fed funds ≠ 2Y ≠ 10Y ≠ 30Y ≠ your mortgage. They
+          are connected through expectations and risk premiums — but they are not the same number,
+          and only the first one is on the FOMC calendar. Sources: {snap.sources[0]}
+        </p>
+      </StepCard>
+
+      <StepCard n="B" icon={<Landmark size={17} />} title="The rate stack — there is not one interest rate">
+        <p style={hintStyle}>
+          Eight levels, from the rate the Fed truly sets to the rate in your life. Each level: who
+          actually sets it, and what decision it drives.
+        </p>
+        <div className="col" style={{ gap: 10 }}>
+          {RATE_STACK.map((l) => (
+            <GlassCard key={l.level} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+                Level {l.level} — {l.name}
+              </div>
+              <div className="num" style={{ fontSize: 11.5, color: 'var(--accent)', textAlign: 'left', marginBottom: 4 }}>{l.examples}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Who sets it:</strong> {l.whoSets}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 2 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>What it decides:</strong> {l.decides}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </StepCard>
+
+      <StepCard n="C" icon={<TrendingUp size={17} />} title={`The Treasury yield curve — ${snap.observationDate} (H.15)`}>
+        <p style={hintStyle}>
+          The full curve, 1M to 30Y — never just the 10-year. The dashed real (TIPS) line is what
+          lenders earn AFTER inflation; the gap between the lines is the market's own inflation
+          number. Slopes below are computed deterministically from the observations — in
+          percentage points AND basis points.
+        </p>
+        <XYLineChart
+          data={curveData}
+          xKey="maturity"
+          series={[
+            { id: 'nominal', label: 'Nominal CMT' },
+            { id: 'real', label: 'Real (TIPS) CMT' },
+          ]}
+          height={260}
+        />
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 10 }}>
+          {slopes.map((sl) => (
+            <StatPill key={sl.name} label={`${sl.name} (${sl.formula})`} value={`${sl.pct > 0 ? '+' : ''}${sl.pct}pp = ${sl.bps}bp`} />
+          ))}
+        </div>
+        <p style={decisionLine}>
+          <strong>Shape: {shape.shape}.</strong> {shape.read}
+        </p>
+        <div style={{ overflowX: 'auto', marginTop: 12 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Maturity</th>
+                <th className="num" style={{ textAlign: 'right' }}>Yield</th>
+                <th style={{ textAlign: 'left', minWidth: 130 }}>The Fed's grip</th>
+                <th style={{ textAlign: 'left' }}>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snap.curve.map((c) => (
+                <tr key={c.maturity}>
+                  <td style={{ fontWeight: 600 }}>{c.maturity}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{c.yieldPct}%</td>
+                  <td>
+                    <div className="row" style={{ alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 90, height: 8, background: 'var(--bg-elevated-2)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ width: `${c.fedGripPct}%`, height: '100%', background: c.fedGripPct >= 60 ? 'var(--pos)' : c.fedGripPct >= 30 ? 'var(--severity-medium)' : 'var(--neg)' }} />
+                      </div>
+                      <span className="num" style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{c.fedGripPct}%</span>
+                    </div>
+                  </td>
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{c.why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> the chain weakens link by link — overnight follows
+          the Fed almost perfectly, the 2Y loosely, the 10Y barely, the 30Y practically not at all.
+          Anything in your life priced off levels C–H answers to the CURVE, not the calendar.
+        </p>
+      </StepCard>
+
+      <StepCard n="D" icon={<Activity size={17} />} title="Real yields & breakeven inflation">
+        <p style={hintStyle}>
+          Breakeven ≈ nominal − real (TIPS) at the same maturity — a{' '}
+          <strong>market-implied approximation</strong>, not a pure forecast. It splits every yield
+          move into two very different problems: inflation fear vs. real-rate repricing.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Maturity</th>
+                <th className="num" style={{ textAlign: 'right' }}>Nominal</th>
+                <th className="num" style={{ textAlign: 'right' }}>Real (TIPS)</th>
+                <th className="num" style={{ textAlign: 'right' }}>Breakeven</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bes.map((b) => (
+                <tr key={b.maturity}>
+                  <td style={{ fontWeight: 600 }}>{b.maturity}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{b.nominalPct}%</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{b.realPct}%</td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: b.breakevenPct > 2.5 ? 'var(--neg)' : 'var(--text-primary)' }}>{b.breakevenPct}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> the 10Y breakeven is {be10.breakevenPct}% — the
+          bond market is pricing inflation above the Fed's 2% target for the next decade. Nominal
+          yield ≈ expected real rate + expected inflation + term premium (a frame, not an exact
+          decomposition) — so a yield spike with FLAT breakevens is a real-rate/supply problem, not
+          an inflation problem. Different diagnosis, different cure (see tab 3's CPI/PCE section).
+        </p>
+      </StepCard>
+
+      <StepCard n="E" icon={<RefreshCcw size={17} />} title="The divergence — the Fed cut, the 10Y rose">
+        <p style={hintStyle}>
+          In every cutting cycle back to the 1980s, the 10Y was lower 100 days after the first cut
+          — every single time. Then September 2024: the Fed cut {snap.firstHundredBpWindow.fedCutBp}bp
+          and the 10Y ROSE {snap.firstHundredBpWindow.tenYearMoveBp}bp over the same window. Total
+          easing since: {snap.easedSinceSep2024Bp}bp — and the 10Y sits higher than where it
+          started. Anchors are the cited prints; points between are smoothed.
+        </p>
+        <XYLineChart
+          data={CUTS_VS_TENYEAR as unknown as Record<string, number | string | null>[]}
+          xKey="label"
+          series={[
+            { id: 'fed', label: 'Fed funds (target mid)' },
+            { id: 'tenYear', label: '10Y Treasury' },
+          ]}
+          height={240}
+        />
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '12px 0 4px' }}>
+          So who sets the long rate? Nobody — it is discovered at auction, by:
+        </div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          {AUCTION_BUYERS.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 8 }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Term premium:</strong> {TERM_PREMIUM_DEF}
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginTop: 10 }}>
+          {SNAP_REASONS.map((r) => (
+            <GlassCard key={r.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{r.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{r.what}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--accent)', lineHeight: 1.5, marginTop: 6 }}>{r.fact}</div>
+            </GlassCard>
+          ))}
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> if your plan is "wait for the cut," you are waiting
+          for the wrong committee. Supply, competition, and inflation doubt set the rate that
+          prices your life — and none of them are on the FOMC agenda.
+        </p>
+      </StepCard>
+
+      <StepCard n="F" icon={<Calculator size={17} />} title="Bond basics — the four mechanics behind everything above">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+          {BOND_BASICS.map((b) => (
+            <GlassCard key={b.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{b.name}</div>
+              <Eq>{b.eq}</Eq>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{b.plain}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--accent)', lineHeight: 1.5, marginTop: 6 }}>{b.example}</div>
+            </GlassCard>
+          ))}
+        </div>
+      </StepCard>
+
+      <StepCard n="G" icon={<Cog size={17} />} title="The scale problem — and the only three ways long rates fall">
+        <div className="col" style={{ gap: 6 }}>
+          {SCALE_STORY.map((x) => (
+            <p key={x.slice(0, 30)} style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>{x}</p>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
+          {THREE_WAYS_DOWN.map((w) => (
+            <GlassCard key={w.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{w.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{w.what}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--severity-medium)', lineHeight: 1.5, marginTop: 6 }}>{w.warning}</div>
+            </GlassCard>
+          ))}
+        </div>
+        <p style={decisionLine}>
+          <strong>The practical shift:</strong> {PRACTICAL_SHIFT.join(' ')}
+        </p>
+      </StepCard>
+    </>
+  );
+}
+
+function RealEstateTab() {
+  const bench = mortgageBenchmark();
+  const [pay, setPay] = useState(DEFAULT_PAYMENT_INPUTS);
+  const [income, setIncome] = useState(12_000);
+  const [taxesIns, setTaxesIns] = useState(650);
+  const [cre, setCre] = useState(DEFAULT_CRE_INPUTS);
+  const basePayment = useMemo(() => monthlyPayment(pay), [pay]);
+  const sensitivity = useMemo(() => paymentSensitivity(pay), [pay]);
+  const kpis = useMemo(() => creKpis(cre), [cre]);
+  const stress = useMemo(() => creRateStress(cre), [cre]);
+  const caps = useMemo(() => capRateSensitivity(cre.noi), [cre.noi]);
+  const ratio = housingPaymentRatioPct({ monthlyPI: basePayment, monthlyTaxesInsHoa: taxesIns, grossMonthlyIncome: income });
+
+  return (
+    <>
+      <StepCard n="A" icon={<Home size={17} />} title="Your mortgage's real formula — 10Y + spread, never the 30Y">
+        <p style={hintStyle}>
+          A 30-year mortgage amortizes over 30 years — but because homeowners can refinance the
+          moment rates fall, its EFFECTIVE life is far shorter. So it prices off the{' '}
+          <strong>10-year Treasury plus a mortgage/MBS spread</strong>, not the 30Y and not the
+          Fed. The spread below is computed from the observations, and labeled honestly: a simple
+          observed difference (weekly PMMS vs same-day 10Y CMT), NOT an MBS option-adjusted spread.
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label={`30Y fixed (PMMS, ${RATES_SNAPSHOT.mortgageAsOf})`} value={`${bench.mortgagePct}%`} strong />
+          <StatPill label="10Y Treasury (same day)" value={`${bench.ust10Pct}%`} />
+          <StatPill label="Simple mortgage−10Y spread" value={`${bench.spreadBp}bp`} strong />
+          <StatPill label="Fed funds (NOT the benchmark)" value={RATES_SNAPSHOT.fedFundsTarget} />
+        </div>
+        <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '8px 0 0' }}>{bench.note}</p>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: 10 }}>
+          {RESI_TRANSMISSION.map((t) => (
+            <div key={t}>{t}</div>
+          ))}
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> to know where mortgages are going, watch the 10Y
+          and the spread — two numbers, updated daily, neither on the Fed's calendar. A refi
+          becomes worth pricing when the 10Y falls meaningfully AND holds, or when the spread
+          compresses.
+        </p>
+      </StepCard>
+
+      <StepCard n="B" icon={<Calculator size={17} />} title="The payment calculator — what a basis point costs you">
+        <p style={hintStyle}>
+          The amortizing-payment formula, live: P·r(1+r)ⁿ ÷ ((1+r)ⁿ−1). The sensitivity table is
+          the spec's mandatory view — today's rate ±100bp and ±200bp — so a rate headline converts
+          instantly into dollars per month.
+        </p>
+        <div className="row gap-4" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 8 }}>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Loan amount</span>
+            <MoneyInput value={pay.principal} onChange={(v) => setPay((x) => ({ ...x, principal: v }))} width={110} />
+            <span style={dcfHintStyle}>Example: $400,000.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Rate</span>
+            <PctInput value={pay.ratePct} onChange={(v) => setPay((x) => ({ ...x, ratePct: v }))} max={15} />
+            <span style={dcfHintStyle}>Defaults to today's PMMS 6.65%.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Term (years)</span>
+            <PctInput value={pay.years} onChange={(v) => setPay((x) => ({ ...x, years: Math.max(1, Math.round(v)) }))} max={40} suffix="yrs" />
+            <span style={dcfHintStyle}>30 for the standard fixed.</span>
+          </div>
+          <StatPill label="Monthly P&I" value={`$${basePayment.toLocaleString('en-US')}`} strong />
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Scenario</th>
+                <th className="num" style={{ textAlign: 'right' }}>Payment</th>
+                <th className="num" style={{ textAlign: 'right' }}>vs today</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sensitivity.map((row) => (
+                <tr key={row.label}>
+                  <td style={{ fontWeight: row.delta === 0 ? 700 : 500 }}>{row.label}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>${row.payment.toLocaleString('en-US')}</td>
+                  <td className="num" style={{ textAlign: 'right', color: row.delta === 0 ? 'var(--text-tertiary)' : toneFor(-row.delta), fontWeight: 600 }}>
+                    {row.delta === 0 ? '—' : `${row.delta > 0 ? '+' : ''}$${Math.abs(row.delta).toLocaleString('en-US')}${row.delta < 0 ? ' saved' : ''}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="row gap-4" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 14 }}>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Gross monthly income</span>
+            <MoneyInput value={income} onChange={setIncome} width={90} />
+            <span style={dcfHintStyle}>Household, before tax.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Taxes + insurance + HOA / mo</span>
+            <MoneyInput value={taxesIns} onChange={setTaxesIns} width={80} />
+            <span style={dcfHintStyle}>The non-P&I housing costs.</span>
+          </div>
+          <StatPill label="Housing payment ÷ income" value={`${ratio}%`} strong />
+        </div>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> an analytical ratio, not a lending rule — but the
+          shape of the decision: every 100bp on a $400k loan is roughly $260/month, and the
+          sensitivity table converts "rates moved" into YOUR number before you call any lender.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<Landmark size={17} />} title="Commercial real estate — floating vs fixed are different machines">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+          {CRE_BENCHMARKS.map((b) => (
+            <GlassCard key={b.kind} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, textTransform: 'capitalize' }}>{b.kind}-rate CRE debt</div>
+              <Eq>{b.formula}</Eq>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Benchmark:</strong> {b.benchmark}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 4 }}>{b.why}</div>
+            </GlassCard>
+          ))}
+        </div>
+      </StepCard>
+
+      <StepCard n="D" icon={<BarChart3 size={17} />} title="The CRE dashboard — cap rate, DSCR, LTV, debt yield, and the stress test">
+        <p style={hintStyle}>
+          The four numbers every lender computes, live from your inputs — then the spec's mandatory
+          rate stress (+100/+200/+300bp) recomputing the debt service and DSCR, and the cap-rate
+          table showing why required-return changes move property values so violently.
+        </p>
+        <div className="row gap-4" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 8 }}>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>NOI (annual)</span>
+            <MoneyInput value={cre.noi} onChange={(v) => setCre((x) => ({ ...x, noi: v }))} width={100} />
+            <span style={dcfHintStyle}>Net operating income — rent minus operating costs, before debt. Example: $1,000,000.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Property value</span>
+            <MoneyInput value={cre.propertyValue} onChange={(v) => setCre((x) => ({ ...x, propertyValue: v }))} width={110} />
+            <span style={dcfHintStyle}>Example: $16,000,000 → a 6.25% cap rate.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Loan balance</span>
+            <MoneyInput value={cre.loanBalance} onChange={(v) => setCre((x) => ({ ...x, loanBalance: v }))} width={110} />
+            <span style={dcfHintStyle}>Example: $10,000,000 → 62.5% LTV.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Loan rate</span>
+            <PctInput value={cre.loanRatePct} onChange={(v) => setCre((x) => ({ ...x, loanRatePct: v }))} max={15} />
+            <span style={dcfHintStyle}>All-in: benchmark + spread. Example: 6.5%.</span>
+          </div>
+          <div className="col" style={{ gap: 5 }}>
+            <span style={labelStyle}>Amortization</span>
+            <PctInput value={cre.amortYears} onChange={(v) => setCre((x) => ({ ...x, amortYears: Math.max(0, Math.round(v)) }))} max={40} suffix="yrs" />
+            <span style={dcfHintStyle}>0 = interest-only.</span>
+          </div>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap' }}>
+          <StatPill label="Cap rate (NOI ÷ value)" value={`${kpis.capRatePct}%`} />
+          <StatPill label="Annual debt service" value={`$${kpis.annualDebtService.toLocaleString('en-US')}`} />
+          <StatPill label="DSCR (NOI ÷ debt service)" value={`${kpis.dscr}×`} strong />
+          <StatPill label="LTV" value={`${kpis.ltvPct}%`} />
+          <StatPill label="Debt yield (NOI ÷ loan)" value={`${kpis.debtYieldPct}%`} />
+        </div>
+        <div style={{ overflowX: 'auto', marginTop: 12 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Rate stress</th>
+                <th className="num" style={{ textAlign: 'right' }}>Debt service</th>
+                <th className="num" style={{ textAlign: 'right' }}>DSCR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stress.map((row) => (
+                <tr key={row.label}>
+                  <td style={{ fontWeight: row.label.startsWith('today') ? 700 : 500 }}>{row.label}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>${row.annualDebtService.toLocaleString('en-US')}</td>
+                  <td className="num" style={{ textAlign: 'right', fontWeight: 700, color: row.dscr >= 1.25 ? 'var(--pos)' : row.dscr >= 1.1 ? 'var(--severity-medium)' : 'var(--neg)' }}>{row.dscr}×</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ overflowX: 'auto', marginTop: 12 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Cap rate</th>
+                {caps.map((c) => (
+                  <th key={c.capRatePct} className="num" style={{ textAlign: 'right' }}>{c.capRatePct}%</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: 600 }}>Value of {fmtMoney(cre.noi, 0)} NOI</td>
+                {caps.map((c) => (
+                  <td key={c.capRatePct} className="num" style={{ textAlign: 'right' }}>{fmtMoney(c.value, 0)}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: 10 }}>
+          {CRE_TRANSMISSION.map((t) => (
+            <div key={t}>{t}</div>
+          ))}
+        </div>
+      </StepCard>
+
+      <StepCard n="E" icon={<ClipboardCheck size={17} />} title="What each number tells you to do">
+        <div className="col" style={{ gap: 8 }}>
+          {RE_DECISION_READS.map((d) => (
+            <div key={d.metric} style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{d.metric}:</strong>{' '}
+              <span style={{ color: 'var(--text-secondary)' }}>{d.read}</span>
+            </div>
+          ))}
+        </div>
+      </StepCard>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Right-pane guide — switches with the active tab.
 // ---------------------------------------------------------------------------
 
@@ -3139,7 +3711,9 @@ function GuidePane({
           {tab === 'eygap' && 'The EY checklist, gap-checked: what the Lab covers, and the one-liners for what it deliberately leaves out.'}
           {tab === 'drill' && 'Practice mode: answer out loud first, then reveal the model answer and compare.'}
           {tab === 'rounds' && 'The interview, round by round: HireVue behaviorals, the take-home DCF, and the market anchor.'}
-          {tab === 'gapwork' && 'Every former gap as a working calculator, defaulted to your prep session’s exact numbers.'}{' '}
+          {tab === 'gapwork' && 'Every former gap as a working calculator, defaulted to your prep session’s exact numbers.'}
+          {tab === 'rates' && 'The bond market, level by level: the Fed’s floor, the curve, real yields, and who really sets the long rate.'}
+          {tab === 'realestate' && 'Real estate financing: the 10Y+spread mortgage formula, the payment math, and the CRE lender dashboard.'}{' '}
           The worked numbers below are live — they follow your inputs.
         </p>
 
@@ -3573,6 +4147,68 @@ function GuidePane({
               supply shocks), implication third (AI as the upside; why sensitivity analysis earns
               its keep). Load the supply-shock preset and practice the chain across tabs 1, 4, 5,
               and 6 until it's one continuous story.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'rates' && (
+          <>
+            <GuideSection n="A" title="The one-sentence version">
+              The Fed sets a FLOOR under overnight money by being the best counterparty (IORB);
+              everything longer is priced by a market — and your life is priced off the long end.
+              The old shortcut ("Fed cuts ⇒ everything gets cheaper") broke in September 2024, and
+              this tab shows exactly where.
+            </GuideSection>
+            <GuideSection n="B" title="How to read the curve">
+              <Eq>2s10s = 10Y − 2Y{'\n'}3m10y = 10Y − 3M{'\n'}5s30s = 30Y − 5Y{'\n'}breakeven ≈ nominal − real (TIPS)</Eq>
+              All computed deterministically from the official H.15 observations — the tool never
+              eyeballs a graph. Positive slopes = normal; the front of the curve is the Fed, the
+              back is supply, inflation doubt, and term premium.
+            </GuideSection>
+            <GuideSection n="C" title="Which maturity is YOUR benchmark">
+              Savings/money market → overnight (level A). Corporate cash → bills (B). Mortgages and
+              DCF discount rates → the 10Y (C). Fixed CRE → the Treasury tenor matching the loan
+              (5/7/10Y). Floating anything → SOFR. The 30Y is the government's problem, not your
+              mortgage's — tab 12 explains why.
+            </GuideSection>
+            <GuideSection n="D" title="Data & freshness">
+              Latest official observations as of {RATES_SNAPSHOT.asOf} (curve observed{' '}
+              {RATES_SNAPSHOT.observationDate}): Treasury is the underlying authority for the par
+              curve; the Fed's H.15 is the historical panel; Freddie Mac PMMS is weekly. Same
+              one-file snapshot pattern as the market and inflation snapshots — observation date,
+              release date, and retrieval date are different things, and the panel says which is
+              which. Refreshed by hand until the automation lands.
+            </GuideSection>
+          </>
+        )}
+
+        {tab === 'realestate' && (
+          <>
+            <GuideSection n="A" title="The architectural decision">
+              A 30-year mortgage is NOT benchmarked to the 30Y Treasury just because it lasts 30
+              years: prepayment/refinancing shortens its effective life, so it prices off the{' '}
+              <strong>10Y + mortgage/MBS spread</strong>. CRE splits by structure: floating = SOFR
+              + lender spread; fixed = the 5/7/10Y Treasury matched to the loan term + a
+              property/borrower spread. Never pick a benchmark without saying why.
+            </GuideSection>
+            <GuideSection n="B" title="The formulas">
+              <Eq>payment = P·r(1+r)ⁿ ÷ ((1+r)ⁿ − 1){'\n'}cap rate = NOI ÷ value · DSCR = NOI ÷ debt service{'\n'}LTV = loan ÷ value · debt yield = NOI ÷ loan</Eq>
+              All deterministic, all live. The stress test (+100/200/300bp) is mandatory because
+              the question is never "what is DSCR today" — it is "how much repricing can this
+              property survive."
+            </GuideSection>
+            <GuideSection n="C" title="Reading the spread">
+              The 196bp mortgage−10Y spread is a SIMPLE observed difference (weekly PMMS vs
+              same-day 10Y CMT) — a useful dashboard measure, not an MBS option-adjusted spread.
+              Wide spreads can compress even when the 10Y doesn't move: that is refinancing relief
+              nobody announces.
+            </GuideSection>
+            <GuideSection n="D" title="The decision chain">
+              <Eq>10Y (or SOFR) moves → your rate moves → payment/DSCR moves → the decision moves</Eq>
+              Residential: refi when the 10Y falls and HOLDS, or the spread compresses. CRE:
+              negative leverage (cap rate below loan rate) means the deal needs NOI growth to work;
+              a DSCR that breaches ~1.25× under +200bp means fix the rate, pay down, or renegotiate
+              BEFORE the reset — tab 1's hedging playbook has the tools.
             </GuideSection>
           </>
         )}
