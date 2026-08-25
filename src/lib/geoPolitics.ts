@@ -459,3 +459,65 @@ export const MILITARY_ECON_READS: string[] = [
   'Alignment is an economic variable: allies get chip-supply-chain membership, swap lines, and treaty cover priced INTO their assets; adversaries get export controls and sanctions priced in; the swing states get courted with capital — which is why the alignment column belongs in a finance report.',
   'Conflicts move markets through three channels — commodities (energy, grain, freight), budgets (rearmament as fiscal stimulus), and tails (the unpriced Taiwan scenario). Name the channel before citing the headline.',
 ];
+
+// ---------------------------------------------------------------------------
+// Belt and Road, trade corridors & chokepoints
+// ---------------------------------------------------------------------------
+
+export const ROUTES_SOURCE =
+  'Compiled through early 2026 — verify current membership, lending figures, and port stakes before citing. Per-country route rows are keyed to the SAME country list as the report lenses. Education only.';
+
+export const BRI_FACTS: string[] = [
+  'The Belt and Road Initiative (BRI) is China’s signature foreign-investment program, launched in 2013: the overland "Belt" (rail and road corridors across Central Asia to Europe) plus the "Maritime Silk Road" (a chain of financed ports from the South China Sea through the Indian Ocean to the Mediterranean).',
+  'Scale: roughly $1 trillion in cumulative lending and investment across ~150 signatory countries — the largest infrastructure program any single country has run since the Marshall Plan, financed mostly as LOANS from Chinese policy banks, not grants.',
+  'The port chain is the strategic spine: Piraeus (Greece — COSCO-controlled, now a top-Mediterranean container hub), Hambantota (Sri Lanka — handed over on a 99-year lease when the loans soured, THE debt-distress exhibit), Gwadar (Pakistan), Djibouti (beside China’s first overseas military base), plus stakes in dozens of European and African terminals.',
+  'The arc: peak lending 2016–2019, then retrenchment as borrowers hit distress (Sri Lanka, Zambia, Pakistan) — Beijing’s own pivot to "small and beautiful" projects. The debt-trap debate cuts both ways: critics see collateralized leverage; defenders note China has mostly restructured, not seized. Either way, China became the world’s largest official creditor — which puts it INSIDE every sovereign-debt workout (the G20 Common Framework’s slow crawl is largely a Beijing-vs-Paris-Club story).',
+  'Why it exists, in one line: the Malacca dilemma. Most of China’s energy imports pass a strait the US Navy could close, so the BRI buys overland pipelines (CPEC, Central Asia), alternative ports, and political alignment — trade infrastructure as security policy.',
+  'The finance read: BRI is the capital-allocation decision of tab 1 played at nation scale — projects with negative NPV as commerce can still clear a STRATEGIC hurdle rate, and the "customer credit" analysis of tab 2 applies to sovereigns: China underwrote weak credits at scale and is now living the workout.',
+];
+
+export interface Corridor {
+  name: string;
+  backer: string;
+  what: string;
+  watch: string;
+}
+
+export const TRADE_CORRIDORS: Corridor[] = [
+  { name: 'Maritime Silk Road', backer: 'China (BRI)', what: 'The financed port chain from the South China Sea via Malacca, Colombo/Hambantota, and Suez to Piraeus — the sea half of the BRI, carrying the bulk of China–Europe trade.', watch: 'New port stakes in Europe/Africa · militarization of "commercial" ports · Red Sea disruption pushing traffic around the Cape.' },
+  { name: 'China–Europe Railway Express', backer: 'China (BRI)', what: 'Container rail through Kazakhstan/Russia to European terminals — Duisburg (Germany) is the western railhead. Faster than sea, cheaper than air; volumes swing with sanctions politics since the route crosses Russia.', watch: 'Rerouting via the "Middle Corridor" (Caspian/Caucasus, bypassing Russia) · EU screening of rail-linked logistics assets.' },
+  { name: 'CPEC (China–Pakistan Economic Corridor)', backer: 'China (BRI flagship)', what: '$60B+ of roads, power plants, and the Gwadar port — China’s overland bypass of Malacca to the Arabian Sea, crossing territory India claims (why India refused the BRI outright).', watch: 'Pakistan’s debt distress and IMF cycles · security attacks on Chinese workers · Gwadar’s (still tiny) actual throughput.' },
+  { name: 'IMEC (India–Middle East–Europe Economic Corridor)', backer: 'US, India, EU, Gulf states', what: 'The announced rival: ship-rail-ship from India via the UAE/Saudi Arabia to Israel/Jordan and on to Europe — the G20-2023 answer to the BRI, stalled by the Gaza war’s geography.', watch: 'Whether Gulf–Israel normalization survives to make the middle leg buildable · first funded segments.' },
+  { name: 'EU Global Gateway + G7 PGII', backer: 'EU / G7', what: 'The West’s catch-up programs (€300B and $600B headline commitments) for infrastructure lending with governance strings — more announcement than asphalt so far, which is itself the lesson: matching a state-directed lender with committee money is hard.', watch: 'Disbursement vs headline ratio · flagship projects (Lobito) actually completing.' },
+  { name: 'Lobito Corridor', backer: 'US/EU (PGII flagship)', what: 'Refurbished rail from the Congo/Zambia copper-cobalt belt to Angola’s Atlantic coast — the West’s critical-minerals answer to Chinese-controlled processing, and the most concrete PGII project to date.', watch: 'Ore volumes actually shipping west instead of east · Chinese counter-offers to the same mines.' },
+  { name: 'Arctic Northern Sea Route', backer: 'Russia (China as "Polar Silk Road" partner)', what: 'The melting shortcut: Asia–Europe ~40% shorter than Suez, usable a growing slice of the year — Russian-controlled, icebreaker-escorted, sanctions-entangled.', watch: 'Transit volumes · Chinese state carriers committing regular services · Arctic militarization (Canada’s quiet flashpoint).' },
+];
+
+export interface Chokepoint {
+  name: string;
+  carries: string;
+  issue: string;
+}
+
+export const CHOKEPOINTS: Chokepoint[] = [
+  { name: 'Strait of Malacca', carries: '~25–30% of world trade; most of China’s energy imports', issue: 'The dilemma the whole BRI answers — a US-navy-closable bottleneck between the Indian and Pacific Oceans.' },
+  { name: 'Strait of Hormuz', carries: '~20% of world oil, much of its LNG', issue: 'Iran’s lever (the Iran flashpoint above) — the single biggest upside tail on energy prices.' },
+  { name: 'Suez / Red Sea', carries: '~12–15% of world trade', issue: 'The Houthi campaign turned it into a war-risk zone — the standing reroute-around-Africa tax in the conflicts table.' },
+  { name: 'Panama Canal', carries: '~5% of world trade; ~40% of US container traffic touches it', issue: 'Drought restricts transits (a climate chokepoint), and US pressure over Chinese-linked port operators at both ends made it a 2025 flashpoint — even hemispheric infrastructure is now alignment-screened.' },
+  { name: 'Taiwan Strait & South China Sea lanes', carries: '~a third of global shipping', issue: 'Covered in the flashpoints above — the unpriced tail under every Asia supply chain.' },
+];
+
+/** Per-country trade-route and BRI exposure — SAME ids as the country lens. */
+export const COUNTRY_ROUTES: GeoExposure[] = [
+  { id: 'us', headline: 'Not a member — runs the rival network.', items: ['Backs the counter-programs: PGII, IMEC, Lobito — and pressures BRI nodes directly (the Panama ports fight).', 'Its own trade rides LA/Long Beach, NY/NJ, and Savannah (the state lens carries each) — tariff policy is reshaping which routes grow.', 'The strategic frame: "small yard, high fence" — control the chokepoint technologies (chips, finance) rather than outbuild the roads.'] },
+  { id: 'china', headline: 'The author — the Belt and Road IS its trade strategy.', items: ['~$1T across ~150 countries since 2013: the Maritime Silk Road port chain (Piraeus, Hambantota, Gwadar, Djibouti), rail to Duisburg, CPEC to the Arabian Sea — commerce and security fused.', 'It all answers the Malacca dilemma: diversify every route the US Navy could close.', 'Now the world’s largest official creditor, living the sovereign workouts (Sri Lanka, Zambia) — lending pivoted to "small and beautiful" after the distress wave; the tab-2 lesson at nation scale.'] },
+  { id: 'japan', headline: 'The quality-infrastructure rival.', items: ['Never joined; runs the "Partnership for Quality Infrastructure" (~$200B) and co-builds with India (Asia-Africa Growth Corridor) — competing on governance and lifetime cost, not headline size.', 'Everything it imports and exports transits the SCS/Malacca lanes it does not control — why sea-lane security IS Japanese economic policy.', 'JICA/JBIC financing quietly rivals Chinese banks in Southeast Asia — the underreported competition.'] },
+  { id: 'germany', headline: 'The BRI’s European railhead — now de-risking.', items: ['Duisburg is the China–Europe Railway Express terminus; COSCO’s stake in a Hamburg terminal became the national de-risking argument in miniature.', 'Export model depends on open sea lanes and the Suez route the Red Sea crisis taxed.', 'EU Global Gateway member — Berlin’s dilemma: its carmakers’ China revenue vs its security policy.'] },
+  { id: 'uk', headline: 'Finance and insurance are its route power.', items: ['Never joined the BRI (though a founding AIIB member) — its leverage is that London prices and insures world shipping: the oil price cap ran on UK marine insurance law.', 'Post-Brexit trade strategy (CPTPP accession) points at the Indo-Pacific lanes.', 'The City clears the sanctions economy alongside New York.'] },
+  { id: 'france', headline: 'Mediterranean gatekeeper, EU screener.', items: ['Pushes EU-level screening of Chinese stakes in ports and grids; Marseille and Le Havre are its route assets.', 'Global Gateway advocate — the strategic-autonomy voice applied to infrastructure.', 'Its Africa network overlaps the BRI’s hardest-fought lending ground.'] },
+  { id: 'india', headline: 'The refusenik building the alternative.', items: ['Refused the BRI from day one — CPEC crosses Kashmir-claimed territory — making India the only major economy formally outside it.', 'Builds the counters: IMEC westward, the INSTC via Iran’s Chabahar port (its own exception to sanctions politics), and Quad sea-lane patrols.', '"China+1" supply-chain migration is its once-a-generation chance to become the route, not just guard it.'] },
+  { id: 'italy', headline: 'The G7 member that joined — and walked back out.', items: ['Signed the BRI MoU in 2019 (the only G7 member ever to join), exited December 2023 — the promised export boom never arrived; the episode is THE case study in courtship economics.', 'Trieste and Genoa were the courted ports; both now court Global Gateway money instead.', 'Still runs a quiet export surplus over the same Suez-dependent lanes as everyone else (tab 15).'] },
+  { id: 'brazil', headline: 'Courted, unsigned, and China-dependent anyway.', items: ['Never formally joined — yet China is its largest trading partner, Chinese firms run big stakes in its grid (State Grid) and ports (Paranaguá), and the soy/iron routes to Shanghai are its economic spine.', 'The lesson: BRI membership is paperwork; route dependence is physics.', 'Weighs Chinese rail proposals (the transcontinental "bi-oceanic" line to a Peruvian Pacific port, Chancay) against US relations.'] },
+  { id: 'canada', headline: 'The North American gateway with a screening habit.', items: ['Vancouver and Prince Rupert are North America’s fastest Asia gateways — its route asset inside USMCA.', 'Blocked Chinese takeovers in critical minerals on security grounds — the alignment screen applied to its own resource routes.', 'The Arctic (NSR’s western flank) is turning its geography strategic again.'] },
+  { id: 'skorea', headline: 'A shipping superpower threading between the blocs.', items: ['Not a BRI member — but the world’s #2 shipbuilder and a top container carrier (HMM): Korea BUILDS the routes everyone argues about, and its order book is a geopolitics indicator.', 'Busan is the Pacific’s great transshipment hub; the chips corridor to US/allied fabs is its newest and most political trade route.', 'Every lane it depends on (SCS, Malacca, Suez) is someone else’s chokepoint — maximum route exposure to match its maximum alliance exposure (the military table).'] },
+];

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVE_CONFLICTS,
+  BRI_FACTS,
+  CHOKEPOINTS,
+  COUNTRY_ROUTES,
+  ROUTES_SOURCE,
+  TRADE_CORRIDORS,
   ALLIANCE_STRUCTURE,
   FLASHPOINTS,
   GEOPOLITICS_SOURCE,
@@ -143,5 +148,49 @@ describe('the military layer', () => {
     expect(ALLIANCE_STRUCTURE.map((a) => a.name).join(' ')).toMatch(/NATO.*Indo-Pacific.*no limits.*non-aligned/s);
     expect(MILITARY_ECON_READS.join(' ')).toMatch(/commodities.*budgets.*tails/s);
     expect(GEOPOLITICS_SOURCE).toMatch(/ILLUSTRATIVE/);
+  });
+});
+
+describe('Belt and Road, corridors & chokepoints', () => {
+  it('BRI facts carry the essentials: 2013 launch, ~$1T scale, the port chain, the Malacca dilemma, the finance read', () => {
+    const all = BRI_FACTS.join(' ');
+    expect(all).toMatch(/2013/);
+    expect(all).toMatch(/\$1 trillion/);
+    expect(all).toMatch(/Hambantota/);
+    expect(all).toMatch(/Piraeus/);
+    expect(all).toMatch(/Malacca dilemma/i);
+    expect(all).toMatch(/largest official creditor/i);
+    expect(BRI_FACTS.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('corridors cover the BRI legs AND the rivals; chokepoints cover the five gates', () => {
+    const names = TRADE_CORRIDORS.map((c) => c.name).join(' ');
+    expect(names).toMatch(/Maritime Silk Road/);
+    expect(names).toMatch(/Railway Express/);
+    expect(names).toMatch(/CPEC/);
+    expect(names).toMatch(/IMEC/);
+    expect(names).toMatch(/Global Gateway/);
+    expect(names).toMatch(/Lobito/);
+    expect(names).toMatch(/Northern Sea Route/);
+    for (const c of TRADE_CORRIDORS) {
+      expect(c.what.length).toBeGreaterThan(60);
+      expect(c.watch.length).toBeGreaterThan(30);
+    }
+    expect(CHOKEPOINTS.map((c) => c.name).join(' ')).toMatch(/Malacca.*Hormuz.*Suez.*Panama.*Taiwan/s);
+    for (const c of CHOKEPOINTS) expect(c.issue.length).toBeGreaterThan(40);
+  });
+
+  it('country routes cover the same eleven ids, with the teaching cases in place', () => {
+    expect(COUNTRY_ROUTES.map((r) => r.id).sort()).toEqual(REPORT_COUNTRIES.map((c) => c.id).sort());
+    const by = (id: string) => COUNTRY_ROUTES.find((r) => r.id === id)!;
+    expect(by('china').items.join(' ')).toMatch(/\$1T.*Piraeus.*Gwadar/s);
+    expect(by('italy').items.join(' ')).toMatch(/2019.*exited December 2023/s);
+    expect(by('india').items.join(' ')).toMatch(/Refused the BRI/i);
+    expect(by('brazil').items.join(' ')).toMatch(/membership is paperwork; route dependence is physics/i);
+    for (const r of COUNTRY_ROUTES) {
+      expect(r.items.length).toBeGreaterThanOrEqual(3);
+      for (const item of r.items) expect(item.length).toBeGreaterThan(40);
+    }
+    expect(ROUTES_SOURCE).toMatch(/verify/i);
   });
 });

@@ -160,6 +160,7 @@ import {
 } from '../lib/eyPrep';
 import {
   REPORT_COUNTRIES,
+  REPORT_COVERAGE,
   REPORT_FORMULAS,
   REPORT_HOW_TO_READ,
   REPORT_INDUSTRIES,
@@ -197,6 +198,11 @@ import {
   RECENT_WINDOW_LABEL,
   TWO_DECADE_TIMELINE,
   US_SUMMIT_HISTORY,
+  BRI_FACTS,
+  CHOKEPOINTS,
+  COUNTRY_ROUTES,
+  ROUTES_SOURCE,
+  TRADE_CORRIDORS,
 } from '../lib/geoPolitics';
 import {
   DEFAULT_ACCRETION_INPUTS,
@@ -5334,6 +5340,7 @@ function ReportTab() {
   const countryGeo = GEO_EXPOSURE_COUNTRIES.find((g) => g.id === country.id)!;
   const countryMil = MILITARY_BALANCE.find((m) => m.id === country.id)!;
   const countryFlash = FLASHPOINTS.filter((f) => f.countries.includes(country.id));
+  const countryRoutes = COUNTRY_ROUTES.find((r) => r.id === country.id)!;
   const stateGeo = GEO_EXPOSURE_STATES.find((g) => g.id === state.id)!;
   const industryGeo = GEO_EXPOSURE_INDUSTRIES.find((g) => g.id === industry.id)!;
   const industryFlash = FLASHPOINTS.filter((f) => f.industries.includes(industry.id));
@@ -5712,6 +5719,12 @@ function ReportTab() {
               <strong>Flashpoints touching {country.name}:</strong> {countryFlash.map((f) => f.name).join(' · ')}
             </div>
           )}
+
+          <GeoExposureBlock
+            title="Trade routes & Belt-and-Road exposure"
+            headline={countryRoutes.headline}
+            items={countryRoutes.items}
+          />
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
             Full detail in the geopolitics steps at the bottom of this tab (flashpoints, military balance, alliances, meetings, timeline).
           </div>
@@ -5981,6 +5994,67 @@ function ReportTab() {
         </ul>
       </StepCard>
 
+      <StepCard n={letter()} icon={<Workflow size={17} />} title="Belt and Road, trade corridors & chokepoints — who builds and controls the routes">
+        <p style={hintStyle}>
+          China's Belt and Road Initiative is the biggest capital-allocation program on Earth —
+          and trade routes are where geopolitics physically happens. This step holds the BRI
+          itself, the rival corridors the West is building, and the five chokepoints world trade
+          squeezes through. Each country's own route exposure renders in its country section
+          above (pick China for the full BRI view from the builder's side).
+        </p>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
+          The Belt and Road Initiative
+        </div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {BRI_FACTS.map((f) => (
+            <li key={f.slice(0, 40)}>{f}</li>
+          ))}
+        </ul>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          The corridors — BRI legs and the rivals
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {TRADE_CORRIDORS.map((c) => (
+            <GlassCard key={c.name} variant="nested" padding={12}>
+              <div className="between" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{c.backer}</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>{c.what}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                <strong>Watch:</strong> {c.watch}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          The five chokepoints
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Chokepoint</th>
+                <th>What it carries</th>
+                <th>The issue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CHOKEPOINTS.map((c) => (
+                <tr key={c.name}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{c.name}</td>
+                  <td style={{ minWidth: 200 }}>{c.carries}</td>
+                  <td style={{ minWidth: 280 }}>{c.issue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{ROUTES_SOURCE}</div>
+      </StepCard>
+
       <StepCard n={letter()} icon={<Handshake size={17} />} title="Institutions & the two-decade arc — WTO, G7/G20, BRICS, US meetings, the timeline">
         <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
           The institutions
@@ -6057,6 +6131,38 @@ function ReportTab() {
           </table>
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{GEOPOLITICS_SOURCE}</div>
+      </StepCard>
+
+      <StepCard n={letter()} icon={<ClipboardCheck size={17} />} title="Coverage index — every tab & section of the Lab in this report">
+        <p style={hintStyle}>
+          The audit, kept honest by tests: all 19 tabs, their actual sections, and exactly how
+          this report uses each — pulled live, referenced, or (for the interactive calculators)
+          named with what to use them for. If a tab's data can be filtered by country, state, or
+          industry, it renders above; if it is a hands-on tool, the report tells you where it
+          lives instead of pretending to summarize it.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Tab</th>
+                <th>Sections</th>
+                <th>How this report uses it</th>
+              </tr>
+            </thead>
+            <tbody>
+              {REPORT_COVERAGE.map((c) => (
+                <tr key={c.tab}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {c.tab} · {c.name}
+                  </td>
+                  <td style={{ minWidth: 260, fontSize: 11.5 }}>{c.sections.join(' · ')}</td>
+                  <td style={{ minWidth: 300 }}>{c.inReport}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </StepCard>
     </>
   );
@@ -6850,7 +6956,16 @@ function GuidePane({
               the channel — commodities, budgets, or tails — before citing any headline, and
               treat the recent-window digest as illustrative until verified.
             </GuideSection>
-            <GuideSection n="F" title="Using it for the interview">
+            <GuideSection n="F" title="Belt & Road, routes, and the coverage index">
+              The Belt and Road Initiative — China's ~$1T port-rail-and-road lending program —
+              gets its own step: the BRI facts, the rival corridors (IMEC, Global Gateway,
+              Lobito), and the five chokepoints. Every country card carries its OWN route row
+              (pick China for the builder's view; Italy for the joined-and-left case study;
+              India for the refusenik building the alternative). The final step is the coverage
+              index: all 19 tabs and their sections, with exactly how the report uses each —
+              pinned by tests, so "is everything in here?" has a checkable answer.
+            </GuideSection>
+            <GuideSection n="G" title="Using it for the interview">
               This is the "walk me through how you'd brief a client on X" rehearsal: pick the
               client's industry and home state, read the report top to bottom out loud, and
               practice ending each section with the so-what. The EY-expected exhibits on tab 7

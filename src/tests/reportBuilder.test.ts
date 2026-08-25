@@ -5,6 +5,7 @@ import {
   INDUSTRY_IPO_MAP,
   INDUSTRY_SUBS_MAP,
   REPORT_COUNTRIES,
+  REPORT_COVERAGE,
   REPORT_FORMULAS,
   REPORT_HOW_TO_READ,
   REPORT_INDUSTRIES,
@@ -146,5 +147,32 @@ describe('the combined read, formulas, and instructions', () => {
     expect(all).toMatch(/dial/i);
     expect(all).toMatch(/honesty|approximate/i);
     expect(all).toMatch(/do NOT move with the dials/i);
+  });
+});
+
+describe('the coverage index — every tab and section accounted for', () => {
+  it('covers all 19 tabs in order with real section lists and a usage line each', () => {
+    expect(REPORT_COVERAGE).toHaveLength(19);
+    expect(REPORT_COVERAGE.map((c) => c.tab)).toEqual(Array.from({ length: 19 }, (_, i) => i + 1));
+    for (const c of REPORT_COVERAGE) {
+      expect(c.name.length).toBeGreaterThan(5);
+      expect(c.sections.length).toBeGreaterThanOrEqual(1);
+      expect(c.inReport.length).toBeGreaterThan(60);
+    }
+  });
+
+  it('matches the audited section counts on the big tabs', () => {
+    const by = (tab: number) => REPORT_COVERAGE.find((c) => c.tab === tab)!;
+    expect(by(15).sections).toHaveLength(10); // A–J
+    expect(by(11).sections).toHaveLength(8); // A–H incl. the debt build-up
+    expect(by(10).sections).toHaveLength(9); // A–I calculators
+    expect(by(16).sections).toHaveLength(7); // inputs + six stages
+    expect(by(3).sections).toHaveLength(8); // A–H
+    expect(by(4).sections.join(' ')).toMatch(/What to do with capital/);
+  });
+
+  it('the industry advice ref points where the adviser actually renders (tab 4 step F)', () => {
+    const r = industryReport('tech', 4, { growth: 0, inflation: 0, policy: 0, fiscal: 0 });
+    expect(r.advice.ref).toMatchObject({ tab: 4, step: 'F' });
   });
 });

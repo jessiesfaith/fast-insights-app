@@ -276,7 +276,7 @@ export function industryReport(id: string, riskFree: number, f: MacroFactors): I
     },
     advice: {
       result: adviseCapital(profile.id, riskFree, f),
-      ref: { tab: 4, step: 'A', label: 'Capital recommendation by industry' },
+      ref: { tab: 4, step: 'F', label: 'What to do with capital — by industry' },
       how: 'Industry assumptions (β, credit-spread tier) → WACC → every capital use re-ranked against risk-adjusted hurdles → an offense/balanced/defense stance colored by the backdrop.',
     },
     benchmarks: {
@@ -390,4 +390,39 @@ export const REPORT_HOW_TO_READ: string[] = [
   'Read order for a state: bonded debt ÷ GSP → the pension note (the REAL balance sheet) → impact watch → calendar.',
   'Read order for an industry: backdrop (revenue weather) → capital stance and WACC (what management should do) → benchmarks (what normal looks like HERE) → IPO window (can it raise equity) → sub-industry lenses.',
   'Honesty labels travel with the data: country/state/trade/currency values are approximate teaching values; benchmarks are observed Damodaran averages; dial-driven numbers are a linear teaching model. The formulas table shows the exact math behind each.',
+];
+
+// ---------------------------------------------------------------------------
+// Coverage index — every tab and section of the Lab, and how this report
+// uses it. Audited against the actual rendered StepCards.
+// ---------------------------------------------------------------------------
+
+export interface CoverageRow {
+  tab: number;
+  name: string;
+  sections: string[];
+  /** How tab 19 uses it — or, for interactive tools, what to use them for. */
+  inReport: string;
+}
+
+export const REPORT_COVERAGE: CoverageRow[] = [
+  { tab: 1, name: 'Your company’s moves', sections: ['A Your capital & cost of capital', 'B Market conditions', 'C Which move clears its hurdle', 'D Hedge what the move leaves exposed'], inReport: 'Its WACC/hurdle engine runs INSIDE the industry section (tab 4’s adviser calls it per industry); its Rf feeds the industry WACC here; the WACC formula card is step C. The move-ranking itself is interactive — set your numbers there.' },
+  { tab: 2, name: 'Customer credit', sections: ['A The ask', 'B The customer’s financials', 'C The credit read', 'D Security & guarantees', 'E The industry backdrop'], inReport: 'Its industry-backdrop model IS the backdrop line in the industry section here (same function). The BRI facts apply its sovereign version: China as underwriter of weak credits. Underwriting a specific customer stays interactive on tab 2.' },
+  { tab: 3, name: 'Market analysis', sections: ['A Market conditions', 'B The dials in real numbers', 'C Cross-effects', 'D Market & industry trends', 'E Inflation — CPI vs PCE', 'F Asset classes by industry', 'G The debt cycles', 'H Your debt book'], inReport: 'The engine room: the scenario chips ARE its dials; the industry backdrop, sub-industry lenses, and every "dial it hits" line run on its sensitivity model; its CPI snapshot anchors the history step.' },
+  { tab: 4, name: 'The economic machine (Dalio)', sections: ['A Market conditions', 'B How the market cycles', 'C The three equilibriums', 'D Watching the two levers', 'E The four forces + two levers', 'F What to do with capital', 'G Dalio’s investment principles'], inReport: 'Step F’s by-industry capital adviser renders live in the industry section. The Dalio chain narrates the populism, debt, and sanctions/reserve-currency sections.' },
+  { tab: 5, name: 'Valuation workbench', sections: ['A The forecast — revenue to FCF', 'B The value bridge', 'C Sensitivity — the two-way table', 'D The three statements'], inReport: 'The DCF and sensitivity formula cards (step C) reference it; it is the practice ground the EY exhibits map to. Interactive DCF stays on its tab.' },
+  { tab: 6, name: 'Formulas & decision map', sections: ['A How the whole Lab computes — the decision map (+ formula groups & glossary)'], inReport: 'Step C here is its condensed sibling: the eight formulas the report leans on, each with a ref; tab 6 holds the complete map and glossary.' },
+  { tab: 7, name: 'EY gap check', sections: ['A The EY technical checklist', 'B The 2026 outlook anchor', 'C The interview format', 'D EY’s standard analyses', 'E Reporting & exhibits + market routine'], inReport: 'Its outlook numbers frame the timeline and recent-window entries; its step-E exhibit list tells you which report section becomes which client slide (see the guide).' },
+  { tab: 8, name: 'Interview drill', sections: ['Technical cards', 'Behavioral cards', 'Market-trends cards'], inReport: 'Interactive-only by design: drill the narration of THIS report’s sections there — the market cards are its country/history sections in Q&A form.' },
+  { tab: 9, name: 'Round map', sections: ['A Round 1 — HireVue', 'B Round 2 — take-home DCF', 'C The market-trends anchor'], inReport: 'Interactive/reference-only: its market-anchor answer is assembled from the same outlook + history data this report renders.' },
+  { tab: 10, name: 'Gap workbench', sections: ['A IRR & NPV lab', 'B Beta workshop', 'C Hurdle builder + rNPV', 'D Incremental ROIC', 'E PPA & impairment', 'F Comps & cost approach', 'G LBO mini-model', 'H Accretion/dilution', 'I Break-even & CAGR'], inReport: 'The calculators behind the formula cards — each formula in step C names where its working version lives (mostly here and tab 16).' },
+  { tab: 11, name: 'Rates & the bond market', sections: ['A The two numbers', 'B The rate stack', 'C The yield curve', 'D Real yields & breakevens', 'E The divergence', 'F Bond basics', 'G The scale problem', 'H The debt build-up to $40T'], inReport: 'Step H’s debt/interest charts render in the US country section; its snapshot anchors the history step’s Fed and 10Y lines; the term-premium story threads the debt, populism, and history reads.' },
+  { tab: 12, name: 'Real estate financing', sections: ['A The mortgage formula (10Y + spread)', 'B The payment calculator', 'C CRE floating vs fixed', 'D The CRE dashboard', 'E What each number says'], inReport: 'Its PMMS benchmark is the mortgage line in the history step; the 10Y+spread architecture explains why that line never followed the Fed down.' },
+  { tab: 13, name: 'IPO & the financing menu', sections: ['A The market now', 'B Sector trends over time', 'C The three windows', 'D Dilution math', 'E The financing menu'], inReport: 'Its sector-trend line renders in the industry section (the equity window); the A&D/AI window reads appear in the geopolitics and recent-window entries.' },
+  { tab: 14, name: 'Industry benchmarks', sections: ['A The observed benchmarks', 'B You vs the average', 'C Vertical quick kits', 'D The §123 questions'], inReport: 'Its Damodaran rows render in the industry section’s benchmark table, with the observed-not-healthy rule quoted in the how-to-read.' },
+  { tab: 15, name: 'Debt & geopolitics by country/state', sections: ['A Country debt-to-GDP', 'B State debt-to-GSP', 'C Imports vs exports', 'D Currency trends', 'E The Korea case', 'F Populism & the pipeline', 'G GDP/GSP impact watch', 'H Current movers', 'I Standing watch list', 'J The 24-month calendar'], inReport: 'The backbone of the country and state sections — debt charts, trade, currencies, populism, impact watch, calendars, and the Korea case all render here with refs.' },
+  { tab: 16, name: 'Full cycle — EV/EQV/ROIC/WACC', sections: ['A The company inputs', 'B Stage 1 operating engine', 'C Stage 2 ROIC', 'D Stage 3 WACC', 'E Stage 4 ROIC vs WACC', 'F Stage 5 valuation & the bridge', 'G Stage 6 bonds vs stock'], inReport: 'The EV↔equity and ROIC-vs-WACC formula cards reference its stages; it is where the report’s valuation math runs end-to-end interactively.' },
+  { tab: 17, name: 'Data & sources', sections: ['A Modes & providers', 'B The series catalog', 'C The vintage discipline'], inReport: 'The report inherits its honesty rules: snapshot dates, anchored-vs-interpolated labels, and the Q1-26 GDP revision shown at its revised vintage.' },
+  { tab: 18, name: 'Regime backtest', sections: ['A The method', 'B The five regimes'], inReport: 'Its regimes are the history step’s eras made testable; the 2022 bonds-hedge failure is cited in the history and timeline reads.' },
+  { tab: 19, name: 'Report builder (this tab)', sections: ['A Build the report', 'B How to read', 'C Formulas', 'D History trends', 'Country / State / Industry / Combined sections', 'Geopolitics live', 'Belt & Road / corridors', 'Institutions & the two-decade arc', 'Coverage index'], inReport: 'Itself — the assembly point. Every section above names its source tab and step.' },
 ];
