@@ -1,4 +1,4 @@
-// Industry capital playbook — the model behind tab 5's "what to do with
+// Industry capital playbook — the model behind tab 4's "what to do with
 // capital" recommendation.
 //
 // Pick your industry and the recommendation re-runs the tab-1 capital-

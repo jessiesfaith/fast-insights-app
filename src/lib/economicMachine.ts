@@ -1,4 +1,4 @@
-// The Economic Machine — the model layer behind tab 5 of the Corporate
+// The Economic Machine — the model layer behind tab 4 of the Corporate
 // Finance Lab. A teaching build-out of Ray Dalio's framework:
 //
 //   1. HOW THE MARKET CYCLES — three forces stacked on each other:
@@ -210,31 +210,31 @@ export const DALIO_INVEST_PRINCIPLES: InvestPrinciple[] = [
     n: 1,
     name: 'Value = present value of future cash flows',
     what: '"Every investment is a lump-sum payment for a future cash flow" — project the cash flows, discount at an interest rate, that\'s the theoretical value. Raise the discount rate and every asset is worth less today.',
-    useIt: 'Tab 6 IS this principle: watch EV fall as you raise WACC.',
+    useIt: 'Tab 5 IS this principle: watch EV fall as you raise WACC.',
   },
   {
     n: 2,
     name: 'Price = total spending ÷ quantity',
     what: 'His actual-value rule: price equals the total amount of spending divided by the quantity sold. So he asks: who are the buyers, what are their motivations, how much total spending will there be? When central banks buy assets (QE), spending rises and prices rise — mechanically.',
-    useIt: 'Tab 5\'s QE discussion and equilibrium 3: the buyer with a printing press moves every price.',
+    useIt: 'Tab 4\'s QE discussion and equilibrium 3: the buyer with a printing press moves every price.',
   },
   {
     n: 3,
     name: 'Asset classes beat cash over the long run — with big bumps',
     what: 'Required, "otherwise the gears of the economy come to a halt": cash must yield less than bonds, bonds less than equities, or nobody funds anything. But that beta comes with large drawdowns — it can\'t be easy money or everyone would lever it.',
-    useIt: 'Equilibrium 3 on tab 5 — and why "prepay/hold cash forever" is a decision, not a default.',
+    useIt: 'Equilibrium 3 on tab 4 — and why "prepay/hold cash forever" is a decision, not a default.',
   },
   {
     n: 4,
     name: 'Assets price EXPECTATIONS — growth, inflation, premiums, discount rates',
     what: 'His two main drivers: growth and inflation coming in higher or lower than discounted. "If you tell me inflation and growth will be higher than expected, I know what to invest in." Everything else is discount rates and risk premiums.',
-    useIt: 'Tabs 4–5\'s four dials are exactly this: the surprise vs. what\'s priced, not the level.',
+    useIt: 'Tabs 3–4\'s four dials are exactly this: the surprise vs. what\'s priced, not the level.',
   },
   {
     n: 5,
     name: 'Balance risk, not dollars',
     what: 'A 50/50 dollar split of stocks and bonds is NOT diversified — "the volatility of stocks is twice the volatility of bonds," so the stocks dominate the risk. Weight positions by risk contribution, then diversify across environments (rising/falling growth × rising/falling inflation): the all-weather idea.',
-    useIt: 'Tab 4\'s asset-by-industry alignment view — pair streams that don\'t catch the same shocks.',
+    useIt: 'Tab 3\'s asset-by-industry alignment view — pair streams that don\'t catch the same shocks.',
   },
   {
     n: 6,
@@ -246,13 +246,13 @@ export const DALIO_INVEST_PRINCIPLES: InvestPrinciple[] = [
     n: 7,
     name: 'The Holy Grail: 15+ good, uncorrelated return streams',
     what: 'His chart: with 60%-correlated assets (average stocks), adding a hundred more barely cuts risk — a thousand stocks diversify no better than 5–10. But five UNCORRELATED streams more than halve risk, and ~15 cut it by ~80% — improving return-to-risk about five-fold. Diversification done right beats picking the best investment.',
-    useIt: 'Tab 4\'s alignment scores are a miniature of this: hunt the negative and zero alignments.',
+    useIt: 'Tab 3\'s alignment scores are a miniature of this: hunt the negative and zero alignments.',
   },
   {
     n: 8,
     name: '"Did well" means "got more expensive" — and write your criteria down',
     what: 'The biggest investor mistake in the talk: "they think the investment that did well is a good investment, rather than a more expensive investment." His antidote is the whole method: write decision criteria down, then test them across all times and all countries — timeless and universal.',
-    useIt: 'The formulas tab (7) is your criteria written down; the scenario presets are the all-times test.',
+    useIt: 'The formulas tab (6) is your criteria written down; the scenario presets are the all-times test.',
   },
 ];
 
@@ -330,7 +330,7 @@ export function equilibriumReads(f: MacroFactors, riskFree: number): Equilibrium
             ? 'Demand has fallen below what the machine can produce — slack, layoffs, and disinflation, which is what invites the cuts.'
             : 'Output is running near its sustainable rate — the "not too hot, not too cold" the Fed aims for and rarely keeps.',
     restore:
-      'The monetary lever leans against the gap — hikes cool a hot machine, cuts warm a cold one — with the 12–18 month lag the trend chart on tab 4 shows.',
+      'The monetary lever leans against the gap — hikes cool a hot machine, cuts warm a cold one — with the 12–18 month lag the trend chart on tab 3 shows.',
   };
 
   // 3 — equities out-yield bonds, bonds out-yield cash, by fair premiums.
@@ -409,7 +409,7 @@ export function leverWatch(f: MacroFactors): LeverWatch[] {
         'Debt-ceiling standoffs and the Treasury issuance mix — more supply pressures long rates',
       ],
       transmission:
-        'Moves the Gov’t dial when the law passes; reaches growth in 3–12 months (checks and contracts hit demand fast). Unlike the Fed, this lever is chosen, not caused — which is why nothing on tab 4 pushes it back.',
+        'Moves the Gov’t dial when the law passes; reaches growth in 3–12 months (checks and contracts hit demand fast). Unlike the Fed, this lever is chosen, not caused — which is why nothing on tab 3 pushes it back.',
     },
   ];
 }

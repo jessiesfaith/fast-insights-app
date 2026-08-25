@@ -176,7 +176,6 @@ import {
 type TabId =
   | 'capital'
   | 'credit'
-  | 'treasury'
   | 'analysis'
   | 'machine'
   | 'valuation'
@@ -189,15 +188,14 @@ type TabId =
 const TABS: { id: TabId; label: string; icon: typeof Briefcase }[] = [
   { id: 'capital', label: "1 · Your company's moves", icon: Briefcase },
   { id: 'credit', label: '2 · Customer credit', icon: ShieldCheck },
-  { id: 'treasury', label: '3 · Treasury & hedging', icon: Umbrella },
-  { id: 'analysis', label: '4 · Market analysis', icon: Activity },
-  { id: 'machine', label: '5 · The economic machine', icon: Cog },
-  { id: 'valuation', label: '6 · Valuation (DCF & comps)', icon: TrendingUp },
-  { id: 'formulas', label: '7 · Formulas & decisions', icon: Calculator },
-  { id: 'eygap', label: '8 · EY gap check', icon: ClipboardCheck },
-  { id: 'drill', label: '9 · EY interview drill', icon: GraduationCap },
-  { id: 'rounds', label: '10 · EY round map', icon: Handshake },
-  { id: 'gapwork', label: '11 · Gap workbench', icon: Landmark },
+  { id: 'analysis', label: '3 · Market analysis', icon: Activity },
+  { id: 'machine', label: '4 · The economic machine', icon: Cog },
+  { id: 'valuation', label: '5 · Valuation (DCF & comps)', icon: TrendingUp },
+  { id: 'formulas', label: '6 · Formulas & decisions', icon: Calculator },
+  { id: 'eygap', label: '7 · EY gap check', icon: ClipboardCheck },
+  { id: 'drill', label: '8 · EY interview drill', icon: GraduationCap },
+  { id: 'rounds', label: '9 · EY round map', icon: Handshake },
+  { id: 'gapwork', label: '10 · Gap workbench', icon: Landmark },
 ];
 
 const GAP_STATUS_META: Record<GapStatus, { label: string; tone: string }> = {
@@ -523,7 +521,7 @@ export default function CorporateFinanceLab() {
   const credit = useMemo(() => assessCredit(requested, termsDays, fin), [requested, termsDays, fin]);
   const ladder = useMemo(() => buildSecurityLadder(requested, termsDays, fin), [requested, termsDays, fin]);
 
-  // Tab 4 state (all derived from the shared scenario).
+  // Tab 3 state (all derived from the shared scenario).
   const pressures = useMemo(() => dialPressures(factors), [factors]);
   const cyclePhase = useMemo(() => shortCyclePhase(factors), [factors]);
   const debtReads = useMemo(() => debtPlaybook(factors), [factors]);
@@ -558,7 +556,7 @@ export default function CorporateFinanceLab() {
     [custIndustry, factors],
   );
 
-  // Tab 5 state (also derived from the shared scenario).
+  // Tab 4 state (also derived from the shared scenario).
   const machineData = useMemo(() => machineCurve(factors), [factors]);
   const [advIndustryId, setAdvIndustryId] = useState('tech');
   const advice = useMemo(
@@ -566,7 +564,7 @@ export default function CorporateFinanceLab() {
     [advIndustryId, effInputs, factors],
   );
 
-  // Tab 6 state (valuation workbench).
+  // Tab 5 state (valuation workbench).
   const [dcf, setDcf] = useState<DcfInputs>(DEFAULT_DCF_INPUTS);
   const setDcfField = (key: keyof DcfInputs, v: number) => setDcf((d) => ({ ...d, [key]: v }));
   const dcfResult = useMemo(() => runDcf(dcf), [dcf]);
@@ -619,14 +617,14 @@ export default function CorporateFinanceLab() {
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 600, margin: 0, letterSpacing: '-0.02em' }}>Corporate Finance Lab</h1>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720, lineHeight: 1.6 }}>
-          Seven ways to run the numbers: decide <strong>your company's next move</strong> under
-          real market conditions, <strong>underwrite a customer</strong> before extending them
-          credit, pick the right <strong>treasury &amp; hedging tools</strong> for the environment,
-          read the <strong>market itself</strong> — ranges, cross-effects, industry trends, and the
+          Six ways to run the numbers: decide <strong>your company's next move</strong> under
+          real market conditions — with the <strong>treasury &amp; hedging playbook</strong> right
+          under it, protecting what the move leaves exposed — <strong>underwrite a customer</strong>{' '}
+          before extending them credit, read the <strong>market itself</strong> — ranges, cross-effects, industry trends, and the
           debt cycles — study <strong>the economic machine</strong>: Dalio's cycles, equilibriums,
           and levers — <strong>value a business</strong> with a DCF, comps, and the sensitivity
           grid — and keep the <strong>formula reference</strong> with every equation, decision
-          flow, and acronym. Tabs 8–10 are <strong>EY interview prep</strong>: the gap check, the
+          flow, and acronym. Tabs 7–9 are <strong>EY interview prep</strong>: the gap check, the
           Q&amp;A drill, and the round map.{' '}
           <strong>A teaching model — education only; not investment, credit, or tax advice.</strong>
         </p>
@@ -746,6 +744,62 @@ export default function CorporateFinanceLab() {
                   instead). Positive spread = the move creates value on your {fmtMoney(capital, 0)}.
                 </p>
                 <OptionsSection rows={options} capital={capital} neutralNpvById={neutralNpvById} />
+              </StepCard>
+
+              <StepCard n="D" icon={<Umbrella size={17} />} title={`Hedge what the move leaves exposed — the treasury playbook — ${scenarioName}`}>
+                <p style={hintStyle}>
+                  Every instrument, with a live verdict for this scenario. The rule that keeps you out
+                  of trouble: <strong>hedge committed exposures for certainty — never to speculate.</strong>
+                </p>
+                <div className="col" style={{ gap: 12 }}>
+                  {TREASURY_INSTRUMENTS.map((inst) => {
+                    const fit = inst.fit(factors);
+                    const meta = FIT_META[fit.level];
+                    return (
+                      <GlassCard key={inst.id} variant="nested" padding={16}>
+                        <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{inst.name}</span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: meta.tone,
+                              border: `1px solid ${meta.tone}`,
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{inst.what}</div>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 6 }}>
+                          <strong style={{ color: meta.tone }}>This scenario:</strong> {fit.reason}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: 'var(--text-secondary)',
+                            background: 'var(--bg-elevated-2)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 8,
+                            padding: '8px 10px',
+                            marginTop: 8,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, marginRight: 6 }}>
+                            Example
+                          </span>
+                          {inst.example}
+                        </div>
+                      </GlassCard>
+                    );
+                  })}
+                </div>
               </StepCard>
             </>
           )}
@@ -904,78 +958,10 @@ export default function CorporateFinanceLab() {
                   </GlassCard>
                 ) : (
                   <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>
-                    No industry selected — pick one above, or compare several at once on tab 4's
+                    No industry selected — pick one above, or compare several at once on tab 3's
                     market &amp; industry trends chart.
                   </p>
                 )}
-              </StepCard>
-            </>
-          )}
-
-          {tab === 'treasury' && (
-            <>
-              <StepCard n="A" icon={<Compass size={17} />} title="Market conditions">
-                <p style={hintStyle}>
-                  The environment decides the playbook: rate direction drives cash and swap decisions,
-                  inflation drives inventory hedging, and uncertainty makes options worth their premium.
-                </p>
-                <ScenarioPicker scenarioId={scenarioId} factors={factors} onToday={pickToday} onPreset={pickPreset} onDial={setDial} />
-              </StepCard>
-
-              <StepCard n="B" icon={<Umbrella size={17} />} title={`The playbook — ${scenarioName}`}>
-                <p style={hintStyle}>
-                  Every instrument, with a live verdict for this scenario. The rule that keeps you out
-                  of trouble: <strong>hedge committed exposures for certainty — never to speculate.</strong>
-                </p>
-                <div className="col" style={{ gap: 12 }}>
-                  {TREASURY_INSTRUMENTS.map((inst) => {
-                    const fit = inst.fit(factors);
-                    const meta = FIT_META[fit.level];
-                    return (
-                      <GlassCard key={inst.id} variant="nested" padding={16}>
-                        <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{inst.name}</span>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.06em',
-                              color: meta.tone,
-                              border: `1px solid ${meta.tone}`,
-                              borderRadius: 999,
-                              padding: '3px 10px',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {meta.label}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{inst.what}</div>
-                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 6 }}>
-                          <strong style={{ color: meta.tone }}>This scenario:</strong> {fit.reason}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: 'var(--text-secondary)',
-                            background: 'var(--bg-elevated-2)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 8,
-                            padding: '8px 10px',
-                            marginTop: 8,
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, marginRight: 6 }}>
-                            Example
-                          </span>
-                          {inst.example}
-                        </div>
-                      </GlassCard>
-                    );
-                  })}
-                </div>
               </StepCard>
             </>
           )}
@@ -1795,7 +1781,7 @@ export default function CorporateFinanceLab() {
                   4–5) sets rates and premiums → which set your <strong>WACC and hurdles</strong>{' '}
                   (tab 1) → which decide what you build or buy → your customers live in the same
                   machine, so it also sets their <strong>credit backdrop</strong> (tab 2) → and the
-                  exposures left over are what you <strong>hedge</strong> (tab 3).
+                  exposures left over are what you <strong>hedge</strong> (tab 1's step D).
                 </p>
               </StepCard>
 
@@ -1842,7 +1828,7 @@ export default function CorporateFinanceLab() {
                   Everything EY names for its Corporate Finance / Valuation, Modeling &amp;
                   Economics roles, gap-checked against this Lab: where each item lives here — the
                   former knowledge-only gaps are now working calculators on{' '}
-                  <strong>tab 11, the gap workbench</strong>. Compiled from EY's own postings and
+                  <strong>tab 10, the gap workbench</strong>. Compiled from EY's own postings and
                   service pages (sources in the study repo).
                 </p>
                 <div className="col" style={{ gap: 10 }}>
@@ -1893,8 +1879,8 @@ export default function CorporateFinanceLab() {
                   ))}
                 </ul>
                 <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 10 }}>
-                  Practice both halves here: <strong>tab 9</strong> drills the questions,{' '}
-                  <strong>tab 10</strong> maps the rounds, and <strong>tab 6</strong> is the
+                  Practice both halves here: <strong>tab 8</strong> drills the questions,{' '}
+                  <strong>tab 9</strong> maps the rounds, and <strong>tab 5</strong> is the
                   take-home rehearsal.
                 </p>
               </StepCard>
@@ -1941,7 +1927,7 @@ export default function CorporateFinanceLab() {
                   stories, not formulas.
                 </p>
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700, margin: '4px 0 6px' }}>
-                  The staples to have ready (drilled with scaffolds on tab 9)
+                  The staples to have ready (drilled with scaffolds on tab 8)
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                   {BEHAVIORAL_STAPLES.map((s) => (
@@ -1978,7 +1964,7 @@ export default function CorporateFinanceLab() {
                   ))}
                 </ol>
                 <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 10 }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Rehearsal:</strong> tab 6 is this
+                  <strong style={{ color: 'var(--text-primary)' }}>Rehearsal:</strong> tab 5 is this
                   exact model in miniature — build the muscle memory there (the guide has the
                   narration script), then the Excel version is transcription.
                 </p>
@@ -1996,7 +1982,7 @@ export default function CorporateFinanceLab() {
                   </Chip>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                     {scenarioId === 'supply-shock'
-                      ? 'Loaded — now walk tabs 1, 4, 5, and 6 and narrate what it does to hurdles, trends, equilibriums, and the DCF.'
+                      ? 'Loaded — now walk tabs 1, 3, 4, and 5 and narrate what it does to hurdles, trends, equilibriums, and the DCF.'
                       : 'Sets the shared dials every tab runs on.'}
                   </span>
                 </div>
@@ -2565,7 +2551,7 @@ function OptionsSection({
 }
 
 // ---------------------------------------------------------------------------
-// Tab 11 — the gap workbench (self-contained state)
+// Tab 10 — the gap workbench (self-contained state)
 // ---------------------------------------------------------------------------
 
 function WbField({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
@@ -2878,7 +2864,7 @@ function GapWorkbenchTab() {
           <StatPill label="Cost-approach value" value={fmtMoney(costR.equityValue, 0)} strong />
         </div>
         <p style={wbNote}>
-          Name all three approaches in an interview — <strong>income</strong> (tab 6's DCF),{' '}
+          Name all three approaches in an interview — <strong>income</strong> (tab 5's DCF),{' '}
           <strong>market</strong> (these comps), <strong>cost</strong> (this floor, used for
           asset-heavy or no-cash-flow situations) — and say which you'd weight and why.
         </p>
@@ -3056,7 +3042,6 @@ function GuidePane({
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: 1.5 }}>
           {tab === 'capital' && 'Deciding your own move: cost of capital → hurdle → spread → NPV.'}
           {tab === 'credit' && 'Underwriting a customer: ratios → score → sized credit limit.'}
-          {tab === 'treasury' && 'Picking treasury tools: what each instrument does and when it fits.'}
           {tab === 'analysis' && 'Reading the machine: real-number ranges, cross-effects, trends, and the debt cycles.'}
           {tab === 'machine' && "Dalio's economic machine: how it cycles, the three equilibriums, the two levers."}
           {tab === 'valuation' && 'The valuation workbench: DCF → terminal value → EV → equity, with comps and sensitivity.'}
@@ -3135,6 +3120,26 @@ function GuidePane({
               dial and watch which projects the market giveth and which it taketh away; that delta,
               not the raw NPV, is what scenario risk means for a capital plan.
             </GuideSection>
+            <GuideSection n="F" title="The hedging chips — how to read them">
+              Set the scenario, then read each card's live verdict. Chips: <strong style={{ color: 'var(--pos)' }}>Fits</strong> —
+              the environment argues for it; <strong style={{ color: 'var(--severity-medium)' }}>Situational</strong> — depends on
+              your exposures; <strong style={{ color: 'var(--neg)' }}>Not the moment</strong> — the environment argues against.
+            </GuideSection>
+            <GuideSection n="G" title="The hedge math">
+              <Eq>
+                swap savings ≈ notional × Δrate{'\n'}hedged cost = quantity × locked forward price{'\n'}option cost = premium (known max loss)
+              </Eq>
+              <span style={guideLabel}>Example</span>
+              $1M of floating-rate debt, rates rise 1%: a pay-fixed swap saves ≈ $1,000,000 × 1% ={' '}
+              <strong>$10,000/yr</strong>. The same math in reverse is what you LOSE by locking right
+              before cuts — direction matters.
+            </GuideSection>
+            <GuideSection n="H" title="The one hedging rule">
+              Hedge <em>committed exposures</em> — inventory you must buy, debt you already owe,
+              invoices already signed — to buy <strong>certainty</strong>. A hedge with nothing
+              behind it is just a market bet with extra paperwork. And keep Dalio's frame: you don't
+              need to predict the environment if the position is built to survive every one.
+            </GuideSection>
           </>
         )}
 
@@ -3192,31 +3197,6 @@ function GuidePane({
           </>
         )}
 
-        {tab === 'treasury' && (
-          <>
-            <GuideSection n="A" title="What to do">
-              Set the scenario, then read each card's live verdict. Chips: <strong style={{ color: 'var(--pos)' }}>Fits</strong> —
-              the environment argues for it; <strong style={{ color: 'var(--severity-medium)' }}>Situational</strong> — depends on
-              your exposures; <strong style={{ color: 'var(--neg)' }}>Not the moment</strong> — the environment argues against.
-            </GuideSection>
-            <GuideSection n="B" title="The equations">
-              <Eq>
-                swap savings ≈ notional × Δrate{'\n'}hedged cost = quantity × locked forward price{'\n'}option cost = premium (known max loss)
-              </Eq>
-              <span style={guideLabel}>Example</span>
-              $1M of floating-rate debt, rates rise 1%: a pay-fixed swap saves ≈ $1,000,000 × 1% ={' '}
-              <strong>$10,000/yr</strong>. The same math in reverse is what you LOSE by locking right
-              before cuts — direction matters.
-            </GuideSection>
-            <GuideSection n="C" title="The one rule">
-              Hedge <em>committed exposures</em> — inventory you must buy, debt you already owe,
-              invoices already signed — to buy <strong>certainty</strong>. A hedge with nothing
-              behind it is just a market bet with extra paperwork. And keep Dalio's frame: you don't
-              need to predict the environment if the position is built to survive every one.
-            </GuideSection>
-          </>
-        )}
-
         {tab === 'analysis' && (
           <>
             <GuideSection n="A" title="What to do">
@@ -3259,7 +3239,7 @@ function GuidePane({
               Rule of thumb: <strong>floating debt reprices in days; fixed debt reprices at
               refinancing.</strong> So a hiking cycle punishes floating and protects fixed
               (inflation even erodes fixed debt in real terms), while a cutting cycle rewards
-              floating and strands old high-coupon fixed. Tab 3's pay-fixed swap is the tool that
+              floating and strands old high-coupon fixed. The pay-fixed swap in tab 1's hedging playbook (step D) is the tool that
               moves debt from one column to the other without reissuing it.
             </GuideSection>
           </>
@@ -3319,10 +3299,10 @@ function GuidePane({
               clears; balanced = in between. It's the sector's answer, not yours — replace beta and
               spread with your own numbers (or pro forma) on tab 1 to personalize it.
             </GuideSection>
-            <GuideSection n="H" title="Why this matters for tabs 1–4">
+            <GuideSection n="H" title="Why this matters for tabs 1–3">
               The equilibriums price everything upstream: equilibrium 3 sets your WACC inputs (tab
               1), equilibrium 1 decides how easily your customer refinances (tab 2), and the levers
-              drive every hedge verdict (tab 3) and trend (tab 4). Dalio's frame: you don't need to
+              drive every hedge verdict (tab 1's playbook) and trend (tab 3). Dalio's frame: you don't need to
               predict the machine — you need to know where it is and build positions that survive
               every phase.
             </GuideSection>
@@ -3452,7 +3432,7 @@ function GuidePane({
         {tab === 'gapwork' && (
           <>
             <GuideSection n="A" title="What this tab is">
-              Everything tab 8's gap check used to mark "know the one-liner" is now a working
+              Everything tab 7's gap check used to mark "know the one-liner" is now a working
               calculator — and the defaults are the exact worked numbers from your prep session:
               the 100 → 40/50/50 IRR (~18.8%), the 1.4 → 1.06 → 1.26 beta chain, the 13.7% project
               cost of equity with country risk, 30% × $300M rNPV, the 15-vs-9 ROIC spread, and the
@@ -3464,7 +3444,7 @@ function GuidePane({
               Your session's core frame, and EY's: never stop at "rates are high." Rates → cost of
               debt → interest and refinancing → FCF → WACC → valuation → capital allocation →{' '}
               <em>what should management do?</em> Each calculator here is one link of that chain in
-              isolation; tabs 1–6 are the chain assembled.
+              isolation; tabs 1–5 are the chain assembled.
             </GuideSection>
             <GuideSection n="C" title="Judgment beats formulas">
               What separates the answers your session called Manager-level: don't double-count risk

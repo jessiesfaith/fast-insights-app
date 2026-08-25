@@ -1,4 +1,4 @@
-// Valuation workbench — the model layer behind tab 7 of the Corporate
+// Valuation workbench — the model layer behind tab 5 of the Corporate
 // Finance Lab. The interview-grade valuation toolkit:
 //
 //   1. A five-year DCF built the way you'd narrate it: revenue → EBITDA →

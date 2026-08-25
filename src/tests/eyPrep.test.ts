@@ -28,7 +28,7 @@ describe('the EY gap check', () => {
     expect(formerGaps.length).toBeGreaterThanOrEqual(6);
     for (const g of formerGaps) {
       expect(g.status).toBe('covered');
-      expect(g.where).toMatch(/Tab 11/);
+      expect(g.where).toMatch(/Tab 10/);
     }
     expect(GAP_CHECK.filter((g) => g.status === 'gap')).toHaveLength(0);
   });

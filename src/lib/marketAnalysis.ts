@@ -1,4 +1,4 @@
-// Market Analysis — the model layer behind tab 4 of the Corporate Finance Lab.
+// Market Analysis — the model layer behind tab 3 of the Corporate Finance Lab.
 //
 // Three teaching pieces built on the same four dials as Market Scenarios:
 //   1. What the dials MEAN in real numbers — each -2..+2 setting mapped to the
@@ -413,7 +413,7 @@ export function debtPlaybook(f: MacroFactors): DebtRead[] {
       ? {
           stance: 'pressure' as DebtStance,
           read: 'Every hike lands on your interest bill almost immediately — floating exposure is where tightening bites first.',
-          action: 'Fix it: a pay-fixed swap (tab 3) or terming out into long-term fixed debt caps the damage.',
+          action: 'Fix it: a pay-fixed swap (tab 1\'s hedging playbook) or terming out into long-term fixed debt caps the damage.',
         }
       : f.policy < 0
         ? {

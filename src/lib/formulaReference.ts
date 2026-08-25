@@ -130,11 +130,11 @@ export const FORMULA_GROUPS: FormulaGroup[] = [
   {
     id: 'treasury',
     decision: 'Which treasury tool fits this environment? (hedging)',
-    tab: 'Tab 3 — Treasury & hedging',
+    tab: 'Tab 1, step D — the treasury & hedging playbook',
     flow: 'the dials → each instrument’s fit rule → fits / situational / avoid · committed exposure → hedge math → certainty',
     formulas: [
       { name: 'Idle cash', eq: 'earnings = yield × idle cash', plain: 'Money-market yield on every dollar not needed tomorrow.', feeds: 'The baseline every other use of cash competes with.' },
-      { name: 'Pay-fixed swap', eq: 'savings ≈ notional × Δrate', plain: 'Fixing floating debt saves (or costs) the notional times how far rates move.', feeds: 'The short-vs-long debt playbook on tab 4.' },
+      { name: 'Pay-fixed swap', eq: 'savings ≈ notional × Δrate', plain: 'Fixing floating debt saves (or costs) the notional times how far rates move.', feeds: 'The short-vs-long debt playbook on tab 3.' },
       { name: 'Commodity forward', eq: 'hedged cost = quantity × forward price', plain: 'Lock next season’s input cost — certain, whatever spot does.', feeds: 'Margin protection when inflation is running.' },
       { name: 'Options', eq: 'max loss = premium', plain: 'Pay a known premium for a floor or ceiling and keep the upside.', feeds: 'The high-uncertainty play when direction is unclear.' },
       { name: 'The one rule', eq: 'hedge committed exposures only — never to speculate', plain: 'A hedge with nothing behind it is a market bet with extra paperwork.', feeds: 'Every verdict on the tab.' },
@@ -143,7 +143,7 @@ export const FORMULA_GROUPS: FormulaGroup[] = [
   {
     id: 'valuation',
     decision: 'What is this business worth? (valuation)',
-    tab: 'Tab 6 — Valuation (DCF & comps)',
+    tab: 'Tab 5 — Valuation (DCF & comps)',
     flow: 'drivers → FCF forecast → + terminal value → discount at WACC → EV → − net debt → equity value · peer multiple × EBITDA → the cross-check',
     formulas: [
       { name: 'Free cash flow', eq: 'FCF = NOPAT + D&A − capex − ΔNWC', plain: 'Cash the business actually throws off: after-tax operating profit, non-cash D&A back, growth spending out.', feeds: 'The five forecast years of the DCF.' },
@@ -157,7 +157,7 @@ export const FORMULA_GROUPS: FormulaGroup[] = [
   {
     id: 'machine',
     decision: 'Where is the machine, and where is it pushing? (macro)',
-    tab: 'Tabs 4 & 5 — Market analysis / The economic machine',
+    tab: 'Tabs 3 & 4 — Market analysis / The economic machine',
     flow: 'dials → impact & trends → equilibrium reads → the two levers answer → dials move again (the loop IS the cycle)',
     formulas: [
       { name: 'Modeled impact', eq: 'impact % = Sg×G + Si×I + Sp×P + Sf×F', plain: 'Each asset/industry’s published sensitivities times the four dials — the 12-month backdrop.', feeds: 'The industry trend charts, and the credit backdrop on tab 2.' },

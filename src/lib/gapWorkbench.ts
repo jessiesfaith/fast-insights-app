@@ -1,5 +1,5 @@
-// Gap workbench — the model layer behind tab 11 of the Corporate Finance
-// Lab. Working mini-calculators for every item the EY gap check (tab 8)
+// Gap workbench — the model layer behind tab 10 of the Corporate Finance
+// Lab. Working mini-calculators for every item the EY gap check (tab 7)
 // previously listed as knowledge-only, plus the drills from the user's
 // ChatGPT prep session — using THAT SESSION'S exact worked numbers as the
 // defaults wherever it gave them:
