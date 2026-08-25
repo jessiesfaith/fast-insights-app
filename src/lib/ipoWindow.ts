@@ -34,6 +34,50 @@ export const IPO_REFERENCE: IpoReference = {
 };
 
 // ---------------------------------------------------------------------------
+// IPO by sector — the trend over time (spec §76)
+// ---------------------------------------------------------------------------
+//
+// APPROXIMATE TEACHING VALUES: US IPOs raising >$50M, EY-Global-IPO-Trends
+// basis, rounded — anchored to the cited prints (biotech 2025 down ~47% vs
+// 2024; overall H1 2026 = 62 vs 34 in H1 2025; AI the driver; A&D and
+// biotech active) with the years between anchors set to the well-documented
+// shape of the cycle (2021 mania → 2022 collapse → slow thaw → 2026
+// reopening). Refresh from EY Global IPO Trends / SEC EDGAR before citing.
+// H1 2026 is a HALF year — compare shapes, not bar heights, at the end.
+
+export const SECTOR_IPO_YEARS = ['2021', '2022', '2023', '2024', '2025', 'H1 2026'] as const;
+
+export interface SectorIpoTrend {
+  id: string;
+  name: string;
+  /** Approximate US IPO counts (>$50M) per SECTOR_IPO_YEARS entry. */
+  counts: [number, number, number, number, number, number];
+  note: string;
+}
+
+export const SECTOR_IPO_TRENDS: SectorIpoTrend[] = [
+  { id: 'overall', name: 'ALL US IPOs >$50M', counts: [280, 35, 54, 70, 80, 62], note: 'The cycle in one line: 2021 mania, 2022 collapse (~-85%), slow thaw, and an H1-2026 (half-year!) already near full-year 2025 — 62 vs 34 in H1 2025.' },
+  { id: 'ai', name: 'AI & AI-adjacent', counts: [5, 1, 3, 8, 15, 20], note: 'The reopening’s engine — the only sector whose H1-2026 half year beats every prior FULL year. Windows are not generic: this one opened first.' },
+  { id: 'tech', name: 'Software / tech (ex-AI)', counts: [110, 6, 10, 15, 18, 12], note: 'The 2021 mania’s core — and the hardest fall: rate-sensitive long-duration stories (tab 11) needed the 10Y story to stabilize before buyers returned.' },
+  { id: 'biotech', name: 'Biotech / pharma', counts: [90, 18, 15, 19, 10, 7], note: 'The cited divergence: 2025 fell ~47% vs 2024 even as sector FINANCING rose to $68.5B — the private row of the menu carried the load. Active again in H1 2026, selectively.' },
+  { id: 'fintech', name: 'Financials / fintech', counts: [35, 3, 5, 8, 10, 8], note: 'Repriced brutally in 2022 (growth multiples met credit reality); the thaw favors profitable, boring balance sheets.' },
+  { id: 'industrials', name: 'Industrials / aerospace & defense', counts: [15, 4, 6, 7, 9, 8], note: 'The quiet counter-cyclical: A&D active in H1 2026 on the geopolitics bid (tab 15) — a window driven by the fiscal lever, not the Fed.' },
+  { id: 'consumer', name: 'Consumer / retail', counts: [25, 3, 6, 7, 8, 5], note: 'Needs the real-income story: consumer IPOs reopen last, when tab 3’s inflation lines cool and discretionary stops reading headwind.' },
+];
+
+export const SECTOR_IPO_SOURCE =
+  'US IPOs >$50M, EY Global IPO Trends basis — APPROXIMATE TEACHING VALUES anchored to the cited prints (biotech 2025 −47% vs 2024; H1 2026 overall 62 vs 34 prior-year period); interior years set to the documented cycle shape. Refresh from ey.com / SEC EDGAR before citing. H1 2026 is a half year.';
+
+/** Chart rows: {year, [sectorId]: count}. */
+export function sectorIpoRows(): Record<string, number | string>[] {
+  return SECTOR_IPO_YEARS.map((year, i) => {
+    const row: Record<string, number | string> = { year };
+    for (const t of SECTOR_IPO_TRENDS) row[t.id] = t.counts[i];
+    return row;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // The three windows — separate checklists, separate scores, never collapsed
 // ---------------------------------------------------------------------------
 

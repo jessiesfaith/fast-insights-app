@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_DILUTION_INPUTS,
+  SECTOR_IPO_SOURCE,
+  SECTOR_IPO_TRENDS,
+  SECTOR_IPO_YEARS,
+  sectorIpoRows,
   FINANCING_MENU,
   IPO_REFERENCE,
   THREE_SCORES_RULE,
@@ -19,6 +23,45 @@ describe('the IPO reference context', () => {
     expect(all).toContain('$68.5B');
     expect(IPO_REFERENCE.period).toMatch(/refresh before treating as current/i);
     expect(IPO_REFERENCE.source).toMatch(/EY/);
+  });
+});
+
+describe('IPO by sector over time (spec §76)', () => {
+  it('covers seven sector lines across six periods, honestly labeled', () => {
+    expect(SECTOR_IPO_YEARS).toEqual(['2021', '2022', '2023', '2024', '2025', 'H1 2026']);
+    expect(SECTOR_IPO_TRENDS).toHaveLength(7);
+    for (const t of SECTOR_IPO_TRENDS) {
+      expect(t.counts).toHaveLength(6);
+      expect(t.note.length).toBeGreaterThan(40);
+    }
+    expect(SECTOR_IPO_SOURCE).toMatch(/APPROXIMATE TEACHING VALUES/);
+    expect(SECTOR_IPO_SOURCE).toMatch(/half year/i);
+  });
+
+  it('honors the cited anchors: overall H1-26 = 62; biotech 2025 ≈ −47% vs 2024', () => {
+    const by = (id: string) => SECTOR_IPO_TRENDS.find((t) => t.id === id)!;
+    expect(by('overall').counts[5]).toBe(62);
+    const biotech = by('biotech');
+    const decline = (biotech.counts[4] - biotech.counts[3]) / biotech.counts[3];
+    expect(decline).toBeLessThan(-0.4);
+    expect(decline).toBeGreaterThan(-0.55);
+  });
+
+  it('teaches the three shapes: 2022 is every sector’s trough, AI’s half-year beats its every full year, consumer stays flat', () => {
+    for (const t of SECTOR_IPO_TRENDS) {
+      // 2022 is the trough among FULL years (H1 2026 is a half year and can't be compared as a level)
+      expect(Math.min(...t.counts.slice(0, 5))).toBe(t.counts[1]);
+    }
+    const ai = SECTOR_IPO_TRENDS.find((t) => t.id === 'ai')!;
+    expect(ai.counts[5]).toBe(Math.max(...ai.counts));
+    const consumer = SECTOR_IPO_TRENDS.find((t) => t.id === 'consumer')!;
+    expect(Math.max(...consumer.counts.slice(1))).toBeLessThan(consumer.counts[0] / 2);
+  });
+
+  it('chart rows carry every sector keyed by id', () => {
+    const rows = sectorIpoRows();
+    expect(rows).toHaveLength(6);
+    for (const t of SECTOR_IPO_TRENDS) expect(rows[0][t.id]).toBe(t.counts[0]);
   });
 });
 

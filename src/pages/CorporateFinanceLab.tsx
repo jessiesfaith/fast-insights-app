@@ -214,9 +214,12 @@ import {
   DEFAULT_DILUTION_INPUTS,
   FINANCING_MENU,
   IPO_REFERENCE,
+  SECTOR_IPO_SOURCE,
+  SECTOR_IPO_TRENDS,
   THREE_SCORES_RULE,
   WINDOW_CHECKLISTS,
   dilution,
+  sectorIpoRows,
   windowScore,
 } from '../lib/ipoWindow';
 import {
@@ -3230,11 +3233,13 @@ function XYLineChart({
   xKey,
   series,
   height,
+  ySuffix = '%',
 }: {
   data: Record<string, number | string | null>[];
   xKey: string;
   series: { id: string; label: string }[];
   height: number;
+  ySuffix?: string;
 }) {
   useThemeVersion();
   const palette = [
@@ -3256,7 +3261,7 @@ function XYLineChart({
             tickLine={false}
             width={42}
             domain={['auto', 'auto']}
-            tickFormatter={(v) => `${v}%`}
+            tickFormatter={(v) => `${v}${ySuffix}`}
           />
           <Tooltip
             contentStyle={{
@@ -3267,7 +3272,7 @@ function XYLineChart({
             }}
             itemStyle={{ color: 'var(--text-primary)' }}
             labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
-            formatter={(value: number, name: string) => [`${value}%`, labelOf[name] ?? name]}
+            formatter={(value: number, name: string) => [`${value}${ySuffix}`, labelOf[name] ?? name]}
           />
           {series.length > 1 && <Legend formatter={(value) => labelOf[value] ?? value} wrapperStyle={{ fontSize: 12 }} />}
           {series.map((x, i) => (
@@ -3769,6 +3774,10 @@ function IpoTab() {
   const scores = WINDOW_CHECKLISTS.map((l) => windowScore(l, checked[l.id]));
   const [dil, setDil] = useState(DEFAULT_DILUTION_INPUTS);
   const dilR = useMemo(() => dilution(dil), [dil]);
+  const [sectorSel, setSectorSel] = useState<string[]>(['overall', 'ai', 'biotech', 'tech']);
+  const toggleSector = (id: string) =>
+    setSectorSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id]));
+  const sectorRows = useMemo(() => sectorIpoRows(), []);
 
   return (
     <>
@@ -3784,7 +3793,66 @@ function IpoTab() {
         </ul>
       </StepCard>
 
-      <StepCard n="B" icon={<ClipboardCheck size={17} />} title="The three windows — scored separately, never collapsed">
+      <StepCard n="B" icon={<TrendingUp size={17} />} title="IPO by sector — the trend over time (2021 → H1 2026)">
+        <p style={hintStyle}>
+          The §76 view: sector windows over time, not one market. Pick up to four lines — the
+          shape is the lesson: the 2021 mania, the 2022 collapse in EVERY sector, the slow thaw,
+          and a reopening led by AI while biotech's line kept falling (−47% in 2025) even as its
+          private financing rose. H1 2026 is a HALF year — read the shape, not the last bar.
+        </p>
+        <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 4 }}>
+          {SECTOR_IPO_TRENDS.map((t) => (
+            <Chip key={t.id} active={sectorSel.includes(t.id)} onClick={() => toggleSector(t.id)}>
+              {t.name}
+            </Chip>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 4px' }}>Pick up to 4 to chart.</p>
+        <XYLineChart
+          data={sectorRows}
+          xKey="year"
+          series={SECTOR_IPO_TRENDS.filter((t) => sectorSel.includes(t.id)).map((t) => ({ id: t.id, label: t.name }))}
+          height={260}
+          ySuffix=" deals"
+        />
+        <div style={{ overflowX: 'auto', marginTop: 10 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Sector</th>
+                <th className="num" style={{ textAlign: 'right' }}>2021</th>
+                <th className="num" style={{ textAlign: 'right' }}>2022</th>
+                <th className="num" style={{ textAlign: 'right' }}>2023</th>
+                <th className="num" style={{ textAlign: 'right' }}>2024</th>
+                <th className="num" style={{ textAlign: 'right' }}>2025</th>
+                <th className="num" style={{ textAlign: 'right' }}>H1 26</th>
+                <th style={{ textAlign: 'left' }}>The read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SECTOR_IPO_TRENDS.map((t) => (
+                <tr key={t.id}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t.name}</td>
+                  {t.counts.map((c, i) => (
+                    <td key={i} className="num" style={{ textAlign: 'right', fontWeight: i === 5 ? 700 : 400, color: i === 1 ? 'var(--neg)' : i === 5 ? 'var(--accent)' : 'var(--text-secondary)' }}>{c}</td>
+                  ))}
+                  <td style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>{t.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '6px 0 0' }}>{SECTOR_IPO_SOURCE}</p>
+        <p style={decisionLine}>
+          <strong>What this tells you:</strong> the sector line you belong to IS your
+          IndustryWindowScore's first checkbox (section C below). AI's half-year beating its every
+          full year says that window is wide open; biotech's falling line with rising private
+          financing says take the private row of the menu (section E) and wait; consumer's flat
+          line says the reopening hasn't reached Main Street. Never read the overall line alone.
+        </p>
+      </StepCard>
+
+      <StepCard n="C" icon={<ClipboardCheck size={17} />} title="The three windows — scored separately, never collapsed">
         <p style={hintStyle}>
           The IPO decision is three different questions with three different owners. Toggle the
           checklist items to score each one — the defaults are pre-set to the H1-2026 reference
@@ -3827,7 +3895,7 @@ function IpoTab() {
         </p>
       </StepCard>
 
-      <StepCard n="C" icon={<Calculator size={17} />} title="Dilution math — what the raise actually costs the owners">
+      <StepCard n="D" icon={<Calculator size={17} />} title="Dilution math — what the raise actually costs the owners">
         <p style={hintStyle}>
           Post-money = pre-money + PRIMARY raised; new investors own primary ÷ post-money.
           Secondary shares are existing holders selling — cash to them, zero dilution — and the
@@ -3866,7 +3934,7 @@ function IpoTab() {
         </p>
       </StepCard>
 
-      <StepCard n="D" icon={<Handshake size={17} />} title="The financing menu — IPO against every alternative">
+      <StepCard n="E" icon={<Handshake size={17} />} title="The financing menu — IPO against every alternative">
         <div style={{ overflowX: 'auto' }}>
           <table className="fin-table" style={{ width: '100%' }}>
             <thead>
@@ -5268,6 +5336,14 @@ function GuidePane({
 
         {tab === 'ipo' && (
           <>
+            <GuideSection n="A0" title="Reading the sector trend chart">
+              Three shapes to memorize: the UNIVERSAL trough (2022 — every sector collapsed
+              together, because the discount rate is shared), the DIVERGENT reopening (AI's
+              half-year beats its every full year while biotech keeps falling — windows are
+              sector-specific), and the SUBSTITUTION effect (biotech IPOs −47% with private
+              financing +11% — a closed public window reroutes capital, it doesn't stop it).
+              Approximate teaching values anchored to the cited prints; H1 2026 is a half year.
+            </GuideSection>
             <GuideSection n="A" title="Why three scores">
               Because the failure modes are different: IPO-ing into a closed sector window prices
               you off broken comps; IPO-ing unready turns the first missed quarter into a
