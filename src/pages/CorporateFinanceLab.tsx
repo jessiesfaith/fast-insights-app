@@ -6216,6 +6216,32 @@ function ReportTab() {
           </table>
         </div>
       </StepCard>
+
+      <div className="print-only page-break-before">
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+          Appendix A — how to read this report
+        </div>
+        <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          {REPORT_HOW_TO_READ.map((h) => (
+            <li key={h.slice(0, 40)} style={{ marginBottom: 4 }}>{h}</li>
+          ))}
+        </ol>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '18px 0 8px' }}>
+          Appendix B — the formulas behind every number
+        </div>
+        {REPORT_FORMULAS.map((f) => (
+          <div key={f.name} className="avoid-break" style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{f.name}</div>
+            <Eq>{f.formula}</Eq>
+            <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{f.how}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', marginTop: 2 }}>{refText(f.ref)}</div>
+          </div>
+        ))}
+        <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 12 }}>
+          Corporate Finance Lab — education only; teaching values labeled where used. On screen, both appendices live
+          in the tab’s guide pane.
+        </div>
+      </div>
     </>
   );
 }
@@ -7042,7 +7068,9 @@ function GuidePane({
               a header stamps WHICH selection it is (country · state · industry · scenario ·
               date). To compare, print one PDF per selection — "California × Tech, Today" next
               to "Texas × Energy, Supply shock" — and read them side by side; the stamped
-              headers keep them straight.
+              headers keep them straight. Every PDF ends with a print-only appendix — the
+              how-to-read instructions and all the formula cards — so a printed report is
+              self-contained even though those sections live in this guide pane on screen.
             </GuideSection>
             <GuideSection n="J" title="Using it for the interview">
               This is the "walk me through how you'd brief a client on X" rehearsal: pick the
