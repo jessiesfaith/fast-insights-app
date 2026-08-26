@@ -332,3 +332,111 @@ export function industryAcrossStates(industryId: string): { id: string; presence
 export function industryAcrossCountries(industryId: string): { id: string; presence: Presence }[] {
   return Object.entries(COUNTRY_INDUSTRY).map(([id, row]) => ({ id, presence: row[industryId]?.presence ?? 'minor' }));
 }
+
+// ---------------------------------------------------------------------------
+// STATE × COUNTRY — each state's strongest foreign-country relationships,
+// authored; everything else gets an honest computed fallback. And the
+// three-way TRIANGLE (state × country × industry) as a deterministic
+// composition of the authored cells.
+// ---------------------------------------------------------------------------
+
+import { ALL_COUNTRY_EXPOSURE, GEO_EXPOSURE_STATES } from './geoPolitics';
+
+/** Authored pairs: each state's three most meaningful country relationships. */
+export const STATE_COUNTRY: Record<string, Record<string, string>> = {
+  ca: {
+    china: 'The front line of the trade relationship: LA/Long Beach is China’s main US gateway, so every tariff round reprices California port volumes, warehouse jobs, and retail costs first — while Bay Area tech and Chinese talent/capital ties face the screening regime.',
+    mexico: 'A border economy in its own right: produce, autos, and cross-border manufacturing through Calexico/Otay — plus shared water politics (the Colorado) that farm both economies.',
+    japan: 'Deep tech-and-auto investment ties (Toyota’s US research, gaming/entertainment capital) and the trans-Pacific shipping lane both economies depend on.',
+  },
+  tx: {
+    mexico: 'THE bilateral state-country pair in America: Laredo is the #1 US port of entry, and the Texas–Mexico border economy (autos, electronics, energy) is what "nearshoring" physically looks like.',
+    china: 'Electronics imports through Texas ports and the data-center supply chain — plus Chinese demand setting the price of the crude Texas exports.',
+    saudi: 'Motiva in Port Arthur — the largest US refinery — is Saudi-owned: Gulf crude runs through Texas steel. OPEC+ decisions are Permian P&L.',
+  },
+  ny: {
+    uk: 'The London–New York axis IS global finance: the two clearing hubs, the sanctions-enforcement twins, the listing-venue rivals — one industry, two time zones.',
+    china: 'Chinese listings, delisting fights, and capital-markets access are negotiated in New York — the financial front of the decoupling.',
+    india: 'The IT-services and diaspora corridor to Wall Street — India’s services surplus lands substantially in New York’s back and middle offices.',
+  },
+  fl: {
+    brazil: 'Miami is Latin America’s financial capital — Brazilian wealth, trade finance, and real-estate capital flow through Florida; when the real slides, Miami feels it.',
+    venezuela: 'The exile capital: Venezuelan migration, remittances, and politics are Florida domestic issues — the sanctions flashpoint with a local ballot impact.',
+    canada: 'The snowbird economy: Canadian tourism and property ownership are a seasonal GDP line — priced in Canadian dollars (tab 15’s CAD slide is a Florida demand story).',
+  },
+  il: {
+    china: 'The retaliation target: Illinois soy was the trade war’s designated victim in 2018 and stays first in line every round — the CME prices the damage in real time.',
+    mexico: 'Chicago is the USMCA rail hub — the corridor’s freight interchanges here, making Mexican nearshoring an Illinois rail story.',
+    canada: 'Rail and energy integration: Canadian crude and grain move through Chicago’s interchange — the quiet northern half of its freight economy.',
+  },
+  pa: {
+    germany: 'Industrial kinship and competition: specialty steel and machinery on both sides — German mills are the benchmark Pennsylvania’s fight to modernize is measured against.',
+    canada: 'Energy integration: Marcellus gas and the northeastern grid interconnect with Ontario/Québec — one power market in practice.',
+    china: 'Steel is the story: every Section-232 tariff round and every overcapacity fight lands on Pennsylvania mills first.',
+  },
+  oh: {
+    japan: 'Honda’s Ohio anchor (since 1982) made the state the proof that foreign investment rebuilds industrial economies — the model the Intel bet now repeats with chips.',
+    china: 'The supply-chain rewiring state: Intel’s fabs exist BECAUSE of the China chip fight — Ohio is where de-risking gets built.',
+    germany: 'Auto-supplier crossholdings: the German Tier-1s (Bosch, ZF) thread through Ohio’s auto corridor — the EV transition strains both ends.',
+  },
+  ga: {
+    skorea: 'THE state-country pair of the reshoring era: Hyundai’s Metaplant and SK’s battery plants made Georgia the physical home of Korea’s "China+1" hedge — Korean industrial policy with Georgia zip codes.',
+    germany: 'Porsche’s North American HQ and a German manufacturing cluster — the quieter European half of Georgia’s investment story.',
+    china: 'Savannah’s boom is partly trade rerouting — East Coast share gains as importers diversify from West Coast/China exposure.',
+  },
+  nj: {
+    india: 'The pharma-and-diaspora corridor: Indian generics firms’ US operations and one of the largest Indian-American communities — the API supply-chain debate is a New Jersey employment question.',
+    germany: 'Pharma and chemicals kinship — the German giants’ US arms sit in the NJ corridor.',
+    china: 'The import gateway: NY/NJ port volumes and the warehouse belt price the tariff rounds into East Coast logistics.',
+  },
+  wa: {
+    china: 'Boeing’s historically biggest customer and its designated retaliation target — every trade round puts Washington aerospace jobs on the table; cloud/AI export rules hit the other flagship.',
+    japan: 'Aerospace supply partnership: Japanese heavy industry builds Boeing wings — the alliance in industrial form.',
+    canada: 'The Cascadia corridor: softwood-lumber disputes, cross-border energy, and Vancouver–Seattle tech commuting — friction and integration at once.',
+  },
+};
+
+export interface StateCountryRead {
+  authored: boolean;
+  text: string;
+}
+
+export function stateCountryRead(stateId: string, countryId: string, stateName: string, countryName: string): StateCountryRead {
+  const authored = STATE_COUNTRY[stateId]?.[countryId];
+  if (authored) return { authored: true, text: authored };
+  const st = GEO_EXPOSURE_STATES.find((x) => x.id === stateId);
+  const co = ALL_COUNTRY_EXPOSURE.find((x) => x.id === countryId);
+  return {
+    authored: false,
+    text: `No authored pair cell for ${stateName} × ${countryName} yet — the link runs through the national channels (tariffs, rates, the flashpoints) rather than a distinctive bilateral cluster. Frame it from the two sides: ${stateName} — ${st?.headline ?? ''} ${countryName} — ${co?.headline ?? ''}`,
+  };
+}
+
+/** The three-way read: deterministic composition of the two industry cells + the pair. */
+export interface TriangleRead {
+  stateCell: CrossCell;
+  countryCell: CrossCell;
+  verdict: string;
+}
+
+export function triangleRead(stateId: string, countryId: string, industryId: string, stateName: string, countryName: string, industryName: string): TriangleRead {
+  const sc = stateIndustryCell(stateId, industryId);
+  const cc = countryIndustryCell(countryId, industryId);
+  const rank: Record<Presence, number> = { anchor: 2, significant: 1, minor: 0 };
+  const a = rank[sc.presence];
+  const b = rank[cc.presence];
+  let verdict: string;
+  if (a === 2 && b === 2) {
+    verdict = `${industryName} is an ANCHOR on both sides — ${stateName} × ${countryName} is one of this industry’s strongest real-economy links: supply chains, investment, and tariff exposure all run through this triangle.`;
+  } else if (a + b >= 3) {
+    const strong = a > b ? stateName : countryName;
+    verdict = `A strong link with a heavier side: ${strong} carries the anchor weight in ${industryName}, the other side a real cluster — the flows in this triangle mostly run toward ${strong}’s hub.`;
+  } else if (a + b === 2) {
+    verdict = `A working link, not a defining one: ${industryName} is present on both sides of ${stateName} × ${countryName}, but the relationship’s center of gravity is in other industries — check the pair read above for where.`;
+  } else if (a + b === 1) {
+    verdict = `A thin link: ${industryName} barely registers on one side of this triangle — macro channels (the dials, tariffs, rates) will matter more here than any direct industry tie.`;
+  } else {
+    verdict = `${industryName} is minor on BOTH sides of ${stateName} × ${countryName} — this triangle moves through national channels only. An honest empty cell is itself information: not every combination has a story.`;
+  }
+  return { stateCell: sc, countryCell: cc, verdict };
+}

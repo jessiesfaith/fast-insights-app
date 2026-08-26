@@ -178,7 +178,9 @@ import {
   countryIndustryCell,
   industryAcrossCountries,
   industryAcrossStates,
+  stateCountryRead,
   stateIndustryCell,
+  triangleRead,
 } from '../lib/crossLens';
 import {
   GDP_QUARTERLY,
@@ -6020,6 +6022,8 @@ function ReportTab() {
   const stateNames = Object.fromEntries(REPORT_STATES.map((x) => [x.id, x.name]));
   const countryNames = Object.fromEntries(REPORT_COUNTRIES.map((x) => [x.id, x.name]));
   const bothFlash = FLASHPOINTS.filter((f) => f.countries.includes(country.id) && f.industries.includes(industry.id));
+  const pairRead = stateCountryRead(state.id, country.id, state.name, country.name);
+  const triangle = triangleRead(state.id, country.id, industry.id, state.name, country.name, industry.name);
   const stateGeo = GEO_EXPOSURE_STATES.find((g) => g.id === state.id)!;
   const industryGeo = GEO_EXPOSURE_INDUSTRIES.find((g) => g.id === industry.id)!;
   const industryFlash = FLASHPOINTS.filter((f) => f.industries.includes(industry.id));
@@ -6683,6 +6687,33 @@ function ReportTab() {
             The same industry across all seventeen countries (● anchor · ◐ significant · ○ minor):
           </div>
           <PresenceStrip rows={industryAcrossCountries(industry.id)} names={countryNames} activeId={country.id} />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 8 }}>{CROSS_LENS_SOURCE}</div>
+        </StepCard>
+      )}
+
+      {showState && showCountry && (
+        <StepCard n={letter()} icon={<Handshake size={17} />} title={`State × country — ${state.name} × ${country.name}`}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+            {pairRead.authored
+              ? 'An authored pair — one of this state’s strongest foreign relationships.'
+              : 'No authored pair cell — the honest computed read below joins the two sides.'}
+          </div>
+          <div style={bodyText}>{pairRead.text}</div>
+
+          {showIndustry && (
+            <>
+              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 8px' }}>
+                The triangle — {state.name} × {country.name} × {industry.name}
+              </div>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{state.name}:</span>
+                <PresenceBadge p={triangle.stateCell.presence} />
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{country.name}:</span>
+                <PresenceBadge p={triangle.countryCell.presence} />
+              </div>
+              <div style={bodyText}>{triangle.verdict}</div>
+            </>
+          )}
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 8 }}>{CROSS_LENS_SOURCE}</div>
         </StepCard>
       )}

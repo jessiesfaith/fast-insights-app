@@ -3,10 +3,13 @@ import {
   COUNTRY_INDUSTRY,
   CROSS_LENS_SOURCE,
   STATE_INDUSTRY,
+  STATE_COUNTRY,
   countryIndustryCell,
   industryAcrossCountries,
   industryAcrossStates,
+  stateCountryRead,
   stateIndustryCell,
+  triangleRead,
 } from '../lib/crossLens';
 import { REPORT_COUNTRIES, REPORT_INDUSTRIES, REPORT_STATES } from '../lib/reportBuilder';
 
@@ -58,5 +61,47 @@ describe('the cross-lens matrices are COMPLETE', () => {
     expect(industryAcrossCountries('energy')).toHaveLength(REPORT_COUNTRIES.length);
     expect(stateIndustryCell('zz', 'tech').note).toMatch(/No cell authored/);
     expect(CROSS_LENS_SOURCE).toMatch(/APPROXIMATE TEACHING CHARACTERIZATIONS/);
+  });
+});
+
+describe('state × country pairs and the three-way triangle', () => {
+  it('every state has three authored country pairs with valid ids and real stories', () => {
+    expect(Object.keys(STATE_COUNTRY).sort()).toEqual(REPORT_STATES.map((s) => s.id).sort());
+    const countryIds = new Set(REPORT_COUNTRIES.map((c) => c.id));
+    for (const [st, row] of Object.entries(STATE_COUNTRY)) {
+      expect(Object.keys(row).length, st).toBeGreaterThanOrEqual(3);
+      for (const [co, text] of Object.entries(row)) {
+        expect(countryIds.has(co), `${st}×${co}`).toBe(true);
+        expect(text.length).toBeGreaterThan(60);
+      }
+    }
+    expect(STATE_COUNTRY.ga.skorea).toMatch(/Hyundai/);
+    expect(STATE_COUNTRY.tx.saudi).toMatch(/Motiva/);
+    expect(STATE_COUNTRY.il.china).toMatch(/soy/i);
+    expect(STATE_COUNTRY.wa.china).toMatch(/Boeing/);
+  });
+
+  it('unauthored pairs get an honest computed fallback joining both sides', () => {
+    const r = stateCountryRead('oh', 'brazil', 'Ohio', 'Brazil');
+    expect(r.authored).toBe(false);
+    expect(r.text).toMatch(/No authored pair cell/);
+    expect(r.text).toMatch(/Ohio/);
+    expect(r.text).toMatch(/Brazil/);
+    const g = stateCountryRead('ga', 'skorea', 'Georgia', 'South Korea');
+    expect(g.authored).toBe(true);
+  });
+
+  it('the triangle composes deterministically across presence combinations', () => {
+    // anchor + anchor: GA industrials × Korea industrials (Hyundai/SK)
+    const strong = triangleRead('ga', 'skorea', 'industrials', 'Georgia', 'South Korea', 'Industrials');
+    expect(strong.stateCell.presence).toBe('anchor');
+    expect(strong.countryCell.presence).toBe('anchor');
+    expect(strong.verdict).toMatch(/ANCHOR on both sides/);
+    // minor + minor: FL tech × Venezuela tech
+    const thin = triangleRead('fl', 'venezuela', 'tech', 'Florida', 'Venezuela', 'Technology');
+    expect(thin.verdict).toMatch(/minor on BOTH sides/);
+    // asymmetric: NY financials (anchor) × Iran financials (minor)
+    const asym = triangleRead('ny', 'iran', 'financials', 'New York', 'Iran', 'Financials');
+    expect(asym.verdict.length).toBeGreaterThan(50);
   });
 });
