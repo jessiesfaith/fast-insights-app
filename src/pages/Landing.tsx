@@ -241,7 +241,7 @@ export default function Landing() {
               rel="noopener noreferrer"
               aria-label="Open the Launch Gantt in a new tab"
               onClick={() => track('tool_open', { tool: 'gantt' })}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#00c805', textDecoration: 'none', border: '1px solid #00c805', borderRadius: 999, padding: '7px 14px', whiteSpace: 'nowrap' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', border: '1px solid var(--accent)', borderRadius: 999, padding: '7px 14px', whiteSpace: 'nowrap' }}
             >
               <CalendarRange size={15} /> Launch Gantt
             </a>
