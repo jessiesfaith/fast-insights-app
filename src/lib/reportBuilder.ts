@@ -326,7 +326,7 @@ export function combinedRead(stateId: string, industryId: string, riskFree: numb
     `(WACC ${ind.advice.result.wacc.wacc.toFixed(1)}%). The state layer adds the fiscal ground it stands on — ` +
     `${st.name} carries ${st.debt.row.debtGspPct}% bonded debt to GSP (#${st.debt.rankAmongTen} of the top ten) and its pension reality: ` +
     `${st.debt.row.pensionNote} A company in this state-industry cell reads BOTH: the dials set the industry’s revenue weather, ` +
-    `the state sets taxes, pensions, and the 24-month political calendar below.`
+    `the state sets taxes, pensions, and the 24-month political calendar below. The rated intersection cell beneath this paragraph scores ${ind.name} in ${st.name} directly, with the ten-state comparison strip.`
   );
 }
 
@@ -403,6 +403,7 @@ export const REPORT_HOW_TO_READ: string[] = [
   'Read order for a country: debt trend (the level and slope) → trade balance (earner or borrower) → currency line (what markets think) → populism/pipeline (what politics is about to do) → calendar (when). That is the four-gauge health check assembled.',
   'Read order for a state: bonded debt ÷ GSP → the pension note (the REAL balance sheet) → impact watch → calendar.',
   'Read order for an industry: backdrop (revenue weather) → capital stance and WACC (what management should do) → benchmarks (what normal looks like HERE) → IPO window (can it raise equity) → sub-industry lenses.',
+  'The lenses combine in EVERY direction, without changing the filters: state × industry and country × industry render rated intersection cells with comparison strips; state × country renders the authored pair (or an honest fallback); all three render the triangle verdict. And each single-lens card carries its reverse map — a state’s foreign-country ties, a country’s US-state ties, an industry’s anchor map across both — so the same data reads from whichever side you start on.',
   'Honesty labels travel with the data: country/state/trade/currency values are approximate teaching values; benchmarks are observed Damodaran averages; dial-driven numbers are a linear teaching model. The formulas table shows the exact math behind each.',
 ];
 

@@ -178,6 +178,10 @@ import {
   countryIndustryCell,
   industryAcrossCountries,
   industryAcrossStates,
+  countryAcrossStates,
+  pairsForCountry,
+  pairsForState,
+  stateAcrossCountries,
   stateCountryRead,
   stateIndustryCell,
   triangleRead,
@@ -6472,6 +6476,25 @@ function ReportTab() {
             headline={countryRoutes.headline}
             items={countryRoutes.items}
           />
+
+          <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 4px' }}>
+            US-state ties — {country.name} across the ten states
+          </div>
+          <PresenceStrip rows={countryAcrossStates(country.id)} names={stateNames} activeId={showState ? state.id : ''} />
+          {pairsForCountry(country.id).length > 0 ? (
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {pairsForCountry(country.id).map((pr) => (
+                <li key={pr.stateId}>
+                  <strong>{stateNames[pr.stateId]}:</strong> {pr.text}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>
+              No authored state pair yet — {country.name}’s US ties run through national channels
+              (tariffs, rates, the flashpoints) rather than a single state cluster.
+            </div>
+          )}
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
             Full detail in the geopolitics steps at the bottom of this tab (flashpoints, military balance, alliances, meetings, timeline).
           </div>
@@ -6516,6 +6539,18 @@ function ReportTab() {
             items={stateEvents.items}
           />
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{STATE_EVENTS_SOURCE}</div>
+
+          <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 4px' }}>
+            Foreign-country ties — {state.name} across the seventeen countries
+          </div>
+          <PresenceStrip rows={stateAcrossCountries(state.id)} names={countryNames} activeId={showCountry ? country.id : ''} />
+          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            {pairsForState(state.id).map((pr) => (
+              <li key={pr.countryId}>
+                <strong>{countryNames[pr.countryId]}:</strong> {pr.text}
+              </li>
+            ))}
+          </ul>
 
           {state.calendar.events.length > 0 && (
             <>
@@ -6639,6 +6674,13 @@ function ReportTab() {
               <strong>Flashpoints touching {industry.name}:</strong> {industryFlash.map((f) => f.name).join(' · ')}
             </div>
           )}
+          <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 4px' }}>
+            Where {industry.name} anchors — states and countries (● anchor · ◐ significant · ○ minor)
+          </div>
+          <PresenceStrip rows={industryAcrossStates(industry.id)} names={stateNames} activeId={showState ? state.id : ''} />
+          <PresenceStrip rows={industryAcrossCountries(industry.id)} names={countryNames} activeId={showCountry ? country.id : ''} />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{CROSS_LENS_SOURCE}</div>
+
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
             Full detail in the geopolitics steps at the bottom of this tab (flashpoints, military balance, alliances, meetings, timeline).
           </div>
@@ -7859,7 +7901,11 @@ function GuidePane({
               "Technology in California" as its own rated entry, with the same industry compared
               across all ten states. Country + industry adds the mirror: "autos in Germany" with
               the seventeen-country comparison strip and the flashpoints touching both. All
-              three on: the full briefing.
+              three on: the full briefing. State + country renders the authored pair (Georgia ×
+              South Korea is the Hyundai/SK corridor; unauthored pairs say so honestly), and all
+              three together add the triangle verdict. The directions reverse too: every country
+              card maps its US-state ties, every state card its foreign-country ties, and every
+              industry card its anchor map across both — same data, readable from any side.
             </GuideSection>
             <GuideSection n="E" title="What moves and what doesn't">
               The scenario chips drive ONLY the dial-driven sections — industry backdrop, capital

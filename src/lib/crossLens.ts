@@ -440,3 +440,44 @@ export function triangleRead(stateId: string, countryId: string, industryId: str
   }
   return { stateCell: sc, countryCell: cc, verdict };
 }
+
+// ---------------------------------------------------------------------------
+// Reverse views — every direction between the three lens types works alone:
+// a state's foreign-country ties, a country's US-state ties, and an
+// industry's anchor map, each renderable without the other lens being on.
+// ---------------------------------------------------------------------------
+
+/** Flagship pairs — the state–country relationships strong enough to rate 'anchor'. */
+const PAIR_ANCHORS = new Set([
+  'ga:skorea', 'tx:mexico', 'ca:china', 'wa:china', 'ny:uk', 'fl:brazil', 'tx:saudi', 'il:china', 'oh:japan', 'nj:india',
+]);
+
+export function pairPresence(stateId: string, countryId: string): Presence {
+  if (PAIR_ANCHORS.has(`${stateId}:${countryId}`)) return 'anchor';
+  return STATE_COUNTRY[stateId]?.[countryId] ? 'significant' : 'minor';
+}
+
+/** One country's tie strength across all ten states (for the country card). */
+export function countryAcrossStates(countryId: string): { id: string; presence: Presence }[] {
+  return Object.keys(STATE_INDUSTRY).map((id) => ({ id, presence: pairPresence(id, countryId) }));
+}
+
+/** One state's tie strength across all seventeen countries (for the state card). */
+export function stateAcrossCountries(stateId: string): { id: string; presence: Presence }[] {
+  return Object.keys(COUNTRY_INDUSTRY).map((id) => ({ id, presence: pairPresence(stateId, id) }));
+}
+
+/** The authored pair texts that mention a given country, keyed by state. */
+export function pairsForCountry(countryId: string): { stateId: string; text: string }[] {
+  return Object.entries(STATE_COUNTRY)
+    .filter(([, row]) => row[countryId])
+    .map(([stateId, row]) => ({ stateId, text: row[countryId] }));
+}
+
+/** A state's authored pairs, strongest first. */
+export function pairsForState(stateId: string): { countryId: string; text: string; presence: Presence }[] {
+  const row = STATE_COUNTRY[stateId] ?? {};
+  return Object.entries(row)
+    .map(([countryId, text]) => ({ countryId, text, presence: pairPresence(stateId, countryId) }))
+    .sort((a, b) => (a.presence === 'anchor' ? -1 : 1) - (b.presence === 'anchor' ? -1 : 1));
+}

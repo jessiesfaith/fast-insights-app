@@ -4,9 +4,14 @@ import {
   CROSS_LENS_SOURCE,
   STATE_INDUSTRY,
   STATE_COUNTRY,
+  countryAcrossStates,
   countryIndustryCell,
   industryAcrossCountries,
   industryAcrossStates,
+  pairPresence,
+  pairsForCountry,
+  pairsForState,
+  stateAcrossCountries,
   stateCountryRead,
   stateIndustryCell,
   triangleRead,
@@ -103,5 +108,28 @@ describe('state × country pairs and the three-way triangle', () => {
     // asymmetric: NY financials (anchor) × Iran financials (minor)
     const asym = triangleRead('ny', 'iran', 'financials', 'New York', 'Iran', 'Financials');
     expect(asym.verdict.length).toBeGreaterThan(50);
+  });
+});
+
+describe('reverse views — every direction between the lens types', () => {
+  it('a country maps across the ten states, with the flagship pairs rated anchor', () => {
+    expect(countryAcrossStates('skorea')).toHaveLength(REPORT_STATES.length);
+    expect(pairPresence('ga', 'skorea')).toBe('anchor');
+    expect(pairPresence('tx', 'mexico')).toBe('anchor');
+    expect(pairPresence('oh', 'japan')).toBe('anchor');
+    // authored but not flagship = significant; unauthored = minor
+    expect(pairPresence('ca', 'japan')).toBe('significant');
+    expect(pairPresence('oh', 'brazil')).toBe('minor');
+  });
+
+  it('a state maps across the seventeen countries; pair lists resolve both directions', () => {
+    expect(stateAcrossCountries('tx')).toHaveLength(REPORT_COUNTRIES.length);
+    const chinaStates = pairsForCountry('china').map((p) => p.stateId).sort();
+    expect(chinaStates.length).toBeGreaterThanOrEqual(5); // ca, tx, ny, il, pa, oh?, ga, nj, wa
+    expect(chinaStates).toContain('ca');
+    expect(chinaStates).toContain('il');
+    const gaPairs = pairsForState('ga');
+    expect(gaPairs[0].countryId).toBe('skorea'); // anchors sort first
+    expect(pairsForCountry('venezuela').map((p) => p.stateId)).toEqual(['fl']);
   });
 });
