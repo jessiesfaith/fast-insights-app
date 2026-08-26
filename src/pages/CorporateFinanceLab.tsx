@@ -703,6 +703,22 @@ export default function CorporateFinanceLab() {
   };
   const [custIndustryId, setCustIndustryId] = useState<string | null>(null);
 
+  // Reset-to-snapshot handlers: every editable section can return to the real
+  // market snapshot + worked-example defaults in one click.
+  const resetTab1 = () => {
+    pickToday();
+    setCapital(1_000_000);
+    setWaccInputs(DEFAULT_WACC_INPUTS);
+    setProformaOn(false);
+    setProforma(DEFAULT_PROFORMA);
+  };
+  const resetTab2 = () => {
+    setRequested(1_000_000);
+    setTermsDays(30);
+    loadSample('average');
+    setCustIndustryId(null);
+  };
+
   const proRead = useMemo(() => readProforma(proforma), [proforma]);
   // When the pro forma is on, its ratio-derived spread replaces the chip.
   const effInputs = useMemo<WaccInputs>(
@@ -773,6 +789,7 @@ export default function CorporateFinanceLab() {
 
   // Tab 5 state (valuation workbench).
   const [dcf, setDcf] = useState<DcfInputs>(DEFAULT_DCF_INPUTS);
+  const resetDcf = () => setDcf(DEFAULT_DCF_INPUTS);
   const setDcfField = (key: keyof DcfInputs, v: number) => setDcf((d) => ({ ...d, [key]: v }));
   const dcfResult = useMemo(() => runDcf(dcf), [dcf]);
   const dcfGrid = useMemo(() => sensitivityGrid(dcf), [dcf]);
@@ -878,6 +895,9 @@ export default function CorporateFinanceLab() {
         <div className="col" style={{ gap: 24 }}>
           {tab === 'capital' && (
             <>
+              <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+                <ResetButton onClick={resetTab1} />
+              </div>
               <StepCard n="A" icon={<Calculator size={17} />} title="Your capital & cost of capital">
                 <p style={hintStyle}>
                   How much is on the table, and what return must any use of it beat? Your WACC is
@@ -1022,6 +1042,9 @@ export default function CorporateFinanceLab() {
 
           {tab === 'credit' && (
             <>
+              <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+                <ResetButton onClick={resetTab2} label="Reset — reload the sample customer & defaults" />
+              </div>
               <StepCard n="A" icon={<Wallet size={17} />} title="The ask">
                 <p style={hintStyle}>
                   A customer wants to buy your inventory on open terms — you ship now, they pay later.
@@ -1857,6 +1880,9 @@ export default function CorporateFinanceLab() {
 
           {tab === 'valuation' && (
             <>
+              <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+                <ResetButton onClick={resetDcf} label="Reset — back to the default DCF inputs" />
+              </div>
               <StepCard n="A" icon={<Calculator size={17} />} title="The forecast — revenue to free cash flow">
                 <p style={hintStyle}>
                   A five-year DCF, built the way you'd narrate it in an interview: revenue grows,
@@ -3007,6 +3033,32 @@ function OptionsSection({
 // Tab 10 — the gap workbench (self-contained state)
 // ---------------------------------------------------------------------------
 
+function ResetButton({ onClick, label = 'Reset — back to today’s market snapshot & defaults' }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      className="no-print"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
+        padding: '8px 14px',
+        fontSize: 12.5,
+        fontWeight: 600,
+        borderRadius: 999,
+        cursor: 'pointer',
+        color: 'var(--text-secondary)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-strong)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <RefreshCcw size={13} /> {label}
+    </button>
+  );
+}
+
 function DecInput({ value, onChange, width = 80 }: { value: number; onChange: (v: number) => void; width?: number }) {
   return (
     <div
@@ -3074,6 +3126,24 @@ function GapWorkbenchTab() {
   const ffMin = Math.min(...ff.bars.map((b) => b.low), ffInp.currentPrice) - 2;
   const ffMax = Math.max(...ff.bars.map((b) => b.high), ffInp.offerPrice, ffInp.currentPrice) + 2;
   const ffPct = (v: number) => ((v - ffMin) / (ffMax - ffMin)) * 100;
+  const resetAllCalcs = () => {
+    setTwInp(DEFAULT_13WEEK_INPUTS);
+    setFfInp(DEFAULT_FIELD_INPUTS);
+    setQoeInp(DEFAULT_QOE_INPUTS);
+    setIrr(DEFAULT_IRR_INPUTS);
+    setBeta(DEFAULT_BETA_INPUTS);
+    setHurdle(DEFAULT_HURDLE_INPUTS);
+    setRnpv(DEFAULT_RNPV_INPUTS);
+    setRoic(DEFAULT_ROIC_INPUTS);
+    setPpaIn(DEFAULT_PPA_INPUTS);
+    setImpair(DEFAULT_IMPAIR_INPUTS);
+    setComps(DEFAULT_COMPS_INPUTS);
+    setCost(DEFAULT_COST_INPUTS);
+    setLbo(DEFAULT_LBO_INPUTS);
+    setAcc(DEFAULT_ACCRETION_INPUTS);
+    setBe(DEFAULT_BREAKEVEN_INPUTS);
+    setCg(DEFAULT_CAGR_INPUTS);
+  };
   const [irr, setIrr] = useState(DEFAULT_IRR_INPUTS);
   const [beta, setBeta] = useState(DEFAULT_BETA_INPUTS);
   const [hurdle, setHurdle] = useState(DEFAULT_HURDLE_INPUTS);
@@ -3103,6 +3173,9 @@ function GapWorkbenchTab() {
 
   return (
     <>
+      <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+        <ResetButton onClick={resetAllCalcs} label="Reset — all calculators back to the worked-example defaults" />
+      </div>
       <StepCard n="A" icon={<Calculator size={17} />} title="IRR & NPV lab">
         <p style={hintStyle}>
           Your prep session's example, live: invest 100 and receive 40 / 50 / 50. The session
@@ -4082,9 +4155,18 @@ function RealEstateTab() {
   const stress = useMemo(() => creRateStress(cre), [cre]);
   const caps = useMemo(() => capRateSensitivity(cre.noi), [cre.noi]);
   const ratio = housingPaymentRatioPct({ monthlyPI: basePayment, monthlyTaxesInsHoa: taxesIns, grossMonthlyIncome: income });
+  const resetRealEstate = () => {
+    setPay(DEFAULT_PAYMENT_INPUTS);
+    setIncome(12_000);
+    setTaxesIns(650);
+    setCre(DEFAULT_CRE_INPUTS);
+  };
 
   return (
     <>
+      <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+        <ResetButton onClick={resetRealEstate} label="Reset — snapshot rates & default property inputs" />
+      </div>
       <StepCard n="A" icon={<Home size={17} />} title="Your mortgage's real formula — 10Y + spread, never the 30Y">
         <p style={hintStyle}>
           A 30-year mortgage amortizes over 30 years — but because homeowners can refinance the
@@ -4314,12 +4396,24 @@ function IpoTab() {
   const [dil, setDil] = useState(DEFAULT_DILUTION_INPUTS);
   const dilR = useMemo(() => dilution(dil), [dil]);
   const [sectorSel, setSectorSel] = useState<string[]>(['overall', 'ai', 'biotech', 'tech']);
+  const resetIpo = () => {
+    setChecked(
+      Object.fromEntries(
+        WINDOW_CHECKLISTS.map((l) => [l.id, l.items.filter((i) => i.defaultChecked).map((i) => i.id)]),
+      ),
+    );
+    setDil(DEFAULT_DILUTION_INPUTS);
+    setSectorSel(['overall', 'ai', 'biotech', 'tech']);
+  };
   const toggleSector = (id: string) =>
     setSectorSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id]));
   const sectorRows = useMemo(() => sectorIpoRows(), []);
 
   return (
     <>
+      <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+        <ResetButton onClick={resetIpo} label="Reset — snapshot window defaults & dilution example" />
+      </div>
       <StepCard n="A" icon={<Rocket size={17} />} title={`The IPO market right now — ${IPO_REFERENCE.period}`}>
         <p style={hintStyle}>
           Before any framework: what the market is actually doing. Reference context from{' '}
@@ -4515,10 +4609,20 @@ function BenchmarksTab() {
   const [r40, setR40] = useState(DEFAULT_RULE40_INPUTS);
   const r40R = useMemo(() => rule40(r40), [r40]);
   const [retail, setRetail] = useState(DEFAULT_RETAIL_INPUTS);
+  const resetBenchmarks = () => {
+    setCompanyM(DEFAULT_COMPANY_METRICS);
+    setIndustryId('pharma');
+    setRunway(DEFAULT_RUNWAY_INPUTS);
+    setR40(DEFAULT_RULE40_INPUTS);
+    setRetail(DEFAULT_RETAIL_INPUTS);
+  };
   const retailR = useMemo(() => retailKit(retail), [retail]);
 
   return (
     <>
+      <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+        <ResetButton onClick={resetBenchmarks} label="Reset — observed benchmarks & example company" />
+      </div>
       <StepCard n="A" icon={<Scale size={17} />} title="The observed benchmarks — January 2026 (Damodaran / NYU Stern)">
         <p style={hintStyle}>
           What industries actually look like — the observed averages the spec cites. Read the
@@ -5324,12 +5428,16 @@ function CalendarCheckIcon() {
 
 function FullCycleTab() {
   const [inp, setInp] = useState<FullCycleInputs>(DEFAULT_FULL_CYCLE);
+  const resetFullCycle = () => setInp(DEFAULT_FULL_CYCLE);
   const set = (k: keyof FullCycleInputs, v: number) => setInp((x) => ({ ...x, [k]: v }));
   const r = useMemo(() => runFullCycle(inp), [inp]);
   const m = (n: number) => fmtMoney(n, 0);
 
   return (
     <>
+      <div className="row no-print" style={{ justifyContent: 'flex-end' }}>
+        <ResetButton onClick={resetFullCycle} label="Reset — back to the default company" />
+      </div>
       <StepCard n="A" icon={<Workflow size={17} />} title="The company — every input, one place">
         <p style={hintStyle}>
           One worked company flows through every calculation below, each stage's output feeding
@@ -5813,6 +5921,19 @@ function ReportTab() {
   const [histSel, setHistSel] = useState<string[]>(MACRO_HISTORY.map((x) => x.id));
   const [buildOpen, setBuildOpen] = useState(true);
   const [showAllRoutes, setShowAllRoutes] = useState(false);
+  const resetReport = () => {
+    setScenarioId(TODAY_SCENARIO_ID);
+    setShowCountry(true);
+    setShowState(true);
+    setShowIndustry(true);
+    setCountryId('us');
+    setStateId('ca');
+    setIndustryId('tech');
+    setHistFreq('monthly');
+    setHistSel(MACRO_HISTORY.map((x) => x.id));
+    setBuildOpen(true);
+    setShowAllRoutes(false);
+  };
 
   const factors: MacroFactors =
     scenarioId === TODAY_SCENARIO_ID
@@ -5884,6 +6005,7 @@ function ReportTab() {
             from the same models the source tabs use, and carries its tab · step reference.
           </p>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <ResetButton onClick={resetReport} label="Reset — today’s snapshot, default lenses" />
             <button
               type="button"
               onClick={() => setBuildOpen(!buildOpen)}
