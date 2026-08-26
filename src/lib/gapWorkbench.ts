@@ -518,3 +518,218 @@ export function cagr(inp: CagrInputs): number | null {
   if (inp.beginValue <= 0 || inp.endValue <= 0 || inp.years <= 0) return null;
   return r1((Math.pow(inp.endValue / inp.beginValue, 1 / inp.years) - 1) * 100);
 }
+
+// ---------------------------------------------------------------------------
+// 13-week cash flow model (tab 10 step J) — the Turnaround & Restructuring
+// staple, EY postings verbatim: "including 13-week cash flow models, to
+// understand clients' liquidity positions." Weekly granularity is the point:
+// a company can be profitable MONTHLY and still die on a Thursday payroll.
+// ---------------------------------------------------------------------------
+
+export interface ThirteenWeekInputs {
+  /** all $k */
+  startingCash: number;
+  weeklyReceipts: number;
+  weeklyDisbursements: number;
+  /** extra payroll outflow every second week */
+  biweeklyPayroll: number;
+  /** extra rent outflow in weeks 1, 5, 9, 13 */
+  monthlyRent: number;
+  minCash: number;
+  revolverLimit: number;
+}
+
+export const DEFAULT_13WEEK_INPUTS: ThirteenWeekInputs = {
+  startingCash: 3000,
+  weeklyReceipts: 2000,
+  weeklyDisbursements: 1900,
+  biweeklyPayroll: 500,
+  monthlyRent: 300,
+  minCash: 1000,
+  revolverLimit: 1500,
+};
+
+export interface WeekRow {
+  week: number;
+  receipts: number;
+  disbursements: number;
+  net: number;
+  /** cash before any revolver support */
+  endingRaw: number;
+  revolverDraw: number;
+  /** cash after cumulative revolver support */
+  ending: number;
+  belowMin: boolean;
+}
+
+export interface ThirteenWeekResult {
+  rows: WeekRow[];
+  troughWeek: number;
+  troughCash: number;
+  totalRevolverDrawn: number;
+  survives: boolean;
+  read: string;
+}
+
+export function thirteenWeek(inp: ThirteenWeekInputs): ThirteenWeekResult {
+  const rows: WeekRow[] = [];
+  let raw = inp.startingCash;
+  let drawn = 0;
+  for (let w = 1; w <= 13; w++) {
+    const disb =
+      inp.weeklyDisbursements + (w % 2 === 0 ? inp.biweeklyPayroll : 0) + ((w - 1) % 4 === 0 ? inp.monthlyRent : 0);
+    const net = inp.weeklyReceipts - disb;
+    raw += net;
+    // draw only what keeps cash at the floor, capped by the facility
+    const need = Math.max(0, inp.minCash - (raw + drawn));
+    const draw = Math.min(need, Math.max(0, inp.revolverLimit - drawn));
+    drawn += draw;
+    const ending = raw + drawn;
+    rows.push({
+      week: w,
+      receipts: inp.weeklyReceipts,
+      disbursements: disb,
+      net,
+      endingRaw: Math.round(raw),
+      revolverDraw: Math.round(draw),
+      ending: Math.round(ending),
+      belowMin: ending < inp.minCash,
+    });
+  }
+  const trough = rows.reduce((a, b) => (b.endingRaw < a.endingRaw ? b : a));
+  const survives = rows.every((r) => !r.belowMin);
+  const read = survives
+    ? `Unaided cash bottoms at $${trough.endingRaw}k in week ${trough.week}; the revolver bridges $${Math.round(drawn)}k of the gap (limit $${inp.revolverLimit}k) and the floor holds. The lesson: the AVERAGE week is fine — the payroll-and-rent CALENDAR is what needs financing.`
+    : `The revolver limit is exhausted and cash still breaches the $${inp.minCash}k floor — this is the 13-week model's alarm: liquidity, not profitability, sets the deadline. Options: accelerate receipts (factoring), stretch disbursements, or raise the facility BEFORE week ${rows.find((r) => r.belowMin)?.week}.`;
+  return { rows, troughWeek: trough.week, troughCash: trough.endingRaw, totalRevolverDrawn: Math.round(drawn), survives, read };
+}
+
+// ---------------------------------------------------------------------------
+// Football field / fairness opinion (tab 10 step K) — the valuation-range
+// summary slide: every method as a horizontal range, side by side.
+// ---------------------------------------------------------------------------
+
+export interface FootballFieldInputs {
+  /** $ per share */
+  dcfLow: number;
+  dcfHigh: number;
+  compsLow: number;
+  compsHigh: number;
+  precedentLow: number;
+  precedentHigh: number;
+  week52Low: number;
+  week52High: number;
+  currentPrice: number;
+  offerPrice: number;
+}
+
+export const DEFAULT_FIELD_INPUTS: FootballFieldInputs = {
+  dcfLow: 24,
+  dcfHigh: 34,
+  compsLow: 22,
+  compsHigh: 30,
+  precedentLow: 28,
+  precedentHigh: 38,
+  week52Low: 18,
+  week52High: 28,
+  currentPrice: 25,
+  offerPrice: 31,
+};
+
+export interface FieldBar {
+  name: string;
+  low: number;
+  high: number;
+  /** method bars anchor the opinion; context bars frame it */
+  kind: 'method' | 'context';
+}
+
+export interface FootballFieldResult {
+  bars: FieldBar[];
+  /** intersection of the three METHOD ranges (null if they don't overlap) */
+  overlapLow: number | null;
+  overlapHigh: number | null;
+  offerInOverlap: boolean;
+  read: string;
+}
+
+export function footballField(inp: FootballFieldInputs): FootballFieldResult {
+  const bars: FieldBar[] = [
+    { name: 'DCF (WACC ±1pp)', low: inp.dcfLow, high: inp.dcfHigh, kind: 'method' },
+    { name: 'Trading comps', low: inp.compsLow, high: inp.compsHigh, kind: 'method' },
+    { name: 'Precedent transactions', low: inp.precedentLow, high: inp.precedentHigh, kind: 'method' },
+    { name: '52-week trading range', low: inp.week52Low, high: inp.week52High, kind: 'context' },
+  ];
+  const methods = bars.filter((b) => b.kind === 'method');
+  const lo = Math.max(...methods.map((b) => b.low));
+  const hi = Math.min(...methods.map((b) => b.high));
+  const overlaps = lo <= hi;
+  const offerInOverlap = overlaps && inp.offerPrice >= lo && inp.offerPrice <= hi;
+  const read = overlaps
+    ? `The three methods agree in the $${lo}–$${hi} band — the fairness case lives there. Precedents sit highest (they include a control premium), the 52-week range frames what shareholders could get WITHOUT a deal, and the $${inp.offerPrice} offer ${offerInOverlap ? 'lands inside the agreement band: supportable as fair' : inp.offerPrice > hi ? 'sits ABOVE the band: generous vs the analysis' : 'sits BELOW the band: hard to call fair'} against a $${inp.currentPrice} market price.`
+    : `The method ranges do not overlap — the opinion cannot lean on agreement, so the write-up must argue which method deserves the weight (and why). That argument IS the fairness opinion.`;
+  return { bars, overlapLow: overlaps ? lo : null, overlapHigh: overlaps ? hi : null, offerInOverlap, read };
+}
+
+// ---------------------------------------------------------------------------
+// Quality of Earnings bridge (tab 10 step L) — the headline FDD exhibit:
+// reported EBITDA → each adjustment → adjusted → pro-forma run-rate.
+// ---------------------------------------------------------------------------
+
+export interface QoeInputs {
+  /** all $M */
+  reportedEbitda: number;
+  ownerCompAddback: number;
+  oneTimeLegal: number;
+  nonRecurringGain: number;
+  rentNormalization: number;
+  proformaSynergies: number;
+  /** EV/EBITDA multiple the deal prices at */
+  dealMultiple: number;
+}
+
+export const DEFAULT_QOE_INPUTS: QoeInputs = {
+  reportedEbitda: 10.0,
+  ownerCompAddback: 1.2,
+  oneTimeLegal: 0.8,
+  nonRecurringGain: -0.5,
+  rentNormalization: -0.3,
+  proformaSynergies: 0.7,
+  dealMultiple: 8,
+};
+
+export interface QoeStep {
+  label: string;
+  delta: number;
+  cumulative: number;
+  note: string;
+}
+
+export interface QoeResult {
+  steps: QoeStep[];
+  adjustedEbitda: number;
+  runRateEbitda: number;
+  /** what the adjustments are worth at the deal multiple */
+  evImpact: number;
+  read: string;
+}
+
+export function qoeBridge(inp: QoeInputs): QoeResult {
+  const steps: QoeStep[] = [];
+  let cum = inp.reportedEbitda;
+  steps.push({ label: 'Reported EBITDA', delta: 0, cumulative: r1(cum), note: 'The audited starting point — what the seller shows.' });
+  const add = (label: string, delta: number, note: string) => {
+    cum += delta;
+    steps.push({ label, delta: r1(delta), cumulative: r1(cum), note });
+  };
+  add('+ Owner compensation add-back', inp.ownerCompAddback, 'Above-market owner salary a buyer would not pay — the classic add-back, and the first one diligence tests.');
+  add('+ One-time legal settlement', inp.oneTimeLegal, 'Truly non-recurring? The test: has a "one-time" item appeared three years running?');
+  add('− Non-recurring gain', inp.nonRecurringGain, 'Cuts BOTH ways: one-off gains come OUT of EBITDA. A QoE that only adds is a sales document.');
+  add('− Rent normalization', inp.rentNormalization, 'Below-market related-party rent stepped up to market — an adjustment AGAINST the seller.');
+  const adjusted = r1(cum);
+  add('+ Pro-forma synergies / run-rate items', inp.proformaSynergies, 'The fought-over line: actioned cost-outs count, hoped-for synergies are the buyer’s risk.');
+  const runRate = r1(cum);
+  const evImpact = r1((runRate - inp.reportedEbitda) * inp.dealMultiple);
+  const read = `Reported $${inp.reportedEbitda}M becomes adjusted $${adjusted}M and run-rate $${runRate}M. At the ${inp.dealMultiple}× deal multiple, the bridge is worth $${evImpact}M of enterprise value — every $1 of EBITDA adjustment is $${inp.dealMultiple} of purchase price, which is why the QoE fight IS the price negotiation.`;
+  return { steps, adjustedEbitda: adjusted, runRateEbitda: runRate, evImpact, read };
+}

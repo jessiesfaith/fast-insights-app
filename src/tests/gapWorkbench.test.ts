@@ -26,6 +26,12 @@ import {
   irrLab,
   lboMini,
   ppa,
+  DEFAULT_13WEEK_INPUTS,
+  DEFAULT_FIELD_INPUTS,
+  DEFAULT_QOE_INPUTS,
+  footballField,
+  qoeBridge,
+  thirteenWeek,
 } from '../lib/gapWorkbench';
 
 describe('IRR & NPV lab (the prep session’s example)', () => {
@@ -149,5 +155,72 @@ describe('comps, cost approach, LBO, accretion, quick kit', () => {
     expect(b.breakEvenUnits).toBe(10_000);
     expect(b.contributionMarginPct).toBe(40);
     expect(cagr(DEFAULT_CAGR_INPUTS)).toBeCloseTo(14.9, 1);
+  });
+});
+
+describe('13-week cash flow (tab 10 step J)', () => {
+  it('the default company is average-week profitable but troughs in the payroll/rent calendar', () => {
+    const r = thirteenWeek(DEFAULT_13WEEK_INPUTS);
+    expect(r.rows).toHaveLength(13);
+    // week 1: 2000 - (1900 + 300 rent) = -200 → 2800
+    expect(r.rows[0].endingRaw).toBe(2800);
+    // week 2 adds payroll: 2000 - (1900 + 500) = -400 → 2400
+    expect(r.rows[1].endingRaw).toBe(2400);
+    expect(r.troughCash).toBeLessThan(DEFAULT_13WEEK_INPUTS.minCash);
+    expect(r.totalRevolverDrawn).toBeGreaterThan(0);
+    expect(r.totalRevolverDrawn).toBeLessThanOrEqual(DEFAULT_13WEEK_INPUTS.revolverLimit);
+    expect(r.survives).toBe(true);
+    expect(r.read).toMatch(/calendar/i);
+  });
+
+  it('a bigger receipts line removes the revolver need; a tiny revolver fails the floor', () => {
+    const easy = thirteenWeek({ ...DEFAULT_13WEEK_INPUTS, weeklyReceipts: 2600 });
+    expect(easy.totalRevolverDrawn).toBe(0);
+    const tight = thirteenWeek({ ...DEFAULT_13WEEK_INPUTS, revolverLimit: 100 });
+    expect(tight.survives).toBe(false);
+    expect(tight.read).toMatch(/alarm|deadline/i);
+  });
+});
+
+describe('football field (tab 10 step K)', () => {
+  it('the default field agrees at $28–30 with the offer inside; precedents sit highest', () => {
+    const r = footballField(DEFAULT_FIELD_INPUTS);
+    expect(r.bars).toHaveLength(4);
+    expect(r.overlapLow).toBe(28); // max of 24, 22, 28
+    expect(r.overlapHigh).toBe(30); // min of 34, 30, 38
+    expect(r.offerInOverlap).toBe(false); // offer 31 sits just above
+    expect(r.read).toMatch(/control premium/i);
+    const precedents = r.bars.find((b) => b.name.match(/Precedent/))!;
+    expect(precedents.high).toBe(Math.max(...r.bars.map((b) => b.high)));
+  });
+
+  it('non-overlapping methods force the argue-the-weights read', () => {
+    const r = footballField({ ...DEFAULT_FIELD_INPUTS, dcfLow: 40, dcfHigh: 50 });
+    expect(r.overlapLow).toBeNull();
+    expect(r.read).toMatch(/argue which method/i);
+  });
+});
+
+describe('QoE bridge (tab 10 step L)', () => {
+  it('the default bridge: 10.0 reported → 11.2 adjusted → 11.9 run-rate, worth $15.2M at 8×', () => {
+    const r = qoeBridge(DEFAULT_QOE_INPUTS);
+    expect(r.adjustedEbitda).toBe(11.2);
+    expect(r.runRateEbitda).toBe(11.9);
+    expect(r.evImpact).toBeCloseTo(15.2, 1);
+    expect(r.steps[0].cumulative).toBe(10);
+    expect(r.steps[r.steps.length - 1].cumulative).toBe(11.9);
+    // adjustments cut both ways: at least one negative line
+    expect(r.steps.some((s) => s.delta < 0)).toBe(true);
+    expect(r.read).toMatch(/purchase price/i);
+  });
+
+  it('cumulative walks are consistent and the EV impact scales with the multiple', () => {
+    const r = qoeBridge({ ...DEFAULT_QOE_INPUTS, dealMultiple: 10 });
+    expect(r.evImpact).toBeCloseTo((r.runRateEbitda - DEFAULT_QOE_INPUTS.reportedEbitda) * 10, 1);
+    let cum = DEFAULT_QOE_INPUTS.reportedEbitda;
+    for (const st of r.steps.slice(1)) {
+      cum = Math.round((cum + st.delta) * 10) / 10;
+      expect(st.cumulative).toBe(cum);
+    }
   });
 });

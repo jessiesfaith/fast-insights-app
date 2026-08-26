@@ -33,6 +33,7 @@ import { CapitalAdvice, INDUSTRY_PROFILES, IndustryProfile, adviseCapital } from
 import { DAMODARAN_JAN2026, IndustryBenchmarkRow } from './industryBenchmarks';
 import { SECTOR_IPO_TRENDS, SECTOR_IPO_YEARS, SectorIpoTrend } from './ipoWindow';
 import { IndustryBackdrop, industryBackdrop } from './marketAnalysis';
+import { EXTRA_COUNTRIES, EXTRA_COUNTRY_PROFILES, EXTRA_CURRENCY_NOTES, EXTRA_PROFILE_SOURCE, GeoExposure } from './geoPolitics';
 
 // ---------------------------------------------------------------------------
 // References — every section names where it lives in the Lab
@@ -57,10 +58,11 @@ export interface ReportChoice {
   name: string;
 }
 
-/** The top-10 debt list plus South Korea (the trade/currency case study). */
+/** The top-10 debt list, South Korea, and the six strategic countries. */
 export const REPORT_COUNTRIES: ReportChoice[] = [
   ...COUNTRY_DEBT.map((c) => ({ id: c.id, name: c.name })),
   { id: 'skorea', name: 'South Korea' },
+  ...EXTRA_COUNTRIES.map((c) => ({ id: c.id, name: c.name })),
 ];
 
 export const REPORT_STATES: ReportChoice[] = STATE_DEBT.map((s) => ({ id: s.id, name: s.name }));
@@ -80,6 +82,12 @@ export const COUNTRY_CURRENCY: Record<string, string | null> = {
   brazil: 'brl',
   canada: 'cad',
   skorea: 'krw',
+  iran: null,
+  russia: null,
+  taiwan: null,
+  mexico: null,
+  venezuela: null,
+  saudi: null,
 };
 
 export const US_CURRENCY_NOTE =
@@ -102,6 +110,8 @@ export interface CountryReport {
   calendar: { events: GeoEvent[]; ref: ReportRef; how: string };
   /** The full Korea case study, for skorea only. */
   caseStudy: typeof KOREA_CASE | null;
+  /** Strategic profile — set for the six strategic countries outside the top-10 tables. */
+  profile: { row: GeoExposure; source: string } | null;
 }
 
 export function countryReport(id: string): CountryReport {
@@ -133,7 +143,7 @@ export function countryReport(id: string): CountryReport {
       ref: { tab: 15, step: 'D', label: 'Currency trends (2021 = 100)' },
       how: 'Indexed vs the US dollar, 2021 = 100 — a falling line is a weakening currency. Below ~85, imported inflation and capital flight become policy problems; the central bank gets squeezed between defending the currency and defending growth.',
     },
-    currencyNote: choice.id === 'us' ? US_CURRENCY_NOTE : null,
+    currencyNote: choice.id === 'us' ? US_CURRENCY_NOTE : (EXTRA_CURRENCY_NOTES[choice.id] ?? null),
     populism: popRow && {
       row: popRow,
       ref: { tab: 15, step: 'F', label: 'Populism & the fiscal pipeline' },
@@ -150,6 +160,10 @@ export function countryReport(id: string): CountryReport {
       how: 'Scheduled events only (elections, budget deadlines) — schedules, not predictions. Verify dates before citing.',
     },
     caseStudy: choice.id === 'skorea' ? KOREA_CASE : null,
+    profile: (() => {
+      const row = EXTRA_COUNTRY_PROFILES.find((x) => x.id === choice.id);
+      return row ? { row, source: EXTRA_PROFILE_SOURCE } : null;
+    })(),
   };
 }
 
@@ -408,19 +422,19 @@ export interface CoverageRow {
 export const REPORT_COVERAGE: CoverageRow[] = [
   { tab: 1, name: 'Your company’s moves', sections: ['A Your capital & cost of capital', 'B Market conditions', 'C Which move clears its hurdle', 'D Hedge what the move leaves exposed'], inReport: 'Its WACC/hurdle engine runs INSIDE the industry section (tab 4’s adviser calls it per industry); its Rf feeds the industry WACC here; the WACC formula card is step C. The move-ranking itself is interactive — set your numbers there.' },
   { tab: 2, name: 'Customer credit', sections: ['A The ask', 'B The customer’s financials', 'C The credit read', 'D Security & guarantees', 'E The industry backdrop'], inReport: 'Its industry-backdrop model IS the backdrop line in the industry section here (same function). The BRI facts apply its sovereign version: China as underwriter of weak credits. Underwriting a specific customer stays interactive on tab 2.' },
-  { tab: 3, name: 'Market analysis', sections: ['A Market conditions', 'B The dials in real numbers', 'C Cross-effects', 'D Market & industry trends', 'E Inflation — CPI vs PCE', 'F Asset classes by industry', 'G The debt cycles', 'H Your debt book'], inReport: 'The engine room: the scenario chips ARE its dials; the industry backdrop, sub-industry lenses, and every "dial it hits" line run on its sensitivity model; its CPI snapshot anchors the history step.' },
+  { tab: 3, name: 'Market analysis', sections: ['A Market conditions', 'B The dials in real numbers', 'C Cross-effects', 'D Market & industry trends', 'E Inflation — CPI vs PCE', 'F Asset classes by industry', 'G The debt cycles', 'H Your debt book', 'I History — monthly & quarterly macro trends'], inReport: 'The engine room: the scenario chips ARE its dials; the industry backdrop, sub-industry lenses, and every "dial it hits" line run on its sensitivity model; its CPI snapshot anchors the history step.' },
   { tab: 4, name: 'The economic machine (Dalio)', sections: ['A Market conditions', 'B How the market cycles', 'C The three equilibriums', 'D Watching the two levers', 'E The four forces + two levers', 'F What to do with capital', 'G Dalio’s investment principles'], inReport: 'Step F’s by-industry capital adviser renders live in the industry section. The Dalio chain narrates the populism, debt, and sanctions/reserve-currency sections.' },
   { tab: 5, name: 'Valuation workbench', sections: ['A The forecast — revenue to FCF', 'B The value bridge', 'C Sensitivity — the two-way table', 'D The three statements'], inReport: 'The DCF and sensitivity formula cards (step C) reference it; it is the practice ground the EY exhibits map to. Interactive DCF stays on its tab.' },
   { tab: 6, name: 'Formulas & decision map', sections: ['A How the whole Lab computes — the decision map (+ formula groups & glossary)'], inReport: 'Step C here is its condensed sibling: the eight formulas the report leans on, each with a ref; tab 6 holds the complete map and glossary.' },
   { tab: 7, name: 'EY gap check', sections: ['A The EY technical checklist', 'B The 2026 outlook anchor', 'C The interview format', 'D EY’s standard analyses', 'E Reporting & exhibits + market routine'], inReport: 'Its outlook numbers frame the timeline and recent-window entries; its step-E exhibit list tells you which report section becomes which client slide (see the guide).' },
   { tab: 8, name: 'Interview drill', sections: ['Technical cards', 'Behavioral cards', 'Market-trends cards'], inReport: 'Interactive-only by design: drill the narration of THIS report’s sections there — the market cards are its country/history sections in Q&A form.' },
   { tab: 9, name: 'Round map', sections: ['A Round 1 — HireVue', 'B Round 2 — take-home DCF', 'C The market-trends anchor'], inReport: 'Interactive/reference-only: its market-anchor answer is assembled from the same outlook + history data this report renders.' },
-  { tab: 10, name: 'Gap workbench', sections: ['A IRR & NPV lab', 'B Beta workshop', 'C Hurdle builder + rNPV', 'D Incremental ROIC', 'E PPA & impairment', 'F Comps & cost approach', 'G LBO mini-model', 'H Accretion/dilution', 'I Break-even & CAGR'], inReport: 'The calculators behind the formula cards — each formula in step C names where its working version lives (mostly here and tab 16).' },
+  { tab: 10, name: 'Gap workbench', sections: ['A IRR & NPV lab', 'B Beta workshop', 'C Hurdle builder + rNPV', 'D Incremental ROIC', 'E PPA & impairment', 'F Comps & cost approach', 'G LBO mini-model', 'H Accretion/dilution', 'I Break-even & CAGR', 'J 13-week cash flow', 'K Football field', 'L QoE bridge'], inReport: 'The calculators behind the formula cards — each formula in step C names where its working version lives (mostly here and tab 16).' },
   { tab: 11, name: 'Rates & the bond market', sections: ['A The two numbers', 'B The rate stack', 'C The yield curve', 'D Real yields & breakevens', 'E The divergence', 'F Bond basics', 'G The scale problem', 'H The debt build-up to $40T'], inReport: 'Step H’s debt/interest charts render in the US country section; its snapshot anchors the history step’s Fed and 10Y lines; the term-premium story threads the debt, populism, and history reads.' },
   { tab: 12, name: 'Real estate financing', sections: ['A The mortgage formula (10Y + spread)', 'B The payment calculator', 'C CRE floating vs fixed', 'D The CRE dashboard', 'E What each number says'], inReport: 'Its PMMS benchmark is the mortgage line in the history step; the 10Y+spread architecture explains why that line never followed the Fed down.' },
   { tab: 13, name: 'IPO & the financing menu', sections: ['A The market now', 'B Sector trends over time', 'C The three windows', 'D Dilution math', 'E The financing menu'], inReport: 'Its sector-trend line renders in the industry section (the equity window); the A&D/AI window reads appear in the geopolitics and recent-window entries.' },
   { tab: 14, name: 'Industry benchmarks', sections: ['A The observed benchmarks', 'B You vs the average', 'C Vertical quick kits', 'D The §123 questions'], inReport: 'Its Damodaran rows render in the industry section’s benchmark table, with the observed-not-healthy rule quoted in the how-to-read.' },
-  { tab: 15, name: 'Debt & geopolitics by country/state', sections: ['A Country debt-to-GDP', 'B State debt-to-GSP', 'C Imports vs exports', 'D Currency trends', 'E The Korea case', 'F Populism & the pipeline', 'G GDP/GSP impact watch', 'H Current movers', 'I Standing watch list', 'J The 24-month calendar'], inReport: 'The backbone of the country and state sections — debt charts, trade, currencies, populism, impact watch, calendars, and the Korea case all render here with refs.' },
+  { tab: 15, name: 'Debt & geopolitics by country/state', sections: ['A Country debt-to-GDP', 'B State debt-to-GSP', 'C Imports vs exports', 'D Currency trends', 'E The Korea case', 'F Populism & the pipeline', 'G GDP/GSP impact watch', 'H Current movers', 'I Standing watch list', 'J The 24-month calendar', 'K Flashpoints & conflicts', 'L Military balance & alliances', 'M Belt & Road, corridors & chokepoints', 'N US meetings & bilateral arcs'], inReport: 'The backbone of the country and state sections — debt charts, trade, currencies, populism, impact watch, calendars, and the Korea case all render here with refs.' },
   { tab: 16, name: 'Full cycle — EV/EQV/ROIC/WACC', sections: ['A The company inputs', 'B Stage 1 operating engine', 'C Stage 2 ROIC', 'D Stage 3 WACC', 'E Stage 4 ROIC vs WACC', 'F Stage 5 valuation & the bridge', 'G Stage 6 bonds vs stock'], inReport: 'The EV↔equity and ROIC-vs-WACC formula cards reference its stages; it is where the report’s valuation math runs end-to-end interactively.' },
   { tab: 17, name: 'Data & sources', sections: ['A Modes & providers', 'B The series catalog', 'C The vintage discipline'], inReport: 'The report inherits its honesty rules: snapshot dates, anchored-vs-interpolated labels, and the Q1-26 GDP revision shown at its revised vintage.' },
   { tab: 18, name: 'Regime backtest', sections: ['A The method', 'B The five regimes'], inReport: 'Its regimes are the history step’s eras made testable; the 2022 bonds-hedge failure is cited in the history and timeline reads.' },

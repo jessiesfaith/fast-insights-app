@@ -47,7 +47,7 @@ export const FLASHPOINTS: Flashpoint[] = [
       'Taiwan (TSMC) fabricates roughly 90% of the world’s most advanced logic chips. Even a blockade short of war would freeze the supply chain under every phone, car, data center, and AI model — a supply shock that would make the 2021 chip shortage look small. This is why CHIPS-Act fabs (Arizona, Ohio, Texas, New York) are geopolitics wearing an industrial-policy coat.',
     hits: 'Growth dial down, inflation dial up (the stagflation pair) · tech and industrials first, then everything with a chip in it — which is everything.',
     watch: 'Exercise tempo becoming a de facto blockade · Taiwan election cycles · US carrier movements · TSMC’s overseas-fab share of leading edge (the "silicon shield" thinning).',
-    countries: ['china', 'us', 'japan', 'skorea'],
+    countries: ['china', 'us', 'japan', 'skorea', 'taiwan'],
     industries: ['tech', 'industrials', 'discretionary'],
   },
   {
@@ -71,7 +71,7 @@ export const FLASHPOINTS: Flashpoint[] = [
       'About a fifth of the world’s oil and a large share of LNG transit the Strait of Hormuz. Iran’s cheap barrels quietly ADD supply (softening prices) while its threat to the strait is the single biggest upside risk to them — the same country is both the discount and the tail risk. That is why tab 3’s energy line (+12% in the 2026 snapshot) reads as a supply-shock story, not a demand story.',
     hits: 'Inflation dial up (energy is the fastest pass-through) · energy sector revenue up while every energy CONSUMER’s margin compresses · utilities fuel costs.',
     watch: 'Tanker seizures or mining in the strait · sanctions snapback vs quiet enforcement easing · the discount on Iranian barrels (narrowing = enforcement fading) · Gulf producers’ spare capacity.',
-    countries: ['us', 'china', 'india', 'japan', 'skorea'],
+    countries: ['us', 'china', 'india', 'japan', 'skorea', 'iran', 'saudi'],
     industries: ['energy', 'utilities', 'industrials', 'discretionary'],
   },
   {
@@ -83,7 +83,7 @@ export const FLASHPOINTS: Flashpoint[] = [
       'Venezuelan heavy crude is what US Gulf refineries were literally built to process, so license swings move refinery economics and diesel margins, not just headline oil. Each licensing round is a case study in sanctions-as-dial: the same barrel is legal, illegal, then legal again, and the price of gasoline moves with the paperwork. Migration pressure is the other channel — a state-level fiscal story (Florida, Texas, New York from the state lens).',
     hits: 'Inflation dial via refined-product prices · energy sector directly · state budgets through migration services.',
     watch: 'License renewals vs revocations · production trend (recovering toward ~1M bpd or not) · escalation vs negotiation signals from the US naval posture.',
-    countries: ['us', 'china', 'india', 'brazil'],
+    countries: ['us', 'china', 'india', 'brazil', 'venezuela'],
     industries: ['energy', 'financials'],
   },
   {
@@ -95,7 +95,7 @@ export const FLASHPOINTS: Flashpoint[] = [
       'Freezing another central bank’s reserves in 2022 taught every non-allied government that dollar reserves are conditional. The measurable responses: central-bank gold buying at record pace, slow de-dollarization of trade invoicing, a shadow tanker fleet outside Western insurance. None of it dethrones the dollar soon — network effects are why the US deficit stays financeable (tab 15’s US row) — but every sanctions round spends a little of the privilege it runs on. Dalio’s reserve-currency force, live.',
     hits: 'Fiscal dial (the deficit’s financeability is the long game) · financials through compliance and payment plumbing · gold’s bid in the asset menu (tab 3).',
     watch: 'Central-bank gold purchases · the share of China’s trade settled in yuan · secondary-sanctions designations of large third-country banks · BRICS settlement-system announcements.',
-    countries: ['us', 'china', 'india', 'brazil', 'germany', 'france', 'uk', 'japan'],
+    countries: ['us', 'china', 'india', 'brazil', 'germany', 'france', 'uk', 'japan', 'russia', 'iran', 'venezuela'],
     industries: ['financials', 'energy'],
   },
   {
@@ -481,30 +481,36 @@ export interface Corridor {
   backer: string;
   what: string;
   watch: string;
+  /** Country ids (report lens list) with direct stakes in this corridor. */
+  involves: string[];
 }
 
 export const TRADE_CORRIDORS: Corridor[] = [
-  { name: 'Maritime Silk Road', backer: 'China (BRI)', what: 'The financed port chain from the South China Sea via Malacca, Colombo/Hambantota, and Suez to Piraeus — the sea half of the BRI, carrying the bulk of China–Europe trade.', watch: 'New port stakes in Europe/Africa · militarization of "commercial" ports · Red Sea disruption pushing traffic around the Cape.' },
-  { name: 'China–Europe Railway Express', backer: 'China (BRI)', what: 'Container rail through Kazakhstan/Russia to European terminals — Duisburg (Germany) is the western railhead. Faster than sea, cheaper than air; volumes swing with sanctions politics since the route crosses Russia.', watch: 'Rerouting via the "Middle Corridor" (Caspian/Caucasus, bypassing Russia) · EU screening of rail-linked logistics assets.' },
-  { name: 'CPEC (China–Pakistan Economic Corridor)', backer: 'China (BRI flagship)', what: '$60B+ of roads, power plants, and the Gwadar port — China’s overland bypass of Malacca to the Arabian Sea, crossing territory India claims (why India refused the BRI outright).', watch: 'Pakistan’s debt distress and IMF cycles · security attacks on Chinese workers · Gwadar’s (still tiny) actual throughput.' },
-  { name: 'IMEC (India–Middle East–Europe Economic Corridor)', backer: 'US, India, EU, Gulf states', what: 'The announced rival: ship-rail-ship from India via the UAE/Saudi Arabia to Israel/Jordan and on to Europe — the G20-2023 answer to the BRI, stalled by the Gaza war’s geography.', watch: 'Whether Gulf–Israel normalization survives to make the middle leg buildable · first funded segments.' },
-  { name: 'EU Global Gateway + G7 PGII', backer: 'EU / G7', what: 'The West’s catch-up programs (€300B and $600B headline commitments) for infrastructure lending with governance strings — more announcement than asphalt so far, which is itself the lesson: matching a state-directed lender with committee money is hard.', watch: 'Disbursement vs headline ratio · flagship projects (Lobito) actually completing.' },
-  { name: 'Lobito Corridor', backer: 'US/EU (PGII flagship)', what: 'Refurbished rail from the Congo/Zambia copper-cobalt belt to Angola’s Atlantic coast — the West’s critical-minerals answer to Chinese-controlled processing, and the most concrete PGII project to date.', watch: 'Ore volumes actually shipping west instead of east · Chinese counter-offers to the same mines.' },
-  { name: 'Arctic Northern Sea Route', backer: 'Russia (China as "Polar Silk Road" partner)', what: 'The melting shortcut: Asia–Europe ~40% shorter than Suez, usable a growing slice of the year — Russian-controlled, icebreaker-escorted, sanctions-entangled.', watch: 'Transit volumes · Chinese state carriers committing regular services · Arctic militarization (Canada’s quiet flashpoint).' },
+  { name: 'Maritime Silk Road', backer: 'China (BRI)', what: 'The financed port chain from the South China Sea via Malacca, Colombo/Hambantota, and Suez to Piraeus — the sea half of the BRI, carrying the bulk of China–Europe trade.', watch: 'New port stakes in Europe/Africa · militarization of "commercial" ports · Red Sea disruption pushing traffic around the Cape.', involves: ['china', 'germany', 'france', 'italy', 'uk', 'japan', 'skorea', 'india'] },
+  { name: 'China–Europe Railway Express', backer: 'China (BRI)', what: 'Container rail through Kazakhstan/Russia to European terminals — Duisburg (Germany) is the western railhead. Faster than sea, cheaper than air; volumes swing with sanctions politics since the route crosses Russia.', watch: 'Rerouting via the "Middle Corridor" (Caspian/Caucasus, bypassing Russia) · EU screening of rail-linked logistics assets.', involves: ['china', 'germany', 'france', 'italy', 'uk'] },
+  { name: 'CPEC (China–Pakistan Economic Corridor)', backer: 'China (BRI flagship)', what: '$60B+ of roads, power plants, and the Gwadar port — China’s overland bypass of Malacca to the Arabian Sea, crossing territory India claims (why India refused the BRI outright).', watch: 'Pakistan’s debt distress and IMF cycles · security attacks on Chinese workers · Gwadar’s (still tiny) actual throughput.', involves: ['china', 'india', 'us'] },
+  { name: 'IMEC (India–Middle East–Europe Economic Corridor)', backer: 'US, India, EU, Gulf states', what: 'The announced rival: ship-rail-ship from India via the UAE/Saudi Arabia to Israel/Jordan and on to Europe — the G20-2023 answer to the BRI, stalled by the Gaza war’s geography.', watch: 'Whether Gulf–Israel normalization survives to make the middle leg buildable · first funded segments.', involves: ['us', 'india', 'germany', 'france', 'italy', 'uk', 'saudi'] },
+  { name: 'EU Global Gateway + G7 PGII', backer: 'EU / G7', what: 'The West’s catch-up programs (€300B and $600B headline commitments) for infrastructure lending with governance strings — more announcement than asphalt so far, which is itself the lesson: matching a state-directed lender with committee money is hard.', watch: 'Disbursement vs headline ratio · flagship projects (Lobito) actually completing.', involves: ['us', 'germany', 'france', 'italy', 'uk', 'japan', 'canada'] },
+  { name: 'Lobito Corridor', backer: 'US/EU (PGII flagship)', what: 'Refurbished rail from the Congo/Zambia copper-cobalt belt to Angola’s Atlantic coast — the West’s critical-minerals answer to Chinese-controlled processing, and the most concrete PGII project to date.', watch: 'Ore volumes actually shipping west instead of east · Chinese counter-offers to the same mines.', involves: ['us', 'china', 'canada'] },
+  { name: 'INSTC (International North–South Transport Corridor)', backer: 'Russia, Iran, India', what: 'Ship-rail-road from India via Iran’s Chabahar and the Caspian to Russia — the sanctions-resistant corridor linking the three economies Western routes exclude, moving real (if modest) volumes since 2022.', watch: 'Chabahar’s US-sanctions carve-out for India · rail-gap completion in Iran · whether volumes survive any US–Iran escalation.', involves: ['russia', 'iran', 'india'] },
+  { name: 'Chancay & the bi-oceanic corridor', backer: 'China (BRI in the Americas)', what: 'Peru’s COSCO-run Chancay megaport (opened late 2024) is the BRI’s South American hub — cutting Asia transit times for the west coast, with a proposed transcontinental rail link to Brazil’s soy and iron belts behind it. The hemisphere’s route map redrawn in one project.', watch: 'Brazilian rail-link commitments · US responses (tariff and screening pressure on Chancay-routed cargo) · Chancay volumes vs Panama-routed traffic.', involves: ['china', 'brazil', 'us'] },
+  { name: 'Arctic Northern Sea Route', backer: 'Russia (China as "Polar Silk Road" partner)', what: 'The melting shortcut: Asia–Europe ~40% shorter than Suez, usable a growing slice of the year — Russian-controlled, icebreaker-escorted, sanctions-entangled.', watch: 'Transit volumes · Chinese state carriers committing regular services · Arctic militarization (Canada’s quiet flashpoint).', involves: ['china', 'us', 'canada', 'japan', 'russia'] },
 ];
 
 export interface Chokepoint {
   name: string;
   carries: string;
   issue: string;
+  /** Country ids (report lens list) most exposed to a disruption here. */
+  relevantTo: string[];
 }
 
 export const CHOKEPOINTS: Chokepoint[] = [
-  { name: 'Strait of Malacca', carries: '~25–30% of world trade; most of China’s energy imports', issue: 'The dilemma the whole BRI answers — a US-navy-closable bottleneck between the Indian and Pacific Oceans.' },
-  { name: 'Strait of Hormuz', carries: '~20% of world oil, much of its LNG', issue: 'Iran’s lever (the Iran flashpoint above) — the single biggest upside tail on energy prices.' },
-  { name: 'Suez / Red Sea', carries: '~12–15% of world trade', issue: 'The Houthi campaign turned it into a war-risk zone — the standing reroute-around-Africa tax in the conflicts table.' },
-  { name: 'Panama Canal', carries: '~5% of world trade; ~40% of US container traffic touches it', issue: 'Drought restricts transits (a climate chokepoint), and US pressure over Chinese-linked port operators at both ends made it a 2025 flashpoint — even hemispheric infrastructure is now alignment-screened.' },
-  { name: 'Taiwan Strait & South China Sea lanes', carries: '~a third of global shipping', issue: 'Covered in the flashpoints above — the unpriced tail under every Asia supply chain.' },
+  { name: 'Strait of Malacca', carries: '~25–30% of world trade; most of China’s energy imports', issue: 'The dilemma the whole BRI answers — a US-navy-closable bottleneck between the Indian and Pacific Oceans.', relevantTo: ['china', 'japan', 'skorea', 'india', 'us'] },
+  { name: 'Strait of Hormuz', carries: '~20% of world oil, much of its LNG', issue: 'Iran’s lever (the Iran flashpoint above) — the single biggest upside tail on energy prices.', relevantTo: ['china', 'india', 'japan', 'skorea', 'us', 'germany', 'france', 'italy', 'uk', 'iran', 'saudi'] },
+  { name: 'Suez / Red Sea', carries: '~12–15% of world trade', issue: 'The Houthi campaign turned it into a war-risk zone — the standing reroute-around-Africa tax in the conflicts table.', relevantTo: ['germany', 'france', 'italy', 'uk', 'india', 'china', 'japan', 'skorea'] },
+  { name: 'Panama Canal', carries: '~5% of world trade; ~40% of US container traffic touches it', issue: 'Drought restricts transits (a climate chokepoint), and US pressure over Chinese-linked port operators at both ends made it a 2025 flashpoint — even hemispheric infrastructure is now alignment-screened.', relevantTo: ['us', 'canada', 'brazil', 'china', 'mexico', 'venezuela'] },
+  { name: 'Taiwan Strait & South China Sea lanes', carries: '~a third of global shipping', issue: 'Covered in the flashpoints above — the unpriced tail under every Asia supply chain.', relevantTo: ['china', 'us', 'japan', 'skorea', 'taiwan'] },
 ];
 
 /** Per-country trade-route and BRI exposure — SAME ids as the country lens. */
@@ -521,3 +527,239 @@ export const COUNTRY_ROUTES: GeoExposure[] = [
   { id: 'canada', headline: 'The North American gateway with a screening habit.', items: ['Vancouver and Prince Rupert are North America’s fastest Asia gateways — its route asset inside USMCA.', 'Blocked Chinese takeovers in critical minerals on security grounds — the alignment screen applied to its own resource routes.', 'The Arctic (NSR’s western flank) is turning its geography strategic again.'] },
   { id: 'skorea', headline: 'A shipping superpower threading between the blocs.', items: ['Not a BRI member — but the world’s #2 shipbuilder and a top container carrier (HMM): Korea BUILDS the routes everyone argues about, and its order book is a geopolitics indicator.', 'Busan is the Pacific’s great transshipment hub; the chips corridor to US/allied fabs is its newest and most political trade route.', 'Every lane it depends on (SCS, Malacca, Suez) is someone else’s chokepoint — maximum route exposure to match its maximum alliance exposure (the military table).'] },
 ];
+
+/** The US-side route program — what fills the routes step when the US is the lens. */
+export const US_COUNTER_PROGRAM: string[] = [
+  'The US never joined the Belt and Road — it runs the rival network: the G7’s PGII ($600B headline), the IMEC corridor with India and the Gulf, and the Lobito minerals railway — infrastructure lending with governance strings, mobilizing private capital and DFC loans instead of state-bank credit.',
+  'Its sharper tool is the screen, not the shovel: pressure on Chinese-linked operators at the Panama Canal’s ports, security reviews of Chinese-made port cranes (which load most US containers), and alignment screening of allies’ port and grid stakes.',
+  'The doctrine is "small yard, high fence": rather than outbuild China’s roads, control the chokepoint TECHNOLOGIES — leading-edge chips, dollar clearing, aircraft, cloud — and let the sanctions economy police the routes.',
+  'The domestic leg is reshoring as route strategy: CHIPS-Act fabs (Ohio, Texas, New York, Arizona), IIJA port and grid upgrades (LA/Long Beach, Savannah), and "friend-shoring" trade toward Mexico, Canada, and allied Asia.',
+  'The finance read: where China lends to build routes, the US prices access to them — tariffs, licenses, and clearing are toll booths on infrastructure someone else paid for. Both are capital-allocation strategies; tab 1’s hurdle logic applies to each.',
+];
+
+/** Which route "program" fills the routes step for a given country lens. */
+export function routeProgramFor(id: string, name: string): { title: string; facts: string[] } {
+  if (id === 'china') return { title: 'The Belt and Road Initiative — the builder’s program', facts: BRI_FACTS };
+  if (id === 'us') return { title: 'The US counter-network — screening, rival corridors, and reshoring', facts: US_COUNTER_PROGRAM };
+  const row = COUNTRY_ROUTES.find((r) => r.id === id) ?? EXTRA_COUNTRY_ROUTES.find((r) => r.id === id);
+  return { title: `${name}’s route position — ${row?.headline ?? ''}`, facts: row?.items ?? [] };
+}
+
+/** Corridors with a direct stake for the selected country. */
+export function corridorsFor(id: string): Corridor[] {
+  return TRADE_CORRIDORS.filter((c) => c.involves.includes(id));
+}
+
+/** Chokepoints whose disruption hits the selected country hardest. */
+export function chokepointsFor(id: string): Chokepoint[] {
+  return CHOKEPOINTS.filter((c) => c.relevantTo.includes(id));
+}
+
+// ---------------------------------------------------------------------------
+// State current events & ballot watch — SAME ids as the state lens
+// ---------------------------------------------------------------------------
+
+export const STATE_EVENTS_SOURCE =
+  'Current-events and ballot watch compiled early 2026, extended consistently with the Lab’s snapshot world — ILLUSTRATIVE where it runs past verifiable history; verify measures, dates, and outcomes before citing.';
+
+export const STATE_CURRENT_EVENTS: GeoExposure[] = [
+  { id: 'ca', headline: 'An open governor’s race, a ballot-initiative machine, and an insurance crisis.', items: ['Nov 2026: open-seat governor’s race (the incumbent termed out) — a national-money magnet that resets tax and regulation debates for the world’s 5th-largest economy.', 'The initiative machine is loading: AI-regulation and tech-tax measures circulating for the 2026 ballot — the state that regulates tech IS tech policy for the country.', 'The wildfire-insurance crisis is the state economic story: the FAIR plan overloaded, insurers re-entering only under new catastrophe-model pricing — a property-market and muni-credit issue, not just a homeowner one.', 'High-speed-rail funding fights and film-credit expansion: the perennial capital-allocation debates, live.'] },
+  { id: 'tx', headline: 'The grid meets the data-center boom; property-tax promises meet school math.', items: ['ERCOT interconnection is the bottleneck of the AI buildout — grid and gas-turbine politics are now industrial policy (the utilities lens, live in one state).', 'Property-tax "compression" promises collide with school-funding formulas — the recurring special-session fight.', 'Border-operations spending is a permanent budget line now; November odd-year constitutional-amendment elections keep moving real money.'] },
+  { id: 'ny', headline: 'Congestion pricing, city politics, and the upstate chips bet.', items: ['Congestion-pricing revenue underwrites the MTA capital plan — the toll IS a bond covenant now; every legal challenge is a muni-credit event.', 'NYC mayoral politics drives national business-climate headlines — and the financial industry’s relocation threats price real estate at the margin.', 'Upstate: Micron’s mega-fab milestones are New York’s reshoring barometer (the CHIPS story in one project).'] },
+  { id: 'fl', headline: 'The insurance market is the economy’s stress point.', items: ['Property insurance and reinsurance costs are the state’s macro story — carrier failures, Citizens (the state insurer) as backstop, and every hurricane season a fiscal event.', 'Post-Surfside condo-inspection law: special assessments are repricing the condo market, unit by unit.', 'Growth vs infrastructure strain: insurance, water, and roads decide whether the in-migration boom continues compounding.'] },
+  { id: 'il', headline: 'The pension ramp squeezes everything else.', items: ['The statutory pension-funding ramp (the tab-15 warning live) crowds the budget every single year — the first fact of Illinois fiscal politics.', 'Chicago’s structural budget gap and credit-watch cycle is the state’s second balance sheet.', 'Periodic graduated-income-tax revival talk: the 2020 failure still frames what revenue answers are possible.'] },
+  { id: 'pa', headline: 'Permanent swing state; energy is the industrial policy.', items: ['2026 governor and senate races make it a national-money magnet again — policy uncertainty as a recurring local industry.', 'Energy is the story: Marcellus gas, LNG-export politics, and power-plant restarts bid up by data-center demand.', 'Philadelphia and Pittsburgh transit funding cliffs — the recurring state-vs-city fiscal standoff.'] },
+  { id: 'oh', headline: 'The reshoring barometer, in concrete.', items: ['Intel’s New Albany fab timeline is the country’s clearest reshoring test — every delay or milestone is industrial-policy news.', 'A property-tax revolt is brewing after reappraisal spikes — ballot-measure pressure building.', 'Redistricting-reform fallout keeps state politics unsettled between cycles.'] },
+  { id: 'ga', headline: 'Port, batteries, and an open governor’s race.', items: ['Savannah’s expansion rides the regionalization of trade — the East Coast’s share keeps climbing.', 'The EV/battery corridor (Hyundai, SK) is ramping — Korean industrial investment as county-level economics.', '2026: open governor’s race, with elections administration under the national microscope again.'] },
+  { id: 'nj', headline: 'A new administration meets the old math.', items: ['The governor elected in 2025 now owns the math: the pension hole, school funding, and the affordability politics that decided the race.', 'NJ Transit’s funding cliff and the corporate-transit-fee fight — the recurring test of who pays for the region’s rails.', 'Warehouse-and-logistics sprawl politics: the port economy’s land-use backlash.'] },
+  { id: 'wa', headline: 'Tax-initiative cycles, Boeing’s recovery, and the cloud at home.', items: ['The capital-gains-tax expand-vs-repeal initiative cycle keeps the state’s tax structure permanently on the ballot.', 'Boeing’s order book and production recovery is the state income statement — every delivery pause is a local recession signal.', 'Data-center and AI siting decisions (power, water, tax) are now the growth debate east of the Cascades.'] },
+];
+
+// ---------------------------------------------------------------------------
+// US bilateral arcs — the two-decade relationship per country lens
+// ---------------------------------------------------------------------------
+
+export interface BilateralArc {
+  id: string;
+  title: string;
+  arc: SummitEntry[];
+  today: string;
+}
+
+/** Selecting a country fills the two-decade step with its US relationship. */
+export const US_BILATERAL: BilateralArc[] = [
+  { id: 'china', title: 'US–China', today: 'The defining rivalry: engagement (2001–2016) flipped to managed competition and never flipped back — the main meetings ledger below IS largely this relationship’s history.', arc: [
+    { when: '2001', what: 'WTO accession, US-backed', result: 'The engagement bet placed — supply chains move, imports explode.', read: 'The hinge everything below swings on.' },
+    { when: '2018–20', what: 'Trade war → Phase One', result: 'Tariffs stay; purchase targets missed ~40%.', read: 'Engagement officially over; managed trade begins.' },
+    { when: '2022', what: 'Chip export controls + CHIPS Act', result: 'Leading-edge compute cut off; fabs subsidized home.', read: 'Economic statecraft replaces trade policy.' },
+    { when: '2023–26', what: 'Woodside hotlines → tariff-wave summits', result: 'Talk resumed, decoupling continued, carve-outs traded leader-to-leader.', read: 'The floor-setting equilibrium: prevent accidents, compete on everything.' },
+  ] },
+  { id: 'japan', title: 'US–Japan', today: 'The closest Pacific ally: chip-controls partner, defense budget doubling, host of the largest US forward force — while Nippon Steel and tariff rounds prove alliance does not exempt economics.', arc: [
+    { when: '2015', what: 'Abe addresses Congress; defense guidelines rewritten', result: 'Collective self-defense reinterpreted — Japan can fight beside the US.', read: 'The postwar constraints start bending, by American request.' },
+    { when: '2016', what: 'Obama at Hiroshima; Abe at Pearl Harbor', result: 'Reciprocal reconciliation visits, no apologies asked.', read: 'The alliance matures past its origin story.' },
+    { when: '2019', what: 'US–Japan trade agreement', result: 'Agriculture and digital trade deal after the US left TPP.', read: 'Tokyo learns to deal bilaterally with a transactional Washington.' },
+    { when: '2022–23', what: 'Defense-doubling pledge; Camp David US–Japan–Korea trilateral', result: 'Counter-strike missiles funded; the trilateral institutionalized.', read: 'The fiscal lever pulled for security — the military table’s biggest posture shift.' },
+    { when: '2024–25', what: 'Nippon Steel / US Steel blocked-then-renegotiated; tariff rounds', result: 'An ally’s acquisition treated as a security question; carve-outs bargained.', read: 'Economic nationalism doesn’t exempt friends — price it into every cross-border deal.' },
+  ] },
+  { id: 'germany', title: 'US–Germany', today: 'Security-aligned since the Zeitenwende, economically tense: auto tariffs, China de-risking pressure, and the memory that Washington sanctioned its pipeline.', arc: [
+    { when: '2003', what: 'Iraq war rift', result: 'Berlin refuses the coalition; relations chill.', read: 'The alliance survives open disagreement — a precedent both sides remember.' },
+    { when: '2013', what: 'NSA revelations (the Chancellor’s phone)', result: 'Trust crisis inside the alliance.', read: 'Allies surveil allies; intelligence and friendship run on separate books.' },
+    { when: '2019–21', what: 'Nord Stream 2 sanctions fight', result: 'US sanctions a German-backed pipeline; waived 2021, moot after 2022.', read: 'Energy routes were the fault line years before the war proved the US right.' },
+    { when: '2022', what: 'Zeitenwende alignment', result: 'Rearmament, LNG terminals, weapons to Ukraine — the postwar model overturned.', read: 'Shock does in weeks what summits couldn’t in decades.' },
+  ] },
+  { id: 'uk', title: 'US–UK', today: 'The closest intelligence and security ally (Five Eyes, AUKUS, Trident) — still waiting on the comprehensive trade deal Brexit was supposed to unlock.', arc: [
+    { when: '2003', what: 'Iraq — shoulder to shoulder', result: 'The special relationship at maximum commitment, at real political cost.', read: 'London pays premiums on the alliance others don’t.' },
+    { when: '2016–20', what: 'Brexit + promised US trade deal', result: 'The deal never closed; sectoral mini-agreements instead.', read: 'Leaving one bloc did not buy entry terms to another.' },
+    { when: '2020', what: 'Huawei 5G ban under US pressure', result: 'UK reverses course and rips out Chinese kit.', read: 'On chokepoint technologies, Washington’s preference binds allies.' },
+    { when: '2021', what: 'AUKUS', result: 'Nuclear-submarine tech shared — the deepest capability transfer since WWII.', read: 'The Indo-Pacific pivot runs through London (and past Paris).' },
+  ] },
+  { id: 'france', title: 'US–France', today: 'The ally that insists on optionality: fully committed in NATO, loudly independent on strategy, industry, and China policy.', arc: [
+    { when: '2003', what: 'Iraq rift ("freedom fries")', result: 'Paris leads the refusal; relations freeze.', read: 'France’s independence is a feature of the alliance, not a bug in it.' },
+    { when: '2015', what: 'Paris climate accord partnership', result: 'The signature multilateral win, later US-withdrawn-then-rejoined.', read: 'French-brokered multilateralism is hostage to US electoral cycles.' },
+    { when: '2021', what: 'AUKUS submarine snub', result: '$60B+ contract lost; ambassadors recalled — from an ally.', read: 'Strategic autonomy went from slogan to policy that week.' },
+    { when: '2023', what: '"Not America’s followers" — the Taiwan comments', result: 'Macron argues Europe shouldn’t be dragged into every US–China crisis.', read: 'The swing voice INSIDE the Western bloc — watch it to gauge alliance cohesion.' },
+  ] },
+  { id: 'india', title: 'US–India', today: 'The fastest-warming major relationship — defense, chips, IMEC — bounded by India’s refusal to pick a side (Russian oil, BRICS seat).', arc: [
+    { when: '2005–08', what: 'Civil nuclear deal', result: 'Sanctions-era estrangement ends; India recognized as a nuclear power in practice.', read: 'The hinge: Washington chose India as the China counterweight.' },
+    { when: '2016–20', what: 'Major Defense Partner status; border clashes push the tilt', result: 'Interoperability agreements signed; Quad revived to leaders level.', read: 'China’s pressure did more for US–India ties than any summit.' },
+    { when: '2023', what: 'Modi state visit', result: 'Jet-engine co-production, drones, chip investments announced.', read: 'Technology transfer is the new currency of alignment.' },
+    { when: '2025–26', what: 'Tariff frictions inside the friendship', result: 'Trade fights coexist with defense deepening.', read: 'The swing state gets courted AND tariffed — non-alignment has a price and a payoff.' },
+  ] },
+  { id: 'italy', title: 'US–Italy', today: 'A reliable NATO southern-flank host whose BRI episode made it the test case for alliance economic discipline — resolved Washington’s way.', arc: [
+    { when: '2019', what: 'Joins the BRI over US objections', result: 'The only G7 member to sign.', read: 'The alliance’s economic seams showing.' },
+    { when: '2023', what: 'Exits the BRI', result: 'Quiet withdrawal; Global Gateway money courted instead.', read: 'The promised export boom never came — and Washington’s patience mattered.' },
+    { when: '2024–26', what: 'Mediterranean migration and defense-spending pressure', result: 'Hosting duties rise; the 2% NATO target stays out of fiscal reach.', read: 'The debt table (tab 15) constrains the alliance table.' },
+  ] },
+  { id: 'brazil', title: 'US–Brazil', today: 'Transactional and swing: courted on minerals and trade, sanctioned-adjacent on politics, always keeping the BRICS door open.', arc: [
+    { when: '2013', what: 'NSA spying revelations', result: 'President cancels a US state visit.', read: 'Surveillance costs real diplomatic capital in the Global South.' },
+    { when: '2019–22', what: 'The Bolsonaro alignment', result: 'Warmest ties in decades — reversed by the next election.', read: 'Relationship beta to BOTH countries’ electoral cycles.' },
+    { when: '2023–26', what: 'BRICS hosting + US tariff fights', result: 'Hosts the expansion summits while negotiating trade disputes with Washington.', read: 'Hedging as strategy: sell food to China, court capital from the US.' },
+  ] },
+  { id: 'canada', title: 'US–Canada', today: 'The closest economic integration on Earth — and the cleanest lesson that integration is exposure when the big partner turns protectionist.', arc: [
+    { when: '2017–20', what: 'NAFTA renegotiated into USMCA under tariff threat', result: '"National security" steel/aluminum tariffs applied to an ally mid-negotiation.', read: 'Treaty ally, tariff target — simultaneously.' },
+    { when: '2015–21', what: 'Keystone XL granted, revoked, re-revoked', result: 'The pipeline dies by US electoral cycle.', read: 'Canadian capital projects carry US political risk on their books.' },
+    { when: '2025–26', what: 'The tariff wave hits the closest partner', result: 'Sovereignty rhetoric spikes; diversification talk becomes policy.', read: 'The one-customer problem (tab 15) made vivid — even best friends hedge now.' },
+  ] },
+  { id: 'skorea', title: 'US–South Korea', today: 'Deepest integration of the lattice — treaty, troops, chips, shipbuilding — with the IRA and cost-sharing fights as recurring reminders that economics is negotiated separately.', arc: [
+    { when: '2007–18', what: 'KORUS FTA signed, then renegotiated', result: 'The trade pact reopened under tariff pressure.', read: 'Even codified deals reopen when Washington’s mood shifts.' },
+    { when: '2018–19', what: 'Singapore/Hanoi summits negotiated over Seoul’s head; cost-sharing fights', result: 'Alliance anxiety spikes; troop-cost demands quintuple.', read: 'Front-line allies bear the volatility of US diplomacy they don’t control.' },
+    { when: '2022', what: 'IRA EV-credit shock', result: 'Korean EVs excluded from US credits the year Korea invested most.', read: 'The Georgia plants (state lens) are the hedge that answer built.' },
+    { when: '2023', what: 'Camp David trilateral with Japan', result: 'The US–Japan–Korea triangle institutionalized past historical grievances.', read: 'The lattice becomes architecture — and Korea’s chips corridor runs through it.' },
+  ] },
+];
+
+export const EXTRA_GEO_EXPOSURE: GeoExposure[] = [
+  { id: 'iran', headline: 'Every axis runs through it: sanctions, oil, proxies, the strait.', items: ['The Hormuz chokepoint and the discount barrel are the same file — the Iran flashpoint is its national strategy.', 'Arms-for-energy ties to Russia and oil sales to China put it inside the adversary axis without a treaty.', 'Its nuclear threshold status is the region’s standing escalation clock.'] },
+  { id: 'russia', headline: 'The sanctioned pole of the system.', items: ['Author of the war that built the modern sanctions architecture — and of the workarounds every non-aligned state studied.', 'Energy rerouting east (discounted crude to India/China) redrew the tanker map; the NSR is its Arctic card.', 'North Korean shells and Iranian drones flow in; nuclear signaling is its escalation currency.'] },
+  { id: 'taiwan', headline: 'The single point of failure in the world economy.', items: ['TSMC’s leading edge is the chokepoint technology every export control orbits.', 'The gray-zone pressure campaign (exercises, incursions) is the flashpoint table’s biggest unpriced tail.', 'Its election cycles move chip stocks the way Fed meetings move bonds.'] },
+  { id: 'mexico', headline: 'The land border of every US debate.', items: ['#1 US goods-trade partner: nearshoring’s hub, USMCA’s renewable license, tariff threats’ first target.', 'Migration and fentanyl politics make it a permanent line in US elections — policy risk with a peso price.', 'Chinese investment routing through Mexican plants is the next screening fight.'] },
+  { id: 'venezuela', headline: 'Sanctions lab of the hemisphere.', items: ['License swings (the flashpoint) are the live experiment in sanctions-as-price-dial.', 'The migration exodus reprices state budgets from Bogotá to New York.', 'US naval pressure in the southern Caribbean keeps military options visibly priced.'] },
+  { id: 'saudi', headline: 'The swing vote of oil and of alignment.', items: ['Spare capacity makes it the inflation dial’s largest single hand.', 'BRICS member AND US security partner AND IMEC leg — the non-aligned hedge at sovereign-wealth scale.', 'Normalization diplomacy is the switch that turns IMEC from map to corridor.'] },
+];
+
+export const EXTRA_COUNTRY_ROUTES: GeoExposure[] = [
+  { id: 'iran', headline: 'The chokepoint state building its own corridor.', items: ['Holds Hormuz — a fifth of world oil transits its coastline; closure is its ultimate (self-wounding) card.', 'The INSTC north–south corridor (with Russia and India, via Chabahar) is its sanctions-proof trade bet.', 'The shadow fleet is its route innovation: a parallel tanker system outside Western insurance.'] },
+  { id: 'russia', headline: 'Rerouted east, betting on the Arctic.', items: ['Pipeline Europe is gone; discounted seaborne crude to India and China rebuilt the flow map in eighteen months.', 'The Northern Sea Route is its long game — Arctic transit under Russian control as the ice opens.', 'The China rail links and INSTC are its landward sanctions bypasses.'] },
+  { id: 'taiwan', headline: 'An island that ships value, not volume.', items: ['Its exports are so value-dense (chips) that airfreight matters as much as sea lanes — but energy and food arrive by sea through the strait China patrols.', 'Blockade math is inventory math: months of chips stockpiled abroad vs weeks of LNG at home.', 'TSMC’s overseas fabs are routes in themselves — capacity physically relocated past the chokepoint.'] },
+  { id: 'mexico', headline: 'The land bridge — rail and truck, not tankers.', items: ['USMCA’s road/rail corridors (Laredo is America’s busiest port of entry) carry more US trade than most oceans.', 'Pacific ports (Manzanillo, Lázaro Cárdenas) are the China-goods backdoor Washington now screens.', 'The Tehuantepec interoceanic rail is its Panama-alternative ambition.'] },
+  { id: 'venezuela', headline: 'One export, one route, one buyer question.', items: ['Heavy crude to US Gulf refineries is THE route — everything else (China deliveries repaying loans) is workaround.', 'Caribbean adjacency puts it beside the Panama approaches and under the US naval eye.', 'Migration routes are its other flow — northbound, unpriced, fiscally real.'] },
+  { id: 'saudi', headline: 'The origin node of the energy map.', items: ['Its crude exits via Hormuz — plus the east–west pipeline to the Red Sea as the strategic bypass.', 'IMEC’s middle leg would make it the land bridge between India and Europe — normalization is the missing rail.', 'Red Sea disruption (the Houthi campaign) taxes its own diversification coastline.'] },
+];
+
+export const EXTRA_MILITARY: MilitaryRow[] = [
+  { id: 'iran', name: 'Iran', budgetB: 16, pctGdp: 2.6, alignment: 'adversary', nuclear: false, note: 'Threshold nuclear state; the proxy network and missile/drone arsenal are the real budget. Sanctions cap the conventional force; asymmetry is the doctrine.' },
+  { id: 'russia', name: 'Russia', budgetB: 130, pctGdp: 6.5, alignment: 'adversary', nuclear: true, note: 'A war economy: ~6–7% of GDP on defense, artillery-scale production revived, the world’s largest nuclear arsenal as the backstop. The military IS the economy now.' },
+  { id: 'taiwan', name: 'Taiwan', budgetB: 20, pctGdp: 2.5, alignment: 'ally', nuclear: false, note: 'No treaty, but US arms packages and the Taiwan Relations Act make it a de facto security partner; porcupine strategy (asymmetric denial) plus the silicon shield.' },
+  { id: 'mexico', name: 'Mexico', budgetB: 12, pctGdp: 0.7, alignment: 'ally', nuclear: false, note: 'Constitutionally averse to foreign deployment; the military’s real missions are cartels and infrastructure. Security cooperation with the US is deep and permanently sensitive.' },
+  { id: 'venezuela', name: 'Venezuela', budgetB: 4, pctGdp: 1.5, alignment: 'adversary', nuclear: false, note: 'Degraded conventional forces sustained by Russian/Cuban ties and internal-control priorities; the US naval presence offshore defines the military question.' },
+  { id: 'saudi', name: 'Saudi Arabia', budgetB: 75, pctGdp: 7.1, alignment: 'swing', nuclear: false, note: 'Top-five world spender on US kit, yet hedging with Chinese missiles and BRICS seats; its wars (Yemen) showed money ≠ capability. The US security umbrella is the item always being renegotiated.' },
+];
+
+export const EXTRA_BILATERAL: BilateralArc[] = [
+  { id: 'iran', title: 'US–Iran', today: 'No relations since 1979; the JCPOA’s collapse left maximum pressure vs threshold nuclear status — every escalation cycle prices straight into oil.', arc: [
+    { when: '2015', what: 'JCPOA nuclear deal', result: 'Sanctions relief for enrichment limits — the engagement high-water mark.', read: 'Proof a deal was possible; benchmark for every attempt since.' },
+    { when: '2018', what: 'US withdrawal; maximum pressure', result: 'Sanctions snap back; Iran resumes enrichment; oil exports go shadow.', read: 'The deal’s death taught Tehran that US signatures expire with administrations.' },
+    { when: '2020', what: 'Soleimani strike', result: 'Direct state-on-state killing; retaliation stayed calibrated.', read: 'Both sides showed escalation control — the reason the tail hasn’t priced.' },
+    { when: '2023–26', what: 'Proxy war era: Red Sea, direct exchanges, the Gulf shock', result: 'Houthi shipping campaign, first direct Iran–Israel strikes, the 2026 energy premium.', read: 'The conflict now runs through insurance rates and the energy CPI line (tab 3) — markets price Iran weekly.' },
+  ] },
+  { id: 'russia', title: 'US–Russia', today: 'Adversaries running the largest sanctions war ever — negotiation pressure comes and goes with US politics; the reserve freeze is the precedent every central bank remembers.', arc: [
+    { when: '2009–13', what: 'The "reset" and its death', result: 'Cooperation attempts end in Snowden asylum and Syria.', read: 'The last try at partnership — its failure set the trajectory.' },
+    { when: '2014', what: 'Crimea; sanctions round one', result: 'Sectoral sanctions, G8 expulsion — the modern toolkit’s first draft.', read: 'The 2022 architecture was rehearsed here, and Moscow adapted for eight years.' },
+    { when: '2016–20', what: 'Election interference era', result: 'Sanctions, expulsions, permanent domestic-politics entanglement.', read: 'The relationship became a US internal issue — which makes policy swings wider.' },
+    { when: '2022–26', what: 'Full invasion; the sanctions revolution; negotiation pressure', result: 'Reserve freeze, price caps, SWIFT cuts; the war grinds; talk cycles come and go.', read: 'The chapter that armed the dollar — and recruited for every alternative to it.' },
+  ] },
+  { id: 'taiwan', title: 'US–Taiwan', today: 'Unofficial but thickening: arms packages, chip co-dependence (TSMC Arizona), congressional visits — strategic ambiguity under growing strain.', arc: [
+    { when: '2016', what: 'The Trump–Tsai call', result: 'First leader-level contact since 1979 — protocol broken deliberately.', read: 'Ambiguity’s boundaries started moving.' },
+    { when: '2020–22', what: 'Arms packages accelerate; Pelosi visit; PLA exercise response', result: 'Blockade rehearsals become the new normal after the visit.', read: 'Each gesture buys reassurance and buys escalation — the flashpoint’s core trade-off.' },
+    { when: '2022–25', what: 'CHIPS era: TSMC Arizona fabs', result: 'Leading-edge capacity physically planted on US soil.', read: 'De-risking the island by thinning its shield — the paradox US policy lives with.' },
+    { when: '2024–26', what: 'Election cycles and gray-zone tempo', result: 'Continuity in Taipei; pressure campaigns intensify without a trigger event.', read: 'The status quo holds because all three capitals still prefer it to the alternatives — watch for when one stops.' },
+  ] },
+  { id: 'mexico', title: 'US–Mexico', today: 'The deepest economic integration after Canada — #1 goods partner — governed summit-to-summit through migration, fentanyl, and tariff leverage.', arc: [
+    { when: '2017–20', what: 'NAFTA → USMCA under tariff threat', result: 'The treaty survives, rewritten; tariffs used as negotiation artillery.', read: 'Access became renewable-with-conditions — the review clause is the leash.' },
+    { when: '2019', what: 'Tariff-for-migration ultimatum', result: 'Mexico deploys its national guard to the border to stop US tariffs.', read: 'Trade and migration formally fused into one negotiation.' },
+    { when: '2021–24', what: 'The nearshoring boom', result: 'Mexico passes China as the #1 US goods partner; the super-peso prices it.', read: 'The China+1 dividend landed next door — geography beat ideology.' },
+    { when: '2025–26', what: 'Tariff waves, cartel designations, USMCA review shadow', result: 'Carve-outs negotiated; security pressure escalates; review looms.', read: 'The boom’s terms are being repriced in real time — the peso is the tape.' },
+  ] },
+  { id: 'venezuela', title: 'US–Venezuela', today: 'Coercion with an oil valve: recognition fights, license swings, naval pressure — policy oscillates between isolation and barrels.', arc: [
+    { when: '2019', what: 'Guaidó recognition; oil sanctions', result: 'Parallel government recognized; PDVSA cut off.', read: 'Maximum pressure’s limit case: the regime held, the economy didn’t.' },
+    { when: '2022–23', what: 'License thaw (Chevron), Barbados agreement', result: 'Barrels for election promises.', read: 'Sanctions-as-dial demonstrated: the same crude toggled legal.' },
+    { when: '2024', what: 'Disputed election; snapback', result: 'Promises broken, licenses tightened, opposition exiled.', read: 'The dial turned back — credibility of every future deal discounted.' },
+    { when: '2025–26', what: 'Naval pressure era', result: 'US presence in the southern Caribbean; strikes on trafficking vessels; regime-change ambiguity.', read: 'Escalation optionality kept visibly priced — Gulf-refinery margins read the headlines.' },
+  ] },
+  { id: 'saudi', title: 'US–Saudi Arabia', today: 'The oldest transactional alliance — security for oil, renegotiated each cycle — now bidding on normalization, chips access, and a defense treaty.', arc: [
+    { when: '2005–15', what: 'The petrodollar routine', result: 'Security umbrella, arms sales, coordinated oil politics.', read: 'The baseline both sides keep threatening to leave and never do.' },
+    { when: '2018', what: 'Khashoggi murder', result: 'Relations crater; "pariah" rhetoric meets arms-sale reality.', read: 'Values and interests split publicly — interests won, trust didn’t recover.' },
+    { when: '2022', what: 'OPEC+ cuts into a US election year', result: 'Production cut despite personal presidential lobbying.', read: 'Riyadh demonstrated the oil weapon points in every direction.' },
+    { when: '2023–26', what: 'Normalization / defense-treaty / AI-chips bidding', result: 'A grand bargain (Israel ties, US treaty, chip access) perpetually near-closed, hostage to Gaza.', read: 'The IMEC switch and the alignment auction in one negotiation — the swing state naming its price.' },
+  ] },
+];
+
+export function bilateralFor(id: string): BilateralArc | null {
+
+  return US_BILATERAL.find((b) => b.id === id) ?? EXTRA_BILATERAL.find((b) => b.id === id) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Strategic-country extension — Iran, Russia, Taiwan, Mexico, Venezuela,
+// Saudi Arabia join the country lens with the same treatment. They are not
+// top-10 economies (so tab 15's debt/trade tables honestly exclude them);
+// each gets a strategic profile, an FX story, military and route rows,
+// exposure, and a US bilateral arc.
+// ---------------------------------------------------------------------------
+
+export const EXTRA_COUNTRIES = [
+  { id: 'iran', name: 'Iran' },
+  { id: 'russia', name: 'Russia' },
+  { id: 'taiwan', name: 'Taiwan' },
+  { id: 'mexico', name: 'Mexico' },
+  { id: 'venezuela', name: 'Venezuela' },
+  { id: 'saudi', name: 'Saudi Arabia' },
+] as const;
+
+export const EXTRA_PROFILE_SOURCE =
+  'Strategic-country profiles compiled early 2026 — ILLUSTRATIVE where they run past verifiable history; verify before citing. These countries sit outside the top-10 GDP tables on tab 15, so their debt/trade rows are honestly absent here.';
+
+export const EXTRA_COUNTRY_PROFILES: GeoExposure[] = [
+  { id: 'iran', headline: 'The sanctioned oil power holding the world’s most important strait.', items: ['~90M people, huge gas/oil reserves, an economy running at a fraction of potential under layered sanctions since 1979 — the discount-barrel supplier and the Hormuz tail risk at once (the Iran flashpoint).', 'The proxy network (Hezbollah, Houthis, militias) is the delivery mechanism of its deterrence — the Red Sea shipping tax is its economics in action.', 'Domestic legitimacy strains (protests, succession questions) make its politics the region’s biggest binary.', 'Finance read: Iran prices into markets ONLY through oil and shipping — watch the barrel discount and tanker insurance, not its GDP.'] },
+  { id: 'russia', headline: 'The sanctioned commodity empire that broke the dollar system’s innocence.', items: ['The 2022 invasion made it the most-sanctioned major economy ever — reserve freeze, SWIFT cutoffs, price caps — and the war economy still runs on commodity exports rerouted east at discounts.', 'The shadow fleet, yuan settlement, and gold are its workarounds — every one now standard equipment for any state fearing sanctions (the de-dollarization recruitment the sanctions flashpoint describes).', 'Military-industrial output is its growth engine now — a war-Keynesianism that hollows the civilian economy.', 'Finance read: Russia matters to your models through energy prices, the sanctions architecture, and European rearmament budgets — three channels, all on this tab.'] },
+  { id: 'taiwan', headline: 'The indispensable island — the chip chokepoint wearing a flag.', items: ['~23M people producing ~90% of leading-edge logic chips (TSMC) — the highest economic-value-per-square-mile dependency in history, and the reason the Taiwan flashpoint is the market’s largest unpriced tail.', 'The "silicon shield" argument cuts both ways: indispensability deters attack AND guarantees everyone’s interest in the outcome.', 'Its overseas fabs (Arizona, Japan, Germany) thin the shield deliberately — geographic de-risking of the single point of failure.', 'Finance read: Taiwan risk trades as basis points in chip names and Korea/Japan FX — no index prices the scenario itself.'] },
+  { id: 'mexico', headline: 'The nearshoring winner wired into one customer.', items: ['Now the US’s #1 goods-trade partner — the China+1 re-routing’s biggest single beneficiary, with border-state industrial parks full.', 'The USMCA review cycle and tariff threats make its access renewable, not guaranteed — Canada’s one-customer lesson applies doubly.', 'Cartel violence, judicial-reform fights, and water/energy constraints are the discount on the nearshoring premium.', 'Finance read: the peso is the market’s live vote on nearshoring vs tariff risk — strong on the boom, hit on every trade threat.'] },
+  { id: 'venezuela', headline: 'The largest reserves, the smallest output — sanctions as the price dial.', items: ['World’s largest proven oil reserves producing under 1M bpd — collapsed by mismanagement first, sanctions second (the Venezuela flashpoint’s license story).', 'The migration exodus (~8M) is the hemisphere’s largest displacement — a fiscal line item for US states (FL/TX/NY on the state lens).', 'Disputed elections keep legitimacy — and therefore sanctions policy — permanently unsettled; US naval pressure keeps the coercion visible.', 'Finance read: Venezuela reaches markets through Gulf-refinery economics, diesel margins, and license headlines — the paperwork IS the price.'] },
+  { id: 'saudi', headline: 'The swing producer buying its post-oil future.', items: ['OPEC+’s decisive voice: its spare capacity is the world’s oil-price shock absorber — and its production cuts are fiscal policy for everyone else’s inflation dial.', 'Vision 2030 (NEOM, tourism, sports, chips ambitions) is the biggest sovereign capital-allocation program after the BRI — funded by the barrel it is trying to outgrow.', 'It hedges everything: US security guarantees, Chinese oil demand and BRICS membership, IMEC’s middle leg — the non-aligned playbook at maximum wealth.', 'Finance read: watch its OPEC+ decisions (the inflation dial), its PIF deployments (the capital-flows story), and normalization diplomacy (the IMEC switch).'] },
+];
+
+export const EXTRA_CURRENCY_NOTES: Record<string, string> = {
+  iran: 'The rial is the sanctions thermometer: collapsed from ~32k/$ (2015, JCPOA era) toward ~1M/$ on the parallel market — a ~97% loss that inflation-taxes the population while the state earns dollars from oil. Not charted on tab 15: it would flatten every other line.',
+  russia: 'The ruble is managed theater: crashed on the 2022 invasion, force-stabilized by capital controls and surplus energy earnings, sliding as war spending outruns them. A price set by decree is a gauge of policy, not of markets.',
+  taiwan: 'The NT dollar is a quiet strength story — chip-export surpluses hold it firm, and its dips track Taiwan-risk headlines more than economics: the closest thing to a live price on the flashpoint.',
+  mexico: 'The peso is the nearshoring trade: the 2023–24 "super peso" priced the boom, then tariff threats repriced it — the cleanest currency read on US trade policy anywhere.',
+  venezuela: 'The bolívar has been through hyperinflation and redenominations (14 zeros removed since 2008); the economy is informally dollarized — the end-state of the currency death spiral tab 15 teaches.',
+  saudi: 'The riyal is pegged at 3.75/$ since 1986 — the peg IS the policy: it imports Fed rates wholesale, which is why Saudi fiscal policy (not monetary) does all the adjusting when oil moves.',
+};
+
+
+/** Combined lookups across the top-10(+Korea) rows and the strategic six. */
+export const ALL_COUNTRY_EXPOSURE: GeoExposure[] = [...GEO_EXPOSURE_COUNTRIES, ...EXTRA_GEO_EXPOSURE];
+export const ALL_COUNTRY_ROUTES: GeoExposure[] = [...COUNTRY_ROUTES, ...EXTRA_COUNTRY_ROUTES];
+export const ALL_MILITARY: MilitaryRow[] = [...MILITARY_BALANCE, ...EXTRA_MILITARY];
+export const ALL_BILATERAL: BilateralArc[] = [...US_BILATERAL, ...EXTRA_BILATERAL];

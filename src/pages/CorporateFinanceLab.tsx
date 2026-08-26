@@ -187,11 +187,9 @@ import {
   Alignment,
   FLASHPOINTS,
   GEOPOLITICS_SOURCE,
-  GEO_EXPOSURE_COUNTRIES,
   GEO_EXPOSURE_INDUSTRIES,
   GEO_EXPOSURE_STATES,
   INSTITUTIONS,
-  MILITARY_BALANCE,
   MILITARY_ECON_READS,
   MILITARY_SOURCE,
   RECENT_WINDOW,
@@ -200,9 +198,18 @@ import {
   US_SUMMIT_HISTORY,
   BRI_FACTS,
   CHOKEPOINTS,
-  COUNTRY_ROUTES,
   ROUTES_SOURCE,
+  STATE_CURRENT_EVENTS,
+  STATE_EVENTS_SOURCE,
   TRADE_CORRIDORS,
+  ALL_BILATERAL,
+  ALL_COUNTRY_EXPOSURE,
+  ALL_COUNTRY_ROUTES,
+  ALL_MILITARY,
+  bilateralFor,
+  chokepointsFor,
+  corridorsFor,
+  routeProgramFor,
 } from '../lib/geoPolitics';
 import {
   DEFAULT_ACCRETION_INPUTS,
@@ -216,6 +223,9 @@ import {
   DEFAULT_IRR_INPUTS,
   DEFAULT_LBO_INPUTS,
   DEFAULT_PPA_INPUTS,
+  DEFAULT_13WEEK_INPUTS,
+  DEFAULT_FIELD_INPUTS,
+  DEFAULT_QOE_INPUTS,
   DEFAULT_RNPV_INPUTS,
   DEFAULT_ROIC_INPUTS,
   accretionDilution,
@@ -225,6 +235,9 @@ import {
   compsCompare,
   costApproach,
   expectedPayoff,
+  footballField,
+  qoeBridge,
+  thirteenWeek,
   goodwillImpairment,
   hurdleBuilder,
   incrementalRoic,
@@ -648,6 +661,7 @@ export default function CorporateFinanceLab() {
 
   // Shared market scenario (tabs 1 and 3).
   const [scenarioId, setScenarioId] = useState<string>(TODAY_SCENARIO_ID);
+  const [histFreqA, setHistFreqA] = useState<HistoryFreq>('monthly');
   const [factors, setFactors] = useState<MacroFactors>(MARKET_SNAPSHOT.factors);
   const pickToday = () => {
     setScenarioId(TODAY_SCENARIO_ID);
@@ -1500,6 +1514,45 @@ export default function CorporateFinanceLab() {
                     );
                   })}
                 </div>
+              </StepCard>
+
+              <StepCard n="I" icon={<History size={17} />} title="History — monthly & quarterly macro trends">
+                <p style={hintStyle}>
+                  The same history engine as the report tab (tab 19 step B): CPI, the Fed funds
+                  midpoint, the 10-year Treasury, and the PMMS 30-yr mortgage from Jan 2022 —
+                  official prints at the anchor months (matching this tab's inflation snapshot
+                  and tab 11's curve exactly), computed interpolation between, quarterly as the
+                  computed mean. Use it to see where today's dial settings CAME from.
+                </p>
+                <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <Chip active={histFreqA === 'monthly'} onClick={() => setHistFreqA('monthly')}>
+                    Monthly
+                  </Chip>
+                  <Chip active={histFreqA === 'quarterly'} onClick={() => setHistFreqA('quarterly')}>
+                    Quarterly
+                  </Chip>
+                </div>
+                <XYLineChart
+                  data={historyRows(MACRO_HISTORY.map((x) => x.id), histFreqA)}
+                  xKey="x"
+                  series={MACRO_HISTORY.map((x) => ({ id: x.id, label: x.name }))}
+                  height={240}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{HISTORY_SOURCE}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '14px 0 6px' }}>
+                  Real GDP, quarterly annualized
+                </div>
+                <XYLineChart
+                  data={GDP_QUARTERLY.map((g) => ({ x: g.q, gdp: g.value }))}
+                  xKey="x"
+                  series={[{ id: 'gdp', label: 'Real GDP (annualized %)' }]}
+                  height={170}
+                />
+                <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                  {HISTORY_STORIES.map((h) => (
+                    <li key={h.slice(0, 40)}>{h}</li>
+                  ))}
+                </ul>
               </StepCard>
             </>
           )}
@@ -2954,6 +3007,39 @@ function OptionsSection({
 // Tab 10 — the gap workbench (self-contained state)
 // ---------------------------------------------------------------------------
 
+function DecInput({ value, onChange, width = 80 }: { value: number; onChange: (v: number) => void; width?: number }) {
+  return (
+    <div
+      className="row"
+      style={{
+        alignItems: 'center',
+        gap: 5,
+        background: 'var(--bg-elevated-2)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-md)',
+        padding: '8px 12px',
+      }}
+    >
+      <input
+        type="number"
+        step={0.1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          width,
+          border: 'none',
+          outline: 'none',
+          background: 'transparent',
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-mono)',
+        }}
+      />
+    </div>
+  );
+}
+
 function WbField({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
     <div className="col" style={{ gap: 5 }}>
@@ -2979,6 +3065,15 @@ const wbNote: React.CSSProperties = {
 };
 
 function GapWorkbenchTab() {
+  const [twInp, setTwInp] = useState(DEFAULT_13WEEK_INPUTS);
+  const [ffInp, setFfInp] = useState(DEFAULT_FIELD_INPUTS);
+  const [qoeInp, setQoeInp] = useState(DEFAULT_QOE_INPUTS);
+  const tw = useMemo(() => thirteenWeek(twInp), [twInp]);
+  const ff = useMemo(() => footballField(ffInp), [ffInp]);
+  const qoe = useMemo(() => qoeBridge(qoeInp), [qoeInp]);
+  const ffMin = Math.min(...ff.bars.map((b) => b.low), ffInp.currentPrice) - 2;
+  const ffMax = Math.max(...ff.bars.map((b) => b.high), ffInp.offerPrice, ffInp.currentPrice) + 2;
+  const ffPct = (v: number) => ((v - ffMin) / (ffMax - ffMin)) * 100;
   const [irr, setIrr] = useState(DEFAULT_IRR_INPUTS);
   const [beta, setBeta] = useState(DEFAULT_BETA_INPUTS);
   const [hurdle, setHurdle] = useState(DEFAULT_HURDLE_INPUTS);
@@ -3390,6 +3485,215 @@ function GapWorkbenchTab() {
         <p style={wbNote}>
           Break-even = fixed costs ÷ contribution per unit — deceptively useful for new products,
           plants, pricing, and AI programs. CAGR smooths: a 15% CAGR does not mean 15% every year.
+        </p>
+      </StepCard>
+
+      <StepCard n="J" icon={<Wallet size={17} />} title="13-week cash flow — the restructuring staple">
+        <p style={hintStyle}>
+          EY Turnaround &amp; Restructuring postings name this model verbatim. Weekly granularity
+          is the whole point: the default company makes money on the AVERAGE week (+$100k) and
+          still hits its cash floor in week 10, because payroll lands every second week and rent
+          every fourth. Liquidity is a calendar problem, not an income-statement problem.
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <WbField label="Starting cash ($k)" hint="Example: $3,000k.">
+            <MoneyInput value={twInp.startingCash} onChange={(v) => setTwInp((x) => ({ ...x, startingCash: v }))} width={80} />
+          </WbField>
+          <WbField label="Weekly receipts ($k)" hint="Collections landing each week. Example: $2,000k.">
+            <MoneyInput value={twInp.weeklyReceipts} onChange={(v) => setTwInp((x) => ({ ...x, weeklyReceipts: v }))} width={80} />
+          </WbField>
+          <WbField label="Weekly disbursements ($k)" hint="Base outflows before payroll/rent. Example: $1,900k.">
+            <MoneyInput value={twInp.weeklyDisbursements} onChange={(v) => setTwInp((x) => ({ ...x, weeklyDisbursements: v }))} width={80} />
+          </WbField>
+          <WbField label="Biweekly payroll ($k)" hint="Extra outflow every 2nd week. Example: $500k.">
+            <MoneyInput value={twInp.biweeklyPayroll} onChange={(v) => setTwInp((x) => ({ ...x, biweeklyPayroll: v }))} width={70} />
+          </WbField>
+          <WbField label="Monthly rent ($k)" hint="Extra outflow in weeks 1, 5, 9, 13. Example: $300k.">
+            <MoneyInput value={twInp.monthlyRent} onChange={(v) => setTwInp((x) => ({ ...x, monthlyRent: v }))} width={70} />
+          </WbField>
+          <WbField label="Minimum cash ($k)" hint="The floor the treasurer will not cross. Example: $1,000k.">
+            <MoneyInput value={twInp.minCash} onChange={(v) => setTwInp((x) => ({ ...x, minCash: v }))} width={70} />
+          </WbField>
+          <WbField label="Revolver limit ($k)" hint="The credit line that bridges troughs. Example: $1,500k.">
+            <MoneyInput value={twInp.revolverLimit} onChange={(v) => setTwInp((x) => ({ ...x, revolverLimit: v }))} width={70} />
+          </WbField>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <XYLineChart
+            data={tw.rows.map((r) => ({ x: `W${r.week}`, raw: r.endingRaw, supported: r.ending }))}
+            xKey="x"
+            series={[
+              { id: 'raw', label: 'Cash, unaided ($k)' },
+              { id: 'supported', label: 'Cash with revolver ($k)' },
+            ]}
+            height={200}
+            ySuffix="k"
+          />
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+          <StatPill label="Trough (unaided)" value={`$${tw.troughCash}k · week ${tw.troughWeek}`} strong />
+          <StatPill label="Revolver drawn" value={`$${tw.totalRevolverDrawn}k of $${twInp.revolverLimit}k`} />
+          <StatPill label="Floor holds?" value={tw.survives ? 'yes' : 'NO'} strong />
+        </div>
+        <div style={{ overflowX: 'auto', marginTop: 10 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Receipts</th>
+                <th>Disbursements</th>
+                <th>Net</th>
+                <th>Cash (unaided)</th>
+                <th>Revolver draw</th>
+                <th>Cash (supported)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tw.rows.map((r) => (
+                <tr key={r.week}>
+                  <td style={{ fontWeight: 600 }}>{r.week}</td>
+                  <td>${r.receipts}k</td>
+                  <td>${r.disbursements}k</td>
+                  <td style={{ color: r.net >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{r.net >= 0 ? '+' : ''}{r.net}k</td>
+                  <td>${r.endingRaw}k</td>
+                  <td>{r.revolverDraw > 0 ? `$${r.revolverDraw}k` : '—'}</td>
+                  <td style={{ fontWeight: 600, color: r.belowMin ? 'var(--neg)' : 'var(--text-primary)' }}>${r.ending}k</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={decisionLine}>
+          <strong>The read:</strong> {tw.read}
+        </p>
+      </StepCard>
+
+      <StepCard n="K" icon={<Scale size={17} />} title="Football field — the fairness-opinion summary slide">
+        <p style={hintStyle}>
+          The one exhibit that summarizes a fairness opinion: every valuation method as a
+          horizontal range, side by side. The three METHOD bars anchor the opinion; the 52-week
+          range is context (what shareholders could get without a deal). The red line is the
+          market price, the green line the offer. Defaults: DCF $24–34, comps $22–30, precedents
+          $28–38 (higher — control premium), offer $31.
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          {([
+            ['DCF low', 'dcfLow'],
+            ['DCF high', 'dcfHigh'],
+            ['Comps low', 'compsLow'],
+            ['Comps high', 'compsHigh'],
+            ['Precedents low', 'precedentLow'],
+            ['Precedents high', 'precedentHigh'],
+            ['52wk low', 'week52Low'],
+            ['52wk high', 'week52High'],
+            ['Market price', 'currentPrice'],
+            ['Offer price', 'offerPrice'],
+          ] as const).map(([label, key]) => (
+            <WbField key={key} label={label} hint="$ per share.">
+              <MoneyInput value={ffInp[key]} onChange={(v) => setFfInp((x) => ({ ...x, [key]: v }))} width={46} />
+            </WbField>
+          ))}
+        </div>
+        <div className="col" style={{ gap: 10, marginTop: 14 }}>
+          {ff.bars.map((b) => (
+            <div key={b.name} className="row" style={{ alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 180, fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right' }}>{b.name}</div>
+              <div style={{ flex: 1, position: 'relative', height: 20, background: 'var(--bg-elevated-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${ffPct(b.low)}%`,
+                    width: `${Math.max(ffPct(b.high) - ffPct(b.low), 1)}%`,
+                    top: 2,
+                    bottom: 2,
+                    borderRadius: 4,
+                    background: b.kind === 'method' ? 'var(--accent)' : 'var(--text-tertiary)',
+                    opacity: b.kind === 'method' ? 0.75 : 0.4,
+                  }}
+                />
+                <div style={{ position: 'absolute', left: `${ffPct(ffInp.currentPrice)}%`, top: 0, bottom: 0, width: 2, background: 'var(--neg)' }} />
+                <div style={{ position: 'absolute', left: `${ffPct(ffInp.offerPrice)}%`, top: 0, bottom: 0, width: 2, background: 'var(--pos)' }} />
+              </div>
+              <div style={{ width: 78, fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                ${b.low}–${b.high}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 10 }}>
+          <StatPill
+            label="Method agreement band"
+            value={ff.overlapLow !== null ? `$${ff.overlapLow}–$${ff.overlapHigh}` : 'no overlap'}
+            strong
+          />
+          <StatPill label="Offer vs band" value={ff.overlapLow === null ? 'argue the weights' : ff.offerInOverlap ? 'inside — supportable' : 'outside'} />
+        </div>
+        <p style={decisionLine}>
+          <strong>The read:</strong> {ff.read}
+        </p>
+      </StepCard>
+
+      <StepCard n="L" icon={<Briefcase size={17} />} title="Quality of Earnings bridge — reported → adjusted → run-rate">
+        <p style={hintStyle}>
+          The headline exhibit of an EY diligence report, as a working model: reported EBITDA,
+          each adjustment with its logic (including ones AGAINST the seller — a QoE that only
+          adds is a sales document), and what the bridge is worth at the deal multiple. Every $1
+          of EBITDA adjustment moves ${qoeInp.dealMultiple} of purchase price.
+        </p>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <WbField label="Reported EBITDA ($M)" hint="The audited starting point. Example: $10.0M.">
+            <DecInput value={qoeInp.reportedEbitda} onChange={(v) => setQoeInp((x) => ({ ...x, reportedEbitda: v }))} />
+          </WbField>
+          <WbField label="Owner comp add-back ($M)" hint="Above-market owner salary. Example: +$1.2M.">
+            <DecInput value={qoeInp.ownerCompAddback} onChange={(v) => setQoeInp((x) => ({ ...x, ownerCompAddback: v }))} />
+          </WbField>
+          <WbField label="One-time legal ($M)" hint="Non-recurring settlement. Example: +$0.8M.">
+            <DecInput value={qoeInp.oneTimeLegal} onChange={(v) => setQoeInp((x) => ({ ...x, oneTimeLegal: v }))} />
+          </WbField>
+          <WbField label="Non-recurring gain ($M)" hint="Comes OUT of EBITDA — enter as negative. Example: −$0.5M.">
+            <DecInput value={qoeInp.nonRecurringGain} onChange={(v) => setQoeInp((x) => ({ ...x, nonRecurringGain: v }))} />
+          </WbField>
+          <WbField label="Rent normalization ($M)" hint="Below-market related-party rent stepped to market — negative. Example: −$0.3M.">
+            <DecInput value={qoeInp.rentNormalization} onChange={(v) => setQoeInp((x) => ({ ...x, rentNormalization: v }))} />
+          </WbField>
+          <WbField label="Pro-forma synergies ($M)" hint="The fought-over line. Example: +$0.7M.">
+            <DecInput value={qoeInp.proformaSynergies} onChange={(v) => setQoeInp((x) => ({ ...x, proformaSynergies: v }))} />
+          </WbField>
+          <WbField label="Deal multiple (×)" hint="EV/EBITDA the deal prices at. Example: 8×.">
+            <DecInput value={qoeInp.dealMultiple} onChange={(v) => setQoeInp((x) => ({ ...x, dealMultiple: v }))} width={46} />
+          </WbField>
+        </div>
+        <div style={{ overflowX: 'auto', marginTop: 12 }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Bridge step</th>
+                <th>Δ ($M)</th>
+                <th>Cumulative ($M)</th>
+                <th>The diligence logic</th>
+              </tr>
+            </thead>
+            <tbody>
+              {qoe.steps.map((st) => (
+                <tr key={st.label}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{st.label}</td>
+                  <td style={{ color: st.delta > 0 ? 'var(--pos)' : st.delta < 0 ? 'var(--neg)' : 'var(--text-tertiary)' }}>
+                    {st.delta === 0 ? '—' : `${st.delta > 0 ? '+' : ''}${st.delta}`}
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{st.cumulative}</td>
+                  <td style={{ minWidth: 260 }}>{st.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="row gap-3" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+          <StatPill label="Adjusted EBITDA" value={`$${qoe.adjustedEbitda}M`} strong />
+          <StatPill label="Run-rate EBITDA" value={`$${qoe.runRateEbitda}M`} />
+          <StatPill label={`EV impact at ${qoeInp.dealMultiple}×`} value={`$${qoe.evImpact}M`} strong />
+        </div>
+        <p style={decisionLine}>
+          <strong>The read:</strong> {qoe.read}
         </p>
       </StepCard>
     </>
@@ -4393,6 +4697,7 @@ function BenchmarksTab() {
 // ---------------------------------------------------------------------------
 
 function DebtGeoTab() {
+  const [bilatSel, setBilatSel] = useState('china');
   const [sel, setSel] = useState<string[]>(['us', 'china', 'japan', 'germany']);
   const toggleCountry = (id: string) =>
     setSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 4 ? cur : [...cur, id]));
@@ -4822,6 +5127,188 @@ function DebtGeoTab() {
           model: election outcomes move the FISCAL dial (tabs 3–4) before any economic data does,
           and the calendar is the one part of geopolitics you can actually diarize.
         </p>
+      </StepCard>
+
+      <StepCard n="K" icon={<ShieldCheck size={17} />} title="Flashpoints & active conflicts — the security layer">
+        <p style={hintStyle}>
+          Shared with the report tab (tab 19), where these filter to your country/industry
+          selection. Here: the full set, unfiltered.
+        </p>
+        <div className="col" style={{ gap: 10 }}>
+          {FLASHPOINTS.map((f) => (
+            <GlassCard key={f.id} variant="nested" padding={14}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{f.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 6 }}>{f.status}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 6 }}>
+                <strong>The economics:</strong> {f.economics}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 6 }}>
+                <strong>Hits:</strong> {f.hits}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>
+                <strong>Watch:</strong> {f.watch}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          Active conflicts & their market channels
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {ACTIVE_CONFLICTS.map((c) => (
+            <GlassCard key={c.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{c.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginBottom: 4 }}>{c.status}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                <strong>Market channel:</strong> {c.marketChannel}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </StepCard>
+
+      <StepCard n="L" icon={<Scale size={17} />} title="Military balance & alliances — budgets, alignment, and who stands where">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Budget</th>
+                <th>% GDP</th>
+                <th>Alignment</th>
+                <th>Nuclear</th>
+                <th>The read</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ALL_MILITARY.map((m) => (
+                <tr key={m.id}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{m.name}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>~${m.budgetB}B</td>
+                  <td>{m.pctGdp}%</td>
+                  <td>
+                    <AlignmentBadge a={m.alignment} />
+                  </td>
+                  <td>{m.nuclear ? 'yes' : '—'}</td>
+                  <td style={{ minWidth: 320 }}>{m.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{MILITARY_SOURCE}</div>
+        <div className="col" style={{ gap: 8, marginTop: 12 }}>
+          {ALLIANCE_STRUCTURE.map((a) => (
+            <GlassCard key={a.name} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{a.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 4 }}>{a.members}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{a.what}</div>
+            </GlassCard>
+          ))}
+        </div>
+        <ul style={{ margin: '10px 0 0', paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {MILITARY_ECON_READS.map((r) => (
+            <li key={r.slice(0, 40)}>{r}</li>
+          ))}
+        </ul>
+      </StepCard>
+
+      <StepCard n="M" icon={<Workflow size={17} />} title="Belt and Road, trade corridors & chokepoints">
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
+          The Belt and Road Initiative
+        </div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {BRI_FACTS.map((f) => (
+            <li key={f.slice(0, 40)}>{f}</li>
+          ))}
+        </ul>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          Corridors — BRI legs and the rivals
+        </div>
+        <div className="col" style={{ gap: 8 }}>
+          {TRADE_CORRIDORS.map((c) => (
+            <GlassCard key={c.name} variant="nested" padding={12}>
+              <div className="between" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{c.backer}</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>{c.what}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                <strong>Watch:</strong> {c.watch}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          The chokepoints
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="fin-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Chokepoint</th>
+                <th>What it carries</th>
+                <th>The issue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CHOKEPOINTS.map((c) => (
+                <tr key={c.name}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{c.name}</td>
+                  <td style={{ minWidth: 200 }}>{c.carries}</td>
+                  <td style={{ minWidth: 280 }}>{c.issue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{ROUTES_SOURCE}</div>
+      </StepCard>
+
+      <StepCard n="N" icon={<Handshake size={17} />} title="US meetings, bilateral arcs & the two-decade timeline">
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
+          Pick a relationship — the two-decade bilateral arc
+        </div>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          {ALL_BILATERAL.map((b) => (
+            <Chip key={b.id} active={bilatSel === b.id} onClick={() => setBilatSel(b.id)}>
+              {b.title.replace('US–', '')}
+            </Chip>
+          ))}
+        </div>
+        {(() => {
+          const b = ALL_BILATERAL.find((x) => x.id === bilatSel)!;
+          return (
+            <>
+              <div className="col" style={{ gap: 8 }}>
+                {b.arc.map((m) => (
+                  <GlassCard key={`${m.when}-${m.what.slice(0, 20)}`} variant="nested" padding={12}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>
+                      {m.when} — {m.what}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>
+                      <strong>Result:</strong> {m.result}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>
+                      <strong>Read:</strong> {m.read}
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 8 }}>
+                <strong>Where it stands:</strong> {b.today}
+              </div>
+            </>
+          );
+        })()}
+        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+          The system-level ledger & timeline
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>
+          The full US meetings ledger (2001 → 2026) and the 2005 → 2026 market-lesson timeline
+          render on tab 19's two-decade step — same data, one home, referenced here to avoid a
+          third copy.
+        </div>
       </StepCard>
     </>
   );
@@ -5325,6 +5812,7 @@ function ReportTab() {
   const [histFreq, setHistFreq] = useState<HistoryFreq>('monthly');
   const [histSel, setHistSel] = useState<string[]>(MACRO_HISTORY.map((x) => x.id));
   const [buildOpen, setBuildOpen] = useState(true);
+  const [showAllRoutes, setShowAllRoutes] = useState(false);
 
   const factors: MacroFactors =
     scenarioId === TODAY_SCENARIO_ID
@@ -5338,10 +5826,15 @@ function ReportTab() {
     [industryId, factors],
   );
 
-  const countryGeo = GEO_EXPOSURE_COUNTRIES.find((g) => g.id === country.id)!;
-  const countryMil = MILITARY_BALANCE.find((m) => m.id === country.id)!;
+  const countryGeo = ALL_COUNTRY_EXPOSURE.find((g) => g.id === country.id)!;
+  const countryMil = ALL_MILITARY.find((m) => m.id === country.id)!;
   const countryFlash = FLASHPOINTS.filter((f) => f.countries.includes(country.id));
-  const countryRoutes = COUNTRY_ROUTES.find((r) => r.id === country.id)!;
+  const countryRoutes = ALL_COUNTRY_ROUTES.find((r) => r.id === country.id)!;
+  const routeProgram = routeProgramFor(country.id, country.name);
+  const corridorsShown = showCountry && !showAllRoutes ? corridorsFor(country.id) : TRADE_CORRIDORS;
+  const chokepointsShown = showCountry && !showAllRoutes ? chokepointsFor(country.id) : CHOKEPOINTS;
+  const stateEvents = STATE_CURRENT_EVENTS.find((e) => e.id === state.id)!;
+  const bilateral = bilateralFor(country.id);
   const stateGeo = GEO_EXPOSURE_STATES.find((g) => g.id === state.id)!;
   const industryGeo = GEO_EXPOSURE_INDUSTRIES.find((g) => g.id === industry.id)!;
   const industryFlash = FLASHPOINTS.filter((f) => f.industries.includes(industry.id));
@@ -5596,6 +6089,18 @@ function ReportTab() {
 
       {showCountry && (
         <StepCard n={letter()} icon={<Globe size={17} />} title={`Country report — ${country.name}`}>
+          {country.profile && (
+            <>
+              <GeoExposureBlock
+                title="Strategic profile"
+                headline={country.profile.row.headline}
+                items={country.profile.row.items}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '6px 0 12px' }}>
+                {country.profile.source}
+              </div>
+            </>
+          )}
           {country.debt ? (
             <>
               <div style={secTitle}>Debt-to-GDP, 2000 → 2025</div>
@@ -5815,6 +6320,13 @@ function ReportTab() {
             </>
           )}
 
+          <GeoExposureBlock
+            title="Current events & ballot watch (24 months)"
+            headline={stateEvents.headline}
+            items={stateEvents.items}
+          />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{STATE_EVENTS_SOURCE}</div>
+
           {state.calendar.events.length > 0 && (
             <>
               <div style={secTitle}>24-month calendar</div>
@@ -5995,7 +6507,7 @@ function ReportTab() {
         </div>
 
         <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
-          Military balance — the same eleven countries as the country lens
+          Military balance — every country on the country lens
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="fin-table" style={{ width: '100%' }}>
@@ -6010,7 +6522,7 @@ function ReportTab() {
               </tr>
             </thead>
             <tbody>
-              {MILITARY_BALANCE.map((m) => (
+              {ALL_MILITARY.map((m) => (
                 <tr key={m.id}>
                   <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{m.name}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>~${m.budgetB}B</td>
@@ -6048,26 +6560,37 @@ function ReportTab() {
 
       <StepCard n={letter()} icon={<Workflow size={17} />} title="Belt and Road, trade corridors & chokepoints — who builds and controls the routes">
         <p style={hintStyle}>
-          China's Belt and Road Initiative is the biggest capital-allocation program on Earth —
-          and trade routes are where geopolitics physically happens. This step holds the BRI
-          itself, the rival corridors the West is building, and the five chokepoints world trade
-          squeezes through. Each country's own route exposure renders in its country section
-          above (pick China for the full BRI view from the builder's side).
+          Trade routes are where geopolitics physically happens — and this step follows your
+          country lens. Pick <strong>China</strong> and it fills with the Belt and Road from the
+          builder's side; pick the <strong>United States</strong> and it fills with the
+          counter-network (rival corridors, screening, reshoring); any other country gets its own
+          route position. The corridor and chokepoint lists filter to your selection — flip to
+          "show all" for the whole map.
         </p>
+        <div className="row no-print" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <Chip active={!showAllRoutes} onClick={() => setShowAllRoutes(false)}>
+            {showCountry ? `Filtered: ${country.name}` : 'Filtered (turn country lens on)'}
+          </Chip>
+          <Chip active={showAllRoutes} onClick={() => setShowAllRoutes(true)}>
+            Show all corridors & chokepoints
+          </Chip>
+        </div>
         <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
-          The Belt and Road Initiative
+          {showCountry ? routeProgram.title : 'The Belt and Road Initiative'}
         </div>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          {BRI_FACTS.map((f) => (
+          {(showCountry ? routeProgram.facts : BRI_FACTS).map((f) => (
             <li key={f.slice(0, 40)}>{f}</li>
           ))}
         </ul>
 
         <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
-          The corridors — BRI legs and the rivals
+          {showCountry && !showAllRoutes
+            ? `The corridors with a ${country.name} stake (${corridorsShown.length} of ${TRADE_CORRIDORS.length})`
+            : 'The corridors — BRI legs and the rivals'}
         </div>
         <div className="col" style={{ gap: 8 }}>
-          {TRADE_CORRIDORS.map((c) => (
+          {corridorsShown.map((c) => (
             <GlassCard key={c.name} variant="nested" padding={12}>
               <div className="between" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</span>
@@ -6082,7 +6605,9 @@ function ReportTab() {
         </div>
 
         <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
-          The five chokepoints
+          {showCountry && !showAllRoutes
+            ? `The chokepoints that hit ${country.name} (${chokepointsShown.length} of ${CHOKEPOINTS.length})`
+            : 'The chokepoints'}
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="fin-table" style={{ width: '100%' }}>
@@ -6094,7 +6619,7 @@ function ReportTab() {
               </tr>
             </thead>
             <tbody>
-              {CHOKEPOINTS.map((c) => (
+              {chokepointsShown.map((c) => (
                 <tr key={c.name}>
                   <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{c.name}</td>
                   <td style={{ minWidth: 200 }}>{c.carries}</td>
@@ -6125,6 +6650,38 @@ function ReportTab() {
             </GlassCard>
           ))}
         </div>
+
+        {showCountry && bilateral && (
+          <>
+            <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
+              {bilateral.title} — the two-decade bilateral arc (your country lens)
+            </div>
+            <div className="col" style={{ gap: 8 }}>
+              {bilateral.arc.map((m) => (
+                <GlassCard key={`${m.when}-${m.what.slice(0, 20)}`} variant="nested" padding={12}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>
+                    {m.when} — {m.what}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 4 }}>
+                    <strong>Result:</strong> {m.result}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55 }}>
+                    <strong>Read:</strong> {m.read}
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 8 }}>
+              <strong>Where it stands:</strong> {bilateral.today}
+            </div>
+          </>
+        )}
+        {showCountry && !bilateral && (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, margin: '16px 0 0' }}>
+            United States selected: the ledger below IS the US-system view — pick another country
+            to see its bilateral arc with the US here.
+          </div>
+        )}
 
         <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', margin: '16px 0 8px' }}>
           Two decades of US meetings — and what each actually produced
@@ -6508,6 +7065,13 @@ function GuidePane({
               floating and strands old high-coupon fixed. The pay-fixed swap in tab 1's hedging playbook (step D) is the tool that
               moves debt from one column to the other without reissuing it.
             </GuideSection>
+            <GuideSection n="I" title="The history step">
+              Step I is the report tab's history engine rendered here, where the dials live: see
+              where today's growth/inflation/Fed settings CAME from before projecting them
+              forward. Anchor months are official prints (they match this tab's inflation
+              snapshot and tab 11's curve exactly); interpolation between is computed and
+              labeled; quarterly is the computed mean of the months.
+            </GuideSection>
           </>
         )}
 
@@ -6728,6 +7292,15 @@ function GuidePane({
               <em>what should management do?</em> Each calculator here is one link of that chain in
               isolation; tabs 1–5 are the chain assembled.
             </GuideSection>
+            <GuideSection n="D" title="The FDD deliverables (steps J–L)">
+              The three EY-diligence staples your gap check flagged as knowledge-only are now
+              working models: the 13-week cash flow (liquidity is a CALENDAR problem — the
+              default company profits on the average week and still troughs in week 10), the
+              football field (three method ranges + the 52-week context bar; the fairness case
+              lives where the methods agree), and the QoE bridge (every $1 of EBITDA adjustment
+              is a deal-multiple's worth of purchase price — which is why the bridge IS the
+              price negotiation). Tab 7 step D links each to the postings that name them.
+            </GuideSection>
             <GuideSection n="C" title="Judgment beats formulas">
               What separates the answers your session called Manager-level: don't double-count risk
               (cash flows OR discount rate), don't crown the highest IRR (dollars beat
@@ -6925,6 +7498,14 @@ function GuidePane({
               teaching estimates, and calendar entries are constitutional schedules — all labeled
               in place, all to be refreshed from imf.org / fiscaldata.treasury.gov / Census of
               Governments before citing. Same snapshot discipline as tabs 3 and 11.
+            </GuideSection>
+            <GuideSection n="K–N" title="The geopolitics spread (shared with tab 19)">
+              Steps K–N bring the report tab's security and routes layers home to this tab:
+              flashpoints and conflicts with their market channels, the military-balance table
+              and alliance blocs, the Belt and Road with the rival corridors and five
+              chokepoints, and the per-country US bilateral arcs (pick the relationship with the
+              chips). On tab 19 the same data filters to your country/industry selection —
+              deliberately redundant, one model underneath.
             </GuideSection>
           </>
         )}

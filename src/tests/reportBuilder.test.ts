@@ -25,7 +25,7 @@ const RF = 4;
 
 describe('report selectors', () => {
   it('cover the same top-10 lists as tab 15 (plus South Korea) and the eight industries', () => {
-    expect(REPORT_COUNTRIES.map((c) => c.id)).toEqual([...COUNTRY_DEBT.map((c) => c.id), 'skorea']);
+    expect(REPORT_COUNTRIES.map((c) => c.id)).toEqual([...COUNTRY_DEBT.map((c) => c.id), 'skorea', 'iran', 'russia', 'taiwan', 'mexico', 'venezuela', 'saudi']);
     expect(REPORT_STATES.map((s) => s.id)).toEqual(STATE_DEBT.map((s) => s.id));
     expect(REPORT_INDUSTRIES.map((i) => i.id)).toEqual(INDUSTRIES.map((i) => i.id));
     // every country has a currency mapping entry (null allowed only for the US)
@@ -163,16 +163,39 @@ describe('the coverage index — every tab and section accounted for', () => {
 
   it('matches the audited section counts on the big tabs', () => {
     const by = (tab: number) => REPORT_COVERAGE.find((c) => c.tab === tab)!;
-    expect(by(15).sections).toHaveLength(10); // A–J
+    expect(by(15).sections).toHaveLength(14); // A–N incl. the geopolitics spread
     expect(by(11).sections).toHaveLength(8); // A–H incl. the debt build-up
-    expect(by(10).sections).toHaveLength(9); // A–I calculators
+    expect(by(10).sections).toHaveLength(12); // A–L incl. 13-week, football field, QoE
     expect(by(16).sections).toHaveLength(7); // inputs + six stages
-    expect(by(3).sections).toHaveLength(8); // A–H
+    expect(by(3).sections).toHaveLength(9); // A–I incl. history
     expect(by(4).sections.join(' ')).toMatch(/What to do with capital/);
   });
 
   it('the industry advice ref points where the adviser actually renders (tab 4 step F)', () => {
     const r = industryReport('tech', 4, { growth: 0, inflation: 0, policy: 0, fiscal: 0 });
     expect(r.advice.ref).toMatchObject({ tab: 4, step: 'F' });
+  });
+});
+
+describe('the strategic-country lens (Iran, Russia, Taiwan, Mexico, Venezuela, Saudi Arabia)', () => {
+  it('Iran gets a profile and an FX story instead of the top-10 tables', () => {
+    const r = countryReport('iran');
+    expect(r.name).toBe('Iran');
+    expect(r.debt).toBeNull();
+    expect(r.trade).toBeNull();
+    expect(r.profile).not.toBeNull();
+    expect(r.profile!.row.items.join(' ')).toMatch(/Hormuz/);
+    expect(r.currencyNote).toMatch(/rial/i);
+    expect(r.profile!.source).toMatch(/ILLUSTRATIVE/);
+  });
+
+  it('Taiwan and Mexico carry their stories; every strategic country has a profile and currency note', () => {
+    expect(countryReport('taiwan').profile!.row.items.join(' ')).toMatch(/TSMC/);
+    expect(countryReport('mexico').currencyNote).toMatch(/peso/i);
+    for (const id of ['iran', 'russia', 'taiwan', 'mexico', 'venezuela', 'saudi']) {
+      const r = countryReport(id);
+      expect(r.profile).not.toBeNull();
+      expect(r.currencyNote).not.toBeNull();
+    }
   });
 });
