@@ -55,7 +55,7 @@ export const INFLATION_SNAPSHOT: InflationSnapshot = {
   coreCpi: 2.5,
   source: 'Bureau of Labor Statistics, July 2026 CPI report',
   detail:
-    'Headline 3.4% YoY (down from 3.5% in June), core 2.5% — cooling but above target, with the tariff/supply shock living almost entirely in the energy and food lines.',
+    'Headline 3.4% YoY (down from 3.5% in June), core 2.5% — cooling but above target, with the tariff/supply shock living almost entirely in the energy and food lines. Official PCE (June, the Fed’s gauge): headline 3.7%, core 3.3% — hotter than CPI; July PCE releases Aug 26, August CPI on Sept 11.',
   componentsNow: {
     shelter: 3.2,
     food: 3.9,
@@ -66,8 +66,9 @@ export const INFLATION_SNAPSHOT: InflationSnapshot = {
 };
 
 export const MARKET_SNAPSHOT: MarketSnapshot = {
-  asOf: '2026-08-24',
-  headline: 'Growth is slowing, inflation is cooling but still above target, and a divided Fed is on hold.',
+  asOf: '2026-08-26',
+  headline:
+    'Growth is slowing, inflation is cooling but still above target, and a divided Fed is on hold — with futures now leaning toward a SEPTEMBER HIKE on the energy shock, even as the July jobs report broke soft.',
   factors: { growth: -0.5, inflation: 1, policy: 0, fiscal: 0 },
   readings: [
     {
@@ -85,7 +86,7 @@ export const MARKET_SNAPSHOT: MarketSnapshot = {
     {
       label: 'Monetary policy (the Fed)',
       value: '3.50–3.75%, on hold',
-      detail: 'Fifth straight hold; three FOMC members voted to raise rates — the risk leans toward tightening.',
+      detail: 'Fifth straight hold; three FOMC members voted to raise rates — the risk leans toward tightening Since then: the July FOMC held 9–3, and futures price ~65% odds of a 25bp HIKE at the Sept 15–16 meeting — the energy shock flipped expectations hawkish.',
       source: 'Federal Reserve, July 29 2026 FOMC statement',
     },
     {
@@ -93,6 +94,27 @@ export const MARKET_SNAPSHOT: MarketSnapshot = {
       value: 'Roughly neutral',
       detail: 'Government spending fell in Q2 and no major new stimulus is in play.',
       source: 'Bureau of Economic Analysis, Q2 2026 GDP report',
+    },
+    {
+      label: 'Jobs (the soft side)',
+      value: '4.1% unemployment; payrolls −23,000 (July)',
+      detail:
+        'July payrolls unexpectedly FELL 23k (government −53k) with the prior two months revised down 103k; wages +3.2% YoY. The labor side is softening while energy re-accelerates inflation — the stagflation squeeze in one report.',
+      source: 'Bureau of Labor Statistics, July 2026 employment report (Aug 7)',
+    },
+    {
+      label: 'PCE inflation (the Fed’s gauge)',
+      value: '3.7% headline · 3.3% core (June)',
+      detail:
+        'The Fed’s preferred measure runs HOTTER than CPI right now (3.7 vs 3.4 headline) — the gap is the energy/weights story tab 3 step E teaches. July PCE releases Aug 26.',
+      source: 'Bureau of Economic Analysis, June 2026 PCE (July 30)',
+    },
+    {
+      label: 'Markets (context, approximate)',
+      value: 'S&P 500 ≈7,650 · VIX ≈16',
+      detail:
+        'Equities near highs with volatility low — the market is pricing the AI capex impulse, not the hike risk. If September prices in fully, this line is where you would see it first.',
+      source: 'Market close, Aug 25, 2026 (approximate levels)',
     },
   ],
 };

@@ -64,12 +64,14 @@ export interface RatesSnapshot {
 }
 
 export const RATES_SNAPSHOT: RatesSnapshot = {
-  asOf: '2026-08-25',
+  asOf: '2026-08-26',
   observationDate: '2026-08-24',
   sources: [
     'Federal Reserve H.15 (latest observations available 2026-08-25): nominal & real Treasury CMT for 2026-08-24, EFFR ≈3.63%, IORB 3.65%, target 3.50–3.75%',
     'U.S. Treasury (home.treasury.gov) — the underlying authority for the par curve (closing bid quotations via the New York Fed ~3:30pm); H.15 is the historical panel',
     'Freddie Mac PMMS (2026-08-20): 30-yr fixed 6.65%; same-day 10Y CMT 4.69% for the spread alignment',
+    'Since the Aug-24 curve observation (partials, 2026-08-25 close): 10Y eased ~4bp to ≈4.66, 2Y ≈4.25, 30Y steady 5.23 — the full same-day H.15 panel refreshes next business day, so the computed slopes above stay on the coherent Aug-24 curve (mixing observation dates would corrupt them)',
+    'Policy watch: July FOMC held 3.50–3.75% (9–3); futures now price ~65% odds of a 25bp HIKE at the Sept 15–16 meeting on the energy shock. Treasury announced it will at least DOUBLE 10–30Y liquidity-support buybacks after the 30Y touched post-2007 highs (Aug 20)',
   ],
   fedFundsTarget: '3.50–3.75%',
   fedFundsMidPct: 3.625,
