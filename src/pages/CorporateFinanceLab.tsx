@@ -173,6 +173,14 @@ import {
   stateReport,
 } from '../lib/reportBuilder';
 import {
+  CROSS_LENS_SOURCE,
+  Presence,
+  countryIndustryCell,
+  industryAcrossCountries,
+  industryAcrossStates,
+  stateIndustryCell,
+} from '../lib/crossLens';
+import {
   GDP_QUARTERLY,
   GDP_SOURCE,
   HISTORY_SOURCE,
@@ -5876,6 +5884,57 @@ function AlignmentBadge({ a }: { a: Alignment }) {
   );
 }
 
+const PRESENCE_META: Record<Presence, { label: string; tone: string }> = {
+  anchor: { label: 'anchor industry', tone: 'var(--accent)' },
+  significant: { label: 'significant', tone: 'var(--pos)' },
+  minor: { label: 'minor', tone: 'var(--text-tertiary)' },
+};
+
+function PresenceBadge({ p }: { p: Presence }) {
+  const meta = PRESENCE_META[p];
+  return (
+    <span
+      style={{
+        fontSize: 10.5,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: meta.tone,
+        border: `1px solid ${meta.tone}`,
+        borderRadius: 999,
+        padding: '3px 10px',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
+function PresenceStrip({ rows, names, activeId }: { rows: { id: string; presence: Presence }[]; names: Record<string, string>; activeId: string }) {
+  return (
+    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+      {rows.map((r) => (
+        <span
+          key={r.id}
+          style={{
+            fontSize: 11,
+            fontWeight: r.id === activeId ? 700 : 500,
+            color: PRESENCE_META[r.presence].tone,
+            border: `1px solid ${r.id === activeId ? PRESENCE_META[r.presence].tone : 'var(--border)'}`,
+            borderRadius: 999,
+            padding: '3px 9px',
+            whiteSpace: 'nowrap',
+            opacity: r.presence === 'minor' && r.id !== activeId ? 0.6 : 1,
+          }}
+        >
+          {names[r.id] ?? r.id} {r.presence === 'anchor' ? '●' : r.presence === 'significant' ? '◐' : '○'}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function GeoExposureBlock({ title, headline, items }: { title: string; headline: string; items: string[] }) {
   return (
     <>
@@ -5956,6 +6015,11 @@ function ReportTab() {
   const chokepointsShown = showCountry && !showAllRoutes ? chokepointsFor(country.id) : CHOKEPOINTS;
   const stateEvents = STATE_CURRENT_EVENTS.find((e) => e.id === state.id)!;
   const bilateral = bilateralFor(country.id);
+  const stateIndCell = stateIndustryCell(state.id, industry.id);
+  const countryIndCell = countryIndustryCell(country.id, industry.id);
+  const stateNames = Object.fromEntries(REPORT_STATES.map((x) => [x.id, x.name]));
+  const countryNames = Object.fromEntries(REPORT_COUNTRIES.map((x) => [x.id, x.name]));
+  const bothFlash = FLASHPOINTS.filter((f) => f.countries.includes(country.id) && f.industries.includes(industry.id));
   const stateGeo = GEO_EXPOSURE_STATES.find((g) => g.id === state.id)!;
   const industryGeo = GEO_EXPOSURE_INDUSTRIES.find((g) => g.id === industry.id)!;
   const industryFlash = FLASHPOINTS.filter((f) => f.industries.includes(industry.id));
@@ -6584,6 +6648,42 @@ function ReportTab() {
             Computed from the same models as the sections above — change the industry, state, or
             scenario chips and this paragraph re-derives.
           </div>
+
+          <div className="between" style={{ gap: 10, flexWrap: 'wrap', margin: '14px 0 6px' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {industry.name} in {state.name}
+            </span>
+            <PresenceBadge p={stateIndCell.presence} />
+          </div>
+          <div style={bodyText}>{stateIndCell.note}</div>
+          <div style={{ ...noteText, marginTop: 10, marginBottom: 2 }}>
+            The same industry across all ten states (● anchor · ◐ significant · ○ minor):
+          </div>
+          <PresenceStrip rows={industryAcrossStates(industry.id)} names={stateNames} activeId={state.id} />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 8 }}>{CROSS_LENS_SOURCE}</div>
+        </StepCard>
+      )}
+
+      {showCountry && showIndustry && (
+        <StepCard n={letter()} icon={<Globe size={17} />} title={`Country × industry — ${country.name} × ${industry.name}`}>
+          <div className="between" style={{ gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {industry.name} in {country.name}
+            </span>
+            <PresenceBadge p={countryIndCell.presence} />
+          </div>
+          <div style={bodyText}>{countryIndCell.note}</div>
+          {bothFlash.length > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, marginTop: 8 }}>
+              <strong>Flashpoints touching BOTH {country.name} and {industry.name}:</strong>{' '}
+              {bothFlash.map((f) => f.name).join(' · ')} — the geopolitics step below carries each.
+            </div>
+          )}
+          <div style={{ ...noteText, marginTop: 10, marginBottom: 2 }}>
+            The same industry across all seventeen countries (● anchor · ◐ significant · ○ minor):
+          </div>
+          <PresenceStrip rows={industryAcrossCountries(industry.id)} names={countryNames} activeId={country.id} />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 8 }}>{CROSS_LENS_SOURCE}</div>
         </StepCard>
       )}
 
@@ -7724,8 +7824,11 @@ function GuidePane({
               currency → politics). State only: the muni lens — bonded debt plus the pension
               truth. Industry only: revenue weather → capital stance → benchmarks → equity
               window. State + industry ("California by technology"): both layers plus the
-              combined read at the bottom, which joins them in one paragraph. All three on:
-              the full briefing.
+              combined read, which joins them in one paragraph PLUS the intersection cell —
+              "Technology in California" as its own rated entry, with the same industry compared
+              across all ten states. Country + industry adds the mirror: "autos in Germany" with
+              the seventeen-country comparison strip and the flashpoints touching both. All
+              three on: the full briefing.
             </GuideSection>
             <GuideSection n="E" title="What moves and what doesn't">
               The scenario chips drive ONLY the dial-driven sections — industry backdrop, capital
