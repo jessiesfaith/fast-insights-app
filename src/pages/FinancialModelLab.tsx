@@ -2057,9 +2057,9 @@ const AUDIT_AREAS: { area: string; want: string; here: string }[] = [
 ];
 
 // ---- "new content" highlighter --------------------------------------------
-// Jessica reviews additions in red first; set HIGHLIGHT_NEW to false when she
-// asks for the new sections to go back to normal ink.
-const HIGHLIGHT_NEW = true;
+// Jessica reviews additions in red first; set HIGHLIGHT_NEW to true while a
+// new batch is under review, back to false once she approves it.
+const HIGHLIGHT_NEW = false;
 
 function NewContent({ children }: { children: React.ReactNode }) {
   if (!HIGHLIGHT_NEW) return <>{children}</>;
@@ -2918,8 +2918,9 @@ export default function FinancialModelLab() {
           .fml-guide { position: static; max-height: none; }
         }
         /* Newly added content renders in red while Jessica reviews it
-           (theme-aware via --neg); flipped back by HIGHLIGHT_NEW = false. */
-        .fml-new, .fml-new * { color: var(--neg) !important; }
+           (theme-aware via --neg); the rule only exists while HIGHLIGHT_NEW
+           is true, so flipping the flag reverts wrappers AND guide spans. */
+        ${HIGHLIGHT_NEW ? '.fml-new, .fml-new * { color: var(--neg) !important; }' : ''}
       `}</style>
       <header style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
