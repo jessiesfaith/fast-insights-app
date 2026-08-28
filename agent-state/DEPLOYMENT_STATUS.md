@@ -1,6 +1,6 @@
 # DEPLOYMENT_STATUS
 
-_Last updated: 2026-06-24 (HEAD refreshed; not re-verified via Vercel this session)_
+_Last updated: 2026-08-28 (Financial Model Lab merged to main and pushed)_
 
 ## Provider
 **Vercel** (connected via Vercel MCP + local `.vercel/` link; `.vercel` is gitignored).
@@ -15,8 +15,8 @@ _Last updated: 2026-06-24 (HEAD refreshed; not re-verified via Vercel this sessi
 - Proxied sub-paths: `/revrec` -> revrec project, `/cashflow` -> cashflow project.
 
 ## Last deployed commit
-- **origin/main == local HEAD == `af3bea4`** ("Add Corporate Tax Study (cpa-dashboard) tile + proxy", 2026-06-19). Production auto-deploys from `main`, so prod tracks `af3bea4`. **Not independently re-verified via Vercel this session (2026-06-24).**
-- Last MCP-verified deploy was `14e14aa` (deploy `dpl_4z94uMxjGoMnR48fM66gSJS5oFD7`, `READY`) on 2026-06-06 - now superseded by ~7 tile/proxy commits.
+- **origin/main == `99fe45a`** ("Add the agent layer" on top of `48cc8e2` "Add Financial Model Lab", merged from `claude/financial-model-ml-training-f38a8q`, 2026-08-28). Push confirmed; production auto-deploys from `main`, so prod should now serve the **Financial Model Lab at /financial-model**. **Live URL NOT re-verified from the 2026-08-28 remote session — its egress proxy 403s app.fastinsights.io and *.vercel.app; verify by opening https://app.fastinsights.io/financial-model (expect the 10-tab module, and /financial-model/financial-model-kit.zip to download).**
+- Last MCP-verified deploy was `14e14aa` (deploy `dpl_4z94uMxjGoMnR48fM66gSJS5oFD7`, `READY`) on 2026-06-06.
 
 ## Environment variables
 - **Supabase (optional cloud data source):** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (the "ar-recon" Supabase project). Stored in `.env.local` (gitignored) for local dev + Vercel project env for prod. If unset, the cloud-load path throws a clear error and the app still runs via CSV/JSON upload or sample data.

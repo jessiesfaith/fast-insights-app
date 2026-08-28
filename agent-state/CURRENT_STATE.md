@@ -1,6 +1,6 @@
 # CURRENT_STATE - AR Tool-Beta (fast-insights-app)
 
-_Last updated: 2026-08-28 (Financial Model Lab added on branch `claude/financial-model-ml-training-f38a8q`, not yet merged)_
+_Last updated: 2026-08-28 (Financial Model Lab merged to `main` at `99fe45a` with Jessica's approval; auto-deploying to app.fastinsights.io/financial-model)_
 
 ## Purpose
 **AR Tool-Beta** - a modern glassmorphic accounts-receivable reconciliation dashboard for Fast Insights. It ingests six AR datasets (invoices, cash receipts, credit memos, GL entries, bank statements, customers) via CSV/JSON upload, sample data, or a Supabase cloud project, then runs reconciliation, aging, KPIs, bad-debt and scenario analysis with an ICFR-style audit trail. This repo is the multi-tool host at app.fastinsights.io: the AR tool lives at `/ar`, a Landing tool-picker at `/`, and it proxies each finance tool (`/revrec`, `/cashflow`, `/estimated-taxes`, etc.) to sibling Vercel projects. It also serves a **bundled static Launch Gantt** at `public/gantt/` → `app.fastinsights.io/gantt`, opened by a top-right button on the Landing (login-gated, session-only).
