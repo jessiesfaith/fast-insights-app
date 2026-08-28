@@ -17,6 +17,8 @@ Run from inside: 01 Projects/Fast Insights/10 Code Repos/AR Tool-Beta
 Current objective:
 LIKELY NEXT: Jessica is working through the new **Financial Model Lab** (`/financial-model`, kit in `financial-model/`) as a learner and will ask questions / request refinements "while going through the motions". Support her tab by tab; the module's conventions are documented in CLAUDE.md and agent-state/CHANGE_LOG.md (2026-08-28 entries). If content changes are requested, remember the red-review mechanism: `HIGHLIGHT_NEW` in `src/pages/FinancialModelLab.tsx` renders new sections red until she approves.
 
+QUEUED IDEA (2026-08-28, from a ChatGPT suggestion Jessica shared): a **"Macro Monitor" level-2 module** — Treasury curve + Fed funds + credit spreads + CPI/unemployment with REAL data (FRED API), time-series features, walk-forward backtesting, recession/credit-tightening probabilities, and multi-agent orchestration (macro agent → credit agent → alert) on top of the same governance patterns. Positioning: it is the natural NEXT step after the Financial Model Lab, not a replacement — the Lab already is the "one deterministic pipeline first" that plan calls for, and CFL tabs 11/18 already carry the rates + regime-backtest teaching content to reuse. Build only after Jessica has worked through the Lab.
+
 STILL QUEUED (older): email notifications for users (see ACTIVE_REQUEST.md) — blocked on Jessica picking the notification type and defining who the "users" are.
 
 Active request status:
