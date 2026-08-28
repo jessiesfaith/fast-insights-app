@@ -36,6 +36,7 @@ run the SQL files interactively yourself — strongly recommended for learning.
 | 3 | `python/02_train_model.py` | TRAIN → TEST → VALIDATE → APPROVE; writes `outputs/model_card_v1.json` |
 | 4 | `python/03_inference.py` | Scores the 12 new companies → `outputs/prediction_table.csv` |
 | — | `agent/AGENT_RUNBOOK.md` + `agent/memo_prompt.md` | The agent layer: a written runbook (permissions + procedure — what an agent "skill" really is) and a 10-minute exercise running an LLM agent over the outputs |
+| — | `agent/BUILD_YOUR_OWN_AGENT.md` | How to build an agent yourself, in seven steps: goal+gate sentence, scoped inputs, the VERIFY→ANALYZE→FLAG→DRAFT→STOP skill shape, permissions, tool maturity levels, adversarial testing, governance — with a fill-in template and a worked flux-memo example |
 
 Run everything at once with `python run_pipeline.py` (or double-click
 `run_pipeline.bat`), or run the steps one at a time — that is the learning path.

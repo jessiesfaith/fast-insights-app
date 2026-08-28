@@ -1922,12 +1922,41 @@ Run the procedure now, showing your work at each step:
         </p>
       </StepCard>
 
-      <StepCard n={7} icon={<GraduationCap size={18} />} title="Where to go from here">
+      <StepCard n={7} icon={<Wrench size={18} />} title="Build your own agent — the seven steps">
+        <p style={hintStyle}>
+          Using an agent (step 5) and building one are different skills — and building one is mostly a
+          <strong> finance skill, not a coding skill</strong>: the model is rented; the rules and
+          permissions are yours to write. The kit&apos;s{' '}
+          <span style={mono}>agent/BUILD_YOUR_OWN_AGENT.md</span> is the full step-by-step guide with a
+          fill-in template and a worked flux-memo example; here is the shape:
+        </p>
+        <ol style={{ ...hintStyle, paddingLeft: 18 }}>
+          <li><strong>Goal + trigger, one sentence:</strong> &quot;After [trigger], do [job], and <em>stop at [gate]</em>.&quot; Every finance agent sentence ends with where it stops.</li>
+          <li><strong>Name the inputs</strong> — an explicit read-only list. Scoping inputs is your completeness and confidentiality control at once.</li>
+          <li><strong>Write the skill</strong> — the procedure, imperative, one decision per line. The shape that works: VERIFY → ANALYZE → FLAG → DRAFT → STOP. If a competent temp couldn&apos;t follow it, an agent can&apos;t either.</li>
+          <li><strong>Set permissions</strong> — three columns with no blanks: freely / only with written approval / never. Anything outward-facing or hard to reverse leaves column one.</li>
+          <li><strong>Give it tools, by maturity level:</strong> (1) chat + attachments — you are the tools; (2) the runbook saved as a reusable skill; (3) real read access (e.g. the agent queries finmodel.db itself); (4) scheduled runs with action tools behind an approval step. Never grant level N+1 until it behaves at level N.</li>
+          <li><strong>Test it adversarially:</strong> tell it to skip verification; ask it to decide the close call; ask for a number that isn&apos;t in the inputs; hand it a broken file. It should refuse, route, admit, and STOP — keep the transcript as test evidence.</li>
+          <li><strong>Operate &amp; govern:</strong> version the runbook like code (a changed procedure is a changed control), log every run, review its drafts like a preparer&apos;s work. Tab 9&apos;s approval matrix applies unchanged.</li>
+        </ol>
+        <p style={hintStyle}>
+          Then build your second agent with the template — the guide fills it in for a month-end
+          <strong> flux memo agent</strong> (verify the TB ties, explain top variances vs. prior and
+          budget, flag &gt;$50k &amp; &gt;10%, stop at controller review) so you can see one for a job
+          you already do.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <DownloadLink href="/financial-model/BUILD_YOUR_OWN_AGENT.md" label="BUILD_YOUR_OWN_AGENT.md" />
+          <DownloadLink href="/financial-model/AGENT_RUNBOOK.md" label="AGENT_RUNBOOK.md (the worked example)" />
+        </div>
+      </StepCard>
+
+      <StepCard n={8} icon={<GraduationCap size={18} />} title="Where to go from here">
         <ul style={{ ...hintStyle, paddingLeft: 18, marginBottom: 0 }}>
           <li><strong>SQL next:</strong> add a feature to both views (say, revenue size), retrain, and see if test accuracy moves. You now own the full loop.</li>
           <li><strong>Python next:</strong> swap LogisticRegression for DecisionTreeClassifier in 02_train_model.py and print the tree — same interface, different (readable!) model. Compare gates.</li>
           <li><strong>Statistics next:</strong> the coefficients table is a doorway into regression proper — the same math behind rate curves and credit scoring.</li>
-          <li><strong>Agent next:</strong> after the step-5 exercise, write your own second skill — a runbook for one thing you do repeatedly (a flux memo, an exception review) — and run it the same way. That&apos;s the whole craft.</li>
+          <li><strong>Agent next:</strong> run the step-5 exercise, then use step 7&apos;s template to build the flux-memo agent — or a runbook for anything you do repeatedly. That&apos;s the whole craft.</li>
         </ul>
       </StepCard>
     </>
