@@ -6,6 +6,7 @@ scheduler (Windows Task Scheduler / cron) would call on a schedule.
     STEP 2  python/01_explore.py        sanity-check the training data
     STEP 3  python/02_train_model.py    train -> test -> validate -> approve
     STEP 4  python/03_inference.py      score new companies -> prediction table
+    STEP 5  python/04_drift_check.py    do new inputs still look like training?
 
 Each step is the same file you run by hand while learning -- the orchestrator
 just chains them and stops on the first failure (a failed step exits non-zero,
@@ -28,6 +29,7 @@ STEPS = [
     "python/01_explore.py",
     "python/02_train_model.py",
     "python/03_inference.py",
+    "python/04_drift_check.py",
 ]
 
 

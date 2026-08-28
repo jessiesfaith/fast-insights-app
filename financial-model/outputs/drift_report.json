@@ -1,0 +1,71 @@
+{
+  "checked_at_utc": "2026-08-28T01:44:13+00:00",
+  "method": "per-feature mean shift in training std devs",
+  "thresholds": {
+    "watch": 0.5,
+    "investigate": 1.0
+  },
+  "n_train": 240,
+  "n_new": 12,
+  "features": [
+    {
+      "feature": "revenue_growth_pct",
+      "mean_train": 3.804,
+      "std_train": 5.155,
+      "mean_new": 4.825,
+      "shift_std": 0.198,
+      "status": "STABLE"
+    },
+    {
+      "feature": "operating_margin_pct",
+      "mean_train": 12.366,
+      "std_train": 5.932,
+      "mean_new": 12.875,
+      "shift_std": 0.086,
+      "status": "STABLE"
+    },
+    {
+      "feature": "debt_to_ebitda",
+      "mean_train": 4.064,
+      "std_train": 3.079,
+      "mean_new": 2.838,
+      "shift_std": -0.398,
+      "status": "STABLE"
+    },
+    {
+      "feature": "interest_rate_pct",
+      "mean_train": 6.34,
+      "std_train": 1.858,
+      "mean_new": 6.617,
+      "shift_std": 0.149,
+      "status": "STABLE"
+    },
+    {
+      "feature": "cash_pct_of_revenue",
+      "mean_train": 14.987,
+      "std_train": 7.491,
+      "mean_new": 14.967,
+      "shift_std": -0.003,
+      "status": "STABLE"
+    },
+    {
+      "feature": "market_growth_pct",
+      "mean_train": 3.795,
+      "std_train": 2.605,
+      "mean_new": 3.958,
+      "shift_std": 0.063,
+      "status": "STABLE"
+    },
+    {
+      "feature": "fragmentation_index",
+      "mean_train": 0.5,
+      "std_train": 0.11,
+      "mean_new": 0.623,
+      "shift_std": 1.121,
+      "status": "INVESTIGATE"
+    }
+  ],
+  "flagged": [
+    "fragmentation_index"
+  ]
+}

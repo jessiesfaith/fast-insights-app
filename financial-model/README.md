@@ -35,6 +35,7 @@ run the SQL files interactively yourself — strongly recommended for learning.
 | 2 | `python/01_explore.py` | Sanity-checks the training data (the pattern is visible by eye) |
 | 3 | `python/02_train_model.py` | TRAIN → TEST → VALIDATE → APPROVE; writes `outputs/model_card_v1.json` |
 | 4 | `python/03_inference.py` | Scores the 12 new companies → `outputs/prediction_table.csv` |
+| 5 | `python/04_drift_check.py` | Drift check: per-feature mean shift of the new cohort vs training, in training std devs → `outputs/drift_report.json`. This run genuinely flags `fragmentation_index` at +1.12σ (INVESTIGATE) — the 2025 cohort skews toward fragmented sectors, which is why M&A dominates the recommendations. The app's Governance tab teaches how to disposition it |
 | — | `agent/AGENT_RUNBOOK.md` + `agent/memo_prompt.md` | The agent layer: a written runbook (permissions + procedure — what an agent "skill" really is) and a 10-minute exercise running an LLM agent over the outputs |
 | — | `agent/BUILD_YOUR_OWN_AGENT.md` | How to build an agent yourself, in seven steps: goal+gate sentence, scoped inputs, the VERIFY→ANALYZE→FLAG→DRAFT→STOP skill shape, permissions, tool maturity levels, adversarial testing, governance — with a fill-in template and a worked flux-memo example |
 

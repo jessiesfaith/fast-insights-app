@@ -286,6 +286,92 @@ export function scoreCompany(features: Record<FeatureId, number>): ScoreResult {
 }
 
 // ---------------------------------------------------------------------------
+// Governance: output control checks + drift monitoring
+// ---------------------------------------------------------------------------
+//
+// The same methodology as the kit's python/04_drift_check.py, sharing its
+// baked training statistics (full 240-row v_training_dataset, sample std):
+// per-feature mean shift of the scored cohort, in training std devs.
+
+/** Mean/std of each feature over the 240 training rows (kit drift script). */
+export const TRAINING_STATS: Record<FeatureId, { mean: number; std: number }> = {
+  revenue_growth_pct: { mean: 3.804, std: 5.155 },
+  operating_margin_pct: { mean: 12.366, std: 5.932 },
+  debt_to_ebitda: { mean: 4.064, std: 3.079 },
+  interest_rate_pct: { mean: 6.34, std: 1.858 },
+  cash_pct_of_revenue: { mean: 14.987, std: 7.491 },
+  market_growth_pct: { mean: 3.795, std: 2.605 },
+  fragmentation_index: { mean: 0.5, std: 0.11 },
+};
+
+export const DRIFT_THRESHOLDS = { watch: 0.5, investigate: 1.0 };
+
+export type DriftStatus = 'STABLE' | 'WATCH' | 'INVESTIGATE';
+
+export interface DriftRow {
+  feature: FeatureId;
+  meanTrain: number;
+  stdTrain: number;
+  meanNew: number;
+  shiftStd: number;
+  status: DriftStatus;
+}
+
+/** shift(f) = (mean_new − mean_train) ÷ std_train, flagged at ±0.5 / ±1.0. */
+export function featureDrift(rows: PredictionRow[] = PREDICTIONS): DriftRow[] {
+  return FEATURES.map(({ id }) => {
+    const { mean, std } = TRAINING_STATS[id];
+    const meanNew = rows.reduce((s, r) => s + r.features[id], 0) / rows.length;
+    const shiftStd = (meanNew - mean) / std;
+    const a = Math.abs(shiftStd);
+    const status: DriftStatus =
+      a >= DRIFT_THRESHOLDS.investigate ? 'INVESTIGATE' : a >= DRIFT_THRESHOLDS.watch ? 'WATCH' : 'STABLE';
+    return { feature: id, meanTrain: mean, stdTrain: std, meanNew, shiftStd, status };
+  });
+}
+
+export interface OutputCheck {
+  id: string;
+  kind: 'completeness' | 'accuracy';
+  label: string;
+  detail: string;
+  passed: boolean;
+}
+
+/**
+ * The completeness & accuracy tie-outs a reviewer runs on the prediction
+ * table before relying on it (the IPE controls, computed for real).
+ */
+export function outputControlChecks(rows: PredictionRow[] = PREDICTIONS, expected = 12): OutputCheck[] {
+  const ids = rows.map((r) => r.companyId);
+  const uniqueIds = new Set(ids).size;
+  const k = predictionKpis(rows);
+  const countSum = ACTIONS.reduce((s, a) => s + k.counts[a], 0);
+  const probSums = rows.map((r) => r.p.NEW_PRODUCT + r.p.MA + r.p.PAY_DEBT);
+  const minSum = Math.min(...probSums);
+  const maxSum = Math.max(...probSums);
+  const sumsOk = probSums.every((s) => Math.abs(s - 1) <= 0.005);
+  const confOk = rows.every((r) => Math.abs(r.confidence - Math.max(r.p.NEW_PRODUCT, r.p.MA, r.p.PAY_DEBT)) < 1e-9);
+  const rangeOk = rows.every((r) => ACTIONS.every((a) => r.p[a] >= 0 && r.p[a] <= 1));
+
+  return [
+    { id: 'rows', kind: 'completeness', label: 'Population complete',
+      detail: `${rows.length} rows scored vs ${expected} companies expected`, passed: rows.length === expected },
+    { id: 'unique', kind: 'completeness', label: 'No duplicates',
+      detail: `${uniqueIds} unique company ids across ${ids.length} rows`, passed: uniqueIds === ids.length },
+    { id: 'countSum', kind: 'completeness', label: 'Recommendations reconcile',
+      detail: `${k.counts.NEW_PRODUCT} + ${k.counts.MA} + ${k.counts.PAY_DEBT} = ${countSum}, ties to rows scored`,
+      passed: countSum === rows.length },
+    { id: 'probSum', kind: 'accuracy', label: 'Probabilities tie out',
+      detail: `every row sums to 1 ± 0.005 (observed ${minSum.toFixed(3)}–${maxSum.toFixed(3)})`, passed: sumsOk },
+    { id: 'confMax', kind: 'accuracy', label: 'Confidence recomputes',
+      detail: 'confidence equals max(P) on every row — independent re-derivation agrees', passed: confOk },
+    { id: 'range', kind: 'accuracy', label: 'Values in range',
+      detail: 'every probability within [0, 1]', passed: rangeOk },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Excel report spec — one definition for the on-page mock AND the .xlsx
 // ---------------------------------------------------------------------------
 //

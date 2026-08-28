@@ -16,9 +16,11 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
 import {
+  Activity,
   AlertTriangle,
   ArrowLeft,
   Banknote,
+  ClipboardSignature,
   BarChart3,
   Brain,
   CalendarClock,
@@ -65,6 +67,9 @@ import {
   actionColor,
   buildExcelReportSpec,
   downloadFinancialModelWorkbook,
+  DRIFT_THRESHOLDS,
+  featureDrift,
+  outputControlChecks,
   predictionKpis,
   scoreCompany,
 } from '../lib/financialModel';
@@ -2051,6 +2056,340 @@ const AUDIT_AREAS: { area: string; want: string; here: string }[] = [
   { area: 'Documentation & retention', want: 'Model cards, run logs, and superseded outputs retained long enough to answer “what did the model say then, and which version said it?”', here: 'model_card_v1.json + prediction_table.csv carry model_version and scored_at timestamps for exactly this.' },
 ];
 
+// ---- "new content" highlighter --------------------------------------------
+// Jessica reviews additions in red first; set HIGHLIGHT_NEW to false when she
+// asks for the new sections to go back to normal ink.
+const HIGHLIGHT_NEW = true;
+
+function NewContent({ children }: { children: React.ReactNode }) {
+  if (!HIGHLIGHT_NEW) return <>{children}</>;
+  return (
+    <div className="fml-new">
+      <span
+        style={{
+          display: 'inline-block', fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
+          textTransform: 'uppercase', border: '1px solid var(--neg)', borderRadius: 999,
+          padding: '2px 9px', marginBottom: 8,
+        }}
+      >
+        New — in review (red until approved)
+      </span>
+      {children}
+    </div>
+  );
+}
+
+// ---- the interactive governance practicum ---------------------------------
+
+const METHOD_ITEMS = [
+  { id: 'method', label: 'Methodology documented', evidence: 'Model card: StandardScaler + multinomial logistic regression, the 7 named features, label best_action, training view v_training_dataset. Method + assumptions + data — the three things an estimate must support.' },
+  { id: 'version', label: 'Version, seed & date recorded', evidence: 'model_version 1.0 · random_state 42 · trained_at timestamp. The fixed seed is what makes the run re-performable, byte for byte.' },
+  { id: 'lineage', label: 'Data lineage named end to end', evidence: 'Certified CSVs → SQLite tables → feature views → model → prediction table → reports. One chain; every hop inspectable.' },
+  { id: 'retention', label: 'Retention location & period confirmed', evidence: 'outputs/ holds model_card_v1.json, prediction_table.csv, drift_report.json — all version- and time-stamped. Retain per your workpaper policy (commonly 7 years) so "what did the model say in March, and which version said it?" is always answerable.' },
+];
+
+const VALIDATION_ITEMS = [
+  { id: 'reperform', label: 'Independent re-performance', evidence: 'Someone other than the developer re-runs python run_pipeline.py from the raw CSVs. Seed 42 must reproduce 88.3% test accuracy and identical predictions — any difference is a finding.' },
+  { id: 'gate', label: 'Gate math re-checked against the written thresholds', evidence: 'Test accuracy 88.3% ≥ 80% ✓ · worst class recall (M&A) 0.80 ≥ 0.70 ✓. APPROVED is arithmetically correct — you verified it, not trusted it.' },
+  { id: 'challenge', label: 'Effective challenge logged', evidence: 'At least one documented question with the developer’s written answer — e.g. "Why does operating margin carry only +0.50 weight when the SQL profile showed an 8-point margin gap between actions?"' },
+];
+
+const CLOSE_CALL_OPTIONS = [
+  { id: 'escalate', valid: true, label: 'Escalate to the CFO with both scenarios quantified (M&A 51% vs pay-debt 44%), sandbox findings attached.' },
+  { id: 'rescore', valid: true, label: 'Request refreshed FY25 financials for NorthPine and re-score before any decision.' },
+  { id: 'accept', valid: false, label: 'Accept the M&A recommendation as-is.' },
+];
+
+const DRIFT_OPTIONS = [
+  { id: 'composition', valid: true, label: 'Documented rationale: a deliberate population-composition shift — the 2025 cohort skews to fragmented sectors (which is why M&A dominates). Scores stand; rationale filed with the run log.' },
+  { id: 'revalidate', valid: true, label: 'Hold the M&A-heavy recommendations; revalidate against recent fragmented-market outcomes before release.' },
+  { id: 'ignore', valid: false, label: 'Ignore it — the validation gate passed at training time.' },
+];
+
+const practicumBlockTitle: CSSProperties = {
+  fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700,
+  color: 'var(--accent)', margin: '18px 0 8px',
+};
+
+function CheckItem({ checked, onToggle, label, evidence }: { checked: boolean; onToggle: () => void; label: string; evidence: string }) {
+  return (
+    <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+      <input type="checkbox" checked={checked} onChange={onToggle} style={{ accentColor: 'var(--accent)', marginTop: 3 }} />
+      <span>
+        <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
+        <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.55, marginTop: 2 }}>{evidence}</span>
+      </span>
+    </label>
+  );
+}
+
+function RadioGroup({ name, options, value, onPick }: {
+  name: string;
+  options: { id: string; valid: boolean; label: string }[];
+  value: string | null;
+  onPick: (id: string) => void;
+}) {
+  const picked = options.find((o) => o.id === value);
+  return (
+    <div>
+      {options.map((o) => (
+        <label key={o.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', padding: '6px 0' }}>
+          <input type="radio" name={name} checked={value === o.id} onChange={() => onPick(o.id)} style={{ accentColor: 'var(--accent)', marginTop: 3 }} />
+          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{o.label}</span>
+        </label>
+      ))}
+      {picked && !picked.valid && (
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--neg)', padding: '6px 10px', border: '1px solid var(--neg)', borderRadius: 8, marginTop: 4 }}>
+          Blocked. {name === 'closecall'
+            ? 'Policy routes confidence below 0.60 to a human decision — choose a disposition that involves one.'
+            : 'The gate graded training-era data; drift is about today’s data. An INVESTIGATE flag requires a decision, not a shrug.'}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GovernancePracticum() {
+  const [methodDone, setMethodDone] = useState<Record<string, boolean>>({});
+  const [validDone, setValidDone] = useState<Record<string, boolean>>({});
+  const [checksRun, setChecksRun] = useState(false);
+  const [closeCall, setCloseCall] = useState<string | null>(null);
+  const [drift, setDrift] = useState<string | null>(null);
+  const [signName, setSignName] = useState('');
+  const [signed, setSigned] = useState<{ name: string; at: string } | null>(null);
+
+  const checks = useMemo(() => outputControlChecks(), []);
+  const allChecksPass = checks.every((c) => c.passed);
+  const methodOk = METHOD_ITEMS.every((i) => methodDone[i.id]);
+  const validOk = VALIDATION_ITEMS.every((i) => validDone[i.id]);
+  const closeCallOk = CLOSE_CALL_OPTIONS.find((o) => o.id === closeCall)?.valid === true;
+  const driftOk = DRIFT_OPTIONS.find((o) => o.id === drift)?.valid === true;
+  const steps = [methodOk, validOk, checksRun && allChecksPass, closeCallOk, driftOk];
+  const readyToSign = steps.every(Boolean) && signName.trim().length > 1;
+
+  const reset = () => {
+    setMethodDone({}); setValidDone({}); setChecksRun(false);
+    setCloseCall(null); setDrift(null); setSignName(''); setSigned(null);
+  };
+
+  const downloadRecord = () => {
+    const record = {
+      record: 'model-governance-review (Financial Model Lab practicum)',
+      model_version: MODEL_CARD.version,
+      reviewer: signed?.name,
+      signed_at_utc: signed?.at,
+      attestation: 'I reviewed the methodology, re-checked the validation gate against its written thresholds, ran completeness and accuracy checks on the prediction table, and dispositioned every flagged item before approving this run for use.',
+      methodology_and_retention: METHOD_ITEMS.map((i) => ({ item: i.label, confirmed: true })),
+      independent_validation: VALIDATION_ITEMS.map((i) => ({ step: i.label, performed: true })),
+      thresholds: {
+        validation_gate: { min_test_accuracy: MODEL_CARD.gate.minTestAccuracy, min_class_recall: MODEL_CARD.gate.minClassRecall, passed: true },
+        close_call_confidence: CLOSE_CALL_THRESHOLD,
+        drift_std: DRIFT_THRESHOLDS,
+      },
+      output_controls: checks.map((c) => ({ check: c.label, kind: c.kind, detail: c.detail, passed: c.passed })),
+      dispositions: {
+        close_call_N001: CLOSE_CALL_OPTIONS.find((o) => o.id === closeCall)?.label,
+        drift_fragmentation_index: DRIFT_OPTIONS.find((o) => o.id === drift)?.label,
+      },
+      note: 'Practice artifact from the teaching module — synthetic data; education only.',
+    };
+    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `model-governance-review_v${MODEL_CARD.version}_${(signed?.at ?? '').slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    track('fml_download', { file: 'governance-record' });
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: steps.every(Boolean) ? 'var(--pos)' : 'var(--text-tertiary)' }}>
+        {steps.filter(Boolean).length} of 5 review steps complete {steps.every(Boolean) ? '— ready for sign-off' : ''}
+      </div>
+
+      <div style={practicumBlockTitle}>A · Documentation & retention — confirm each against the model card</div>
+      {METHOD_ITEMS.map((i) => (
+        <CheckItem key={i.id} checked={!!methodDone[i.id]} onToggle={() => setMethodDone((s) => ({ ...s, [i.id]: !s[i.id] }))} label={i.label} evidence={i.evidence} />
+      ))}
+
+      <div style={practicumBlockTitle}>B · Independent validation — the required steps</div>
+      {VALIDATION_ITEMS.map((i) => (
+        <CheckItem key={i.id} checked={!!validDone[i.id]} onToggle={() => setValidDone((s) => ({ ...s, [i.id]: !s[i.id] }))} label={i.label} evidence={i.evidence} />
+      ))}
+
+      <div style={practicumBlockTitle}>C · Completeness & accuracy on the output — run them for real</div>
+      {!checksRun ? (
+        <button
+          type="button"
+          onClick={() => setChecksRun(true)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, color: 'var(--accent-contrast)', background: 'var(--accent)', border: 'none', borderRadius: 999, cursor: 'pointer' }}
+        >
+          <ShieldCheck size={15} /> Run the 6 checks on the live prediction table
+        </button>
+      ) : (
+        <div>
+          {checks.map((c) => (
+            <div key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontWeight: 700, color: c.passed ? 'var(--pos)' : 'var(--neg)' }}>{c.passed ? '✓' : '✗'}</span>
+              <span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {c.label} <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>· {c.kind}</span>
+                </span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)' }}>{c.detail}</span>
+              </span>
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
+            These are the same tie-outs as the Excel I-column and B20 cells — computed here directly from the table. This is what &quot;proving your IPE&quot; means.
+          </div>
+        </div>
+      )}
+
+      <div style={practicumBlockTitle}>D · Disposition the close call — NorthPine at 0.510 confidence</div>
+      <RadioGroup name="closecall" options={CLOSE_CALL_OPTIONS} value={closeCall} onPick={setCloseCall} />
+
+      <div style={practicumBlockTitle}>E · Disposition the drift flag — fragmentation_index at +1.12σ (see the monitor below)</div>
+      <RadioGroup name="drift" options={DRIFT_OPTIONS} value={drift} onPick={setDrift} />
+
+      <div style={practicumBlockTitle}>F · Sign-off — unlocked only when A–E are done</div>
+      {!signed ? (
+        <div>
+          <p style={{ ...hintStyle, marginBottom: 8 }}>
+            Attestation: <em>&quot;I reviewed the methodology, re-checked the validation gate against its
+            written thresholds, ran completeness and accuracy checks on the prediction table, and
+            dispositioned every flagged item before approving this run for use.&quot;</em>
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <input
+              type="text"
+              value={signName}
+              onChange={(e) => setSignName(e.target.value)}
+              placeholder="Reviewer name"
+              aria-label="Reviewer name"
+              style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, color: 'var(--text-primary)', background: 'var(--bg-elevated-2)', border: '1px solid var(--border-strong)', minWidth: 180 }}
+            />
+            <button
+              type="button"
+              disabled={!readyToSign}
+              onClick={() => setSigned({ name: signName.trim(), at: new Date().toISOString() })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700,
+                color: readyToSign ? 'var(--accent-contrast)' : 'var(--text-muted)',
+                background: readyToSign ? 'var(--accent)' : 'var(--bg-elevated-2)',
+                border: readyToSign ? 'none' : '1px solid var(--border)',
+                borderRadius: 999, cursor: readyToSign ? 'pointer' : 'not-allowed',
+              }}
+            >
+              <Check size={15} /> Sign the review record
+            </button>
+            {!readyToSign && (
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                {steps.every(Boolean) ? 'Enter your name to sign.' : 'Complete A–E first — a sign-off you can rush is not a control.'}
+              </span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ border: '1px solid var(--accent)', background: 'var(--accent-soft)', borderRadius: 10, padding: '12px 16px' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--accent)' }}>
+            Signed — model v{MODEL_CARD.version} scoring run approved for use
+          </div>
+          <div style={{ ...mono, fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+            {signed.name} · {signed.at}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
+            <button
+              type="button"
+              onClick={downloadRecord}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: 999, cursor: 'pointer' }}
+            >
+              <Download size={14} /> Download the signed record (JSON)
+            </button>
+            <Chip active={false} onClick={reset}>Reset the practicum</Chip>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.5 }}>
+            The download is your evidence bundle: every confirmation, check result, threshold, and
+            disposition, with your name and a timestamp. In a real close this file goes in the close
+            folder — that is retention.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DriftMonitor() {
+  const [shock, setShock] = useState(false);
+  const rows = useMemo(
+    () => (shock
+      ? PREDICTIONS.map((r) => ({ ...r, features: { ...r.features, interest_rate_pct: r.features.interest_rate_pct + 3 } }))
+      : PREDICTIONS),
+    [shock],
+  );
+  const drift = useMemo(() => featureDrift(rows), [rows]);
+
+  const tone = (s: string) =>
+    s === 'INVESTIGATE' ? 'var(--severity-high)' : s === 'WATCH' ? 'var(--severity-medium)' : 'var(--pos)';
+  const bg = (s: string) =>
+    s === 'INVESTIGATE' ? 'var(--severity-high-bg)' : s === 'WATCH' ? 'var(--severity-medium-bg)' : undefined;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <Chip active={shock} onClick={() => setShock(!shock)}>
+          {shock ? 'Rate shock ON (+3 pts on every interest rate)' : 'Simulate the 2022 rate shock (+3 pts)'}
+        </Chip>
+        <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+          computed live from the scored cohort vs the 240 training rows
+        </span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Feature</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Training mean ± std</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>New-cohort mean</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Shift (σ)</th>
+              <th style={thStyle}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {drift.map((d) => {
+              const f = FEATURES.find((x) => x.id === d.feature);
+              return (
+                <tr key={d.feature} style={{ background: bg(d.status) }}>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--text-primary)' }}>{f?.label}</td>
+                  <td style={{ ...tdStyle, ...mono, textAlign: 'right' }}>{d.meanTrain.toFixed(2)} ± {d.stdTrain.toFixed(2)}</td>
+                  <td style={{ ...tdStyle, ...mono, textAlign: 'right' }}>{d.meanNew.toFixed(2)}</td>
+                  <td style={{ ...tdStyle, ...mono, textAlign: 'right', fontWeight: d.status === 'STABLE' ? 500 : 700, color: tone(d.status) }}>
+                    {d.shiftStd > 0 ? '+' : ''}{d.shiftStd.toFixed(2)}
+                  </td>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: tone(d.status) }}>{d.status}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ ...hintStyle, marginTop: 10, marginBottom: 0 }}>
+        Thresholds: |shift| ≥ {DRIFT_THRESHOLDS.watch}σ = WATCH (note it, look again next run), ≥{' '}
+        {DRIFT_THRESHOLDS.investigate}σ = INVESTIGATE (stop trusting scores until a human decides:
+        revalidate, retrain, or accept with a documented rationale — that decision is practicum step E).
+        The real flag here is honest: the 2025 cohort skews to fragmented sectors (+1.12σ), which is
+        exactly why M&amp;A dominates the recommendations. Flip the rate-shock toggle to watch a second,
+        nastier kind of drift appear — the cheap-money-model-in-an-expensive-money-world failure. The
+        kit&apos;s <span style={mono}>python/04_drift_check.py</span> computes this same table and writes{' '}
+        <span style={mono}>outputs/drift_report.json</span>; the grown-up versions of the method are PSI
+        and KS tests, and the other half of drift monitoring is <strong>output drift</strong>: average
+        confidence falling or the close-call rate rising.
+      </p>
+    </div>
+  );
+}
+
 function GovernTab() {
   return (
     <>
@@ -2162,6 +2501,34 @@ function GovernTab() {
           <li>Close calls stop being rare — a model that&apos;s uncertain everywhere is telling you the world changed.</li>
           <li>Anyone bypasses the approval gate, even once, even helpfully. That&apos;s a control failure, not a shortcut.</li>
         </ul>
+      </StepCard>
+
+      <StepCard n={5} icon={<ClipboardSignature size={18} />} title="The practicum — run the review and sign off yourself">
+        <NewContent>
+          <p style={hintStyle}>
+            Everything above, performed instead of read. You are the model owner reviewing this scoring
+            run before anyone acts on it: confirm the <strong>documentation, methodology &amp;
+            retention</strong> evidence (A), tick through the <strong>required independent validation
+            steps</strong> (B), actually <strong>run the completeness &amp; accuracy checks</strong> on
+            the live prediction table (C — computed for real, not simulated), <strong>disposition the
+            two flagged items</strong> — the close call and the drift flag (D, E) — and only then does
+            the <strong>sign-off</strong> unlock (F). Signing produces a downloadable, timestamped
+            review record: your evidence bundle. Two of the six options are traps; the app will tell
+            you why they&apos;re blocked.
+          </p>
+          <GovernancePracticum />
+        </NewContent>
+      </StepCard>
+
+      <StepCard n={6} icon={<Activity size={18} />} title="Drift — measured live on this cohort">
+        <NewContent>
+          <p style={hintStyle}>
+            Drift is the question &quot;does today&apos;s data still look like the data the model learned
+            from?&quot; — answered with a number, per feature:
+          </p>
+          <Eq>shift(f) = (mean_new(f) − mean_train(f)) ÷ std_train(f){'\n'}|shift| ≥ 0.5σ → WATCH · |shift| ≥ 1.0σ → INVESTIGATE</Eq>
+          <DriftMonitor />
+        </NewContent>
       </StepCard>
     </>
   );
@@ -2475,12 +2842,18 @@ function TabGuide({ tab }: { tab: TabId }) {
             the model.
           </GuideSection>
           <GuideSection n={2} title="How to use it">
-            Read the roles table asking &quot;which hats would I wear?&quot; (in a small team: owner +
-            reviewer, never developer + approver of the same model). Then treat the approval
-            matrix as a checklist — every artifact row needs a name, evidence, and a date.
+            Read steps 1–4 asking &quot;which hats would I wear?&quot; (in a small team: owner + reviewer,
+            never developer + approver of the same model). <span className="fml-new">Then DO step
+            5 — the practicum: confirm the documentation evidence, tick the validation steps, run
+            the completeness &amp; accuracy checks for real, disposition the close call and the
+            drift flag, sign, and download your signed record. Step 6 is the live drift monitor —
+            flip the rate-shock toggle and watch a second flag fire.</span>
           </GuideSection>
           <GuideSection n={3} title="The rules in shorthand">
             <Eq>preparer ≠ approver (per model, always){'\n'}control = procedure + named owner{'\n'}        + evidence + date{'\n'}model gate: acc ≥ 80% AND recall ≥ 70%</Eq>
+            <span className="fml-new">
+              <Eq>drift(f) = (mean_new − mean_train) ÷ std_train{'\n'}≥ 0.5σ WATCH · ≥ 1.0σ INVESTIGATE</Eq>
+            </span>
             &quot;I looked at it&quot; without evidence is a memory, not a control.
           </GuideSection>
           <GuideSection n={4} title="Worked example — sign-off evidence">
@@ -2544,6 +2917,9 @@ export default function FinancialModelLab() {
           .fml-layout { grid-template-columns: 1fr; }
           .fml-guide { position: static; max-height: none; }
         }
+        /* Newly added content renders in red while Jessica reviews it
+           (theme-aware via --neg); flipped back by HIGHLIGHT_NEW = false. */
+        .fml-new, .fml-new * { color: var(--neg) !important; }
       `}</style>
       <header style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>

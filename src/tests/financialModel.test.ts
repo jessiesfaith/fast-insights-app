@@ -13,6 +13,8 @@ import {
   TRAINING_PROFILE,
   buildExcelReportSpec,
   buildFinancialModelWorkbook,
+  featureDrift,
+  outputControlChecks,
   predictionKpis,
   scoreCompany,
   WORKBOOK_SHEET_NAMES,
@@ -142,6 +144,44 @@ describe('in-browser model (scoreCompany)', () => {
     // contributions: the leverage push toward PAY_DEBT grows with leverage
     expect(high.contributions.PAY_DEBT.debt_to_ebitda)
       .toBeGreaterThan(low.contributions.PAY_DEBT.debt_to_ebitda);
+  });
+});
+
+describe('governance: output controls and drift', () => {
+  it('all six completeness/accuracy checks pass on the real prediction table', () => {
+    const checks = outputControlChecks();
+    expect(checks).toHaveLength(6);
+    expect(checks.filter((c) => c.kind === 'completeness')).toHaveLength(3);
+    expect(checks.every((c) => c.passed)).toBe(true);
+  });
+
+  it('a broken table fails the right checks', () => {
+    const broken = PREDICTIONS.map((r, i) =>
+      i === 0 ? { ...r, p: { ...r.p, MA: 0.9 } } : r); // sum no longer ~1, conf no longer max
+    const checks = outputControlChecks(broken);
+    expect(checks.find((c) => c.id === 'probSum')?.passed).toBe(false);
+    expect(checks.find((c) => c.id === 'rows')?.passed).toBe(true);
+  });
+
+  it('drift matches the kit script: fragmentation_index flags INVESTIGATE, everything else STABLE', () => {
+    const drift = featureDrift();
+    const frag = drift.find((d) => d.feature === 'fragmentation_index');
+    expect(frag?.status).toBe('INVESTIGATE');
+    expect(frag!.shiftStd).toBeGreaterThan(1.1);
+    expect(frag!.shiftStd).toBeCloseTo(1.121, 1);
+    for (const d of drift) {
+      if (d.feature !== 'fragmentation_index') expect(d.status).toBe('STABLE');
+    }
+  });
+
+  it('a +3pt rate shock trips the interest_rate drift flag', () => {
+    const shocked = PREDICTIONS.map((r) => ({
+      ...r,
+      features: { ...r.features, interest_rate_pct: r.features.interest_rate_pct + 3 },
+    }));
+    const rate = featureDrift(shocked).find((d) => d.feature === 'interest_rate_pct');
+    expect(rate?.status).toBe('INVESTIGATE');
+    expect(rate!.shiftStd).toBeGreaterThan(1.5);
   });
 });
 
