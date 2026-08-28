@@ -35,6 +35,7 @@ run the SQL files interactively yourself — strongly recommended for learning.
 | 2 | `python/01_explore.py` | Sanity-checks the training data (the pattern is visible by eye) |
 | 3 | `python/02_train_model.py` | TRAIN → TEST → VALIDATE → APPROVE; writes `outputs/model_card_v1.json` |
 | 4 | `python/03_inference.py` | Scores the 12 new companies → `outputs/prediction_table.csv` |
+| — | `agent/AGENT_RUNBOOK.md` + `agent/memo_prompt.md` | The agent layer: a written runbook (permissions + procedure — what an agent "skill" really is) and a 10-minute exercise running an LLM agent over the outputs |
 
 Run everything at once with `python run_pipeline.py` (or double-click
 `run_pipeline.bat`), or run the steps one at a time — that is the learning path.
@@ -50,6 +51,17 @@ test accuracy **88.3%**, validation gate **APPROVED**, 12 new companies scored.
   of each action and the recommended move. This is the file Excel and Power BI
   import (the two report tabs in the app show exactly what to build from it).
 - `finmodel.db` — the SQLite database (regenerated locally; not committed).
+
+## Try the agent layer (10 minutes, no infrastructure)
+
+Open a new Claude conversation, attach `outputs/prediction_table.csv`,
+`outputs/model_card_v1.json`, and `agent/AGENT_RUNBOOK.md`, then paste the
+prompt from `agent/memo_prompt.md`. The agent verifies the outputs, analyzes
+them, flags the close call for human review, drafts the CFO memo — and stops
+at the approval line, because the runbook's permissions say so. That
+verify → analyze → flag → draft → stop-for-approval loop is how finance teams
+use agents safely; the runbook doubles as an example of what an agent "skill"
+is (a written procedure, like an audit program).
 
 ## Automate it (the "cron job")
 

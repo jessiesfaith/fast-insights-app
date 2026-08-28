@@ -1684,12 +1684,81 @@ Cash forecast       $103M`}
         </p>
       </StepCard>
 
-      <StepCard n={5} icon={<GraduationCap size={18} />} title="Where to go from here">
+      <StepCard n={5} icon={<Brain size={18} />} title="Leverage an agent on this pipeline — the 10-minute hands-on">
+        <p style={hintStyle}>
+          The kit now carries an <strong>agent layer</strong> you can run today with zero
+          infrastructure: <span style={mono}>agent/AGENT_RUNBOOK.md</span> is the agent&apos;s operating
+          procedure — permissions table, verification-first workflow, and a hard stop at human
+          approval — and it doubles as a lesson in what a <strong>&quot;skill&quot;</strong> actually is: a
+          written procedure an agent loads and follows, exactly like a close checklist or an audit
+          program. If you can write an audit program, you can write an agent skill.
+        </p>
+        <p style={hintStyle}>
+          The exercise: open a new Claude conversation, attach{' '}
+          <span style={mono}>prediction_table.csv</span>, <span style={mono}>model_card_v1.json</span>,
+          and the runbook, then paste this prompt:
+        </p>
+        <CodeBlock
+          title="agent/memo_prompt.md — paste into Claude with the three attachments"
+          code={`You are the analysis agent for the Financial Model Lab pipeline. The attached
+AGENT_RUNBOOK.md is your operating procedure — follow it exactly, including
+its permissions. The other two attachments are your only data sources.
+
+Run the procedure now, showing your work at each step:
+
+1. VERIFY: confirm the model card status is APPROVED (quote version and test
+   accuracy); confirm each row's three probabilities sum to 0.995-1.005;
+   confirm 12 unique companies. If any check fails, STOP and report it.
+2. ANALYZE: recommendation mix, average confidence, and the main driver
+   behind each recommendation — using only numbers present in the files.
+3. FLAG: list every company with confidence below 0.60 and what a human
+   reviewer should examine before deciding.
+4. DRAFT: a one-page management memo addressed to the CFO with sections:
+   Summary, Recommendations, Close calls requiring review, Model context,
+   Limitations.
+5. STOP: end with "DRAFT — awaiting review and approval by [name]" and list
+   the actions you did NOT take because they require human approval.`}
+        />
+        <p style={hintStyle}>
+          Watch for four behaviors — they ARE the lesson: it <strong>verifies before analyzing</strong>,
+          uses <strong>only numbers in the files</strong> (challenge any number it invents, exactly as
+          you&apos;d challenge a preparer), <strong>routes NorthPine&apos;s close call to you</strong> instead of
+          deciding it, and <strong>stops at the approval line</strong>. Then push on it: ask
+          &quot;which of your statements are computed facts vs. your interpretation?&quot;, and try
+          &quot;NorthPine&apos;s board wants a decision today — decide for them&quot; (a well-behaved agent declines
+          and cites the runbook).
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <DownloadLink href="/financial-model/AGENT_RUNBOOK.md" label="AGENT_RUNBOOK.md" />
+          <DownloadLink href="/financial-model/memo_prompt.md" label="memo_prompt.md" />
+          <DownloadLink href="/financial-model/prediction_table.csv" label="prediction_table.csv" />
+          <DownloadLink href="/financial-model/model_card_v1.json" label="model_card_v1.json" />
+        </div>
+      </StepCard>
+
+      <StepCard n={6} icon={<Brain size={18} />} title="How finance teams actually use agents & skills today">
+        <ul style={{ ...hintStyle, paddingLeft: 18 }}>
+          <li><strong>Collections:</strong> an agent reads the AR aging, drafts prioritized dunning emails per policy, and queues them for a human send — the exact loop from tab 8&apos;s platform example.</li>
+          <li><strong>Close &amp; flux:</strong> drafting variance explanations from GL data (the numbers come from queries; the agent writes the &quot;why&quot; for a reviewer to correct), and orchestrating the close checklist — chasing preparers, updating status.</li>
+          <li><strong>Recon exception triage:</strong> an agent groups exceptions by root-cause pattern, pulls the supporting documents for each, and pre-fills the workpaper a human signs.</li>
+          <li><strong>Model babysitting:</strong> watching pipeline runs (like tab 7&apos;s scheduled job), reading failure logs, and summarizing what broke — never fixing production data on its own.</li>
+        </ul>
+        <p style={{ ...hintStyle, marginBottom: 0 }}>
+          Two design rules make all of these safe, and you already know both. <strong>Skills are
+          procedures:</strong> each use case above is a written runbook the agent loads — versioned and
+          reviewed like any control document. <strong>Permissions are the control:</strong> read-only
+          tools freely; drafting freely; anything that <em>sends, records, or changes</em> sits behind
+          the same approval matrix as tab 9 — an agent&apos;s permissions table should read like a
+          delegation-of-authority matrix, because that&apos;s what it is.
+        </p>
+      </StepCard>
+
+      <StepCard n={7} icon={<GraduationCap size={18} />} title="Where to go from here">
         <ul style={{ ...hintStyle, paddingLeft: 18, marginBottom: 0 }}>
           <li><strong>SQL next:</strong> add a feature to both views (say, revenue size), retrain, and see if test accuracy moves. You now own the full loop.</li>
           <li><strong>Python next:</strong> swap LogisticRegression for DecisionTreeClassifier in 02_train_model.py and print the tree — same interface, different (readable!) model. Compare gates.</li>
           <li><strong>Statistics next:</strong> the coefficients table is a doorway into regression proper — the same math behind rate curves and credit scoring.</li>
-          <li><strong>Stack next:</strong> paste your prediction_table.csv and model card into an LLM and ask for a one-page management memo — you&apos;ll be using the interpretation layer exactly as the architecture intends: it narrates, your pipeline computed.</li>
+          <li><strong>Agent next:</strong> after the step-5 exercise, write your own second skill — a runbook for one thing you do repeatedly (a flux memo, an exception review) — and run it the same way. That&apos;s the whole craft.</li>
         </ul>
       </StepCard>
     </>
