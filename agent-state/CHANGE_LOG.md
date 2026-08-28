@@ -2,6 +2,12 @@
 
 Newest first. Keep entries to a few bullets - no long logs.
 
+## 2026-08-28 - Add Financial Model Lab at /financial-model (SQL + Python + ML teaching module) [branch claude/financial-model-ml-training-f38a8q]
+- **Files:** new `financial-model/` runnable learning kit (seeded dataset generator; SQLite DDL + 4 SQL step scripts; scikit-learn explore/train-validate-approve/inference scripts; `run_pipeline.py` + `.bat` orchestrator; README); new `src/lib/financialModel.ts` (real pipeline outputs baked in + shared Excel report spec + xlsx-js-style workbook builder), `src/pages/FinancialModelLab.tsx` (10 tabs: big picture, setup, SQL, Python/ML, mock Power BI, traceable Excel, automation, AI stack, governance & audit, EY interview lens), `src/tests/financialModel.test.ts` (11 tests); route in `src/App.tsx`; card in `src/pages/Landing.tsx`; downloads in `public/financial-model/` (kit zip + prediction_table.csv + model_card_v1.json).
+- **Model:** multinomial logistic regression on 240 synthetic certified capital-allocation decisions (new product / M&A / pay debt), seed 42 → 88.3% test accuracy, written validation gate APPROVED; 12 fiscal-2025 companies scored (N001 NorthPine is a deliberate 51% close call).
+- **Verified:** `tsc -b` clean; vitest 374/374 across 32 files; `vite build` green; all tabs + light/dark screenshotted via Playwright against the built preview; chart palette validated for CVD/contrast in both themes.
+- **Deploy:** NOT deployed — pushed to branch `claude/financial-model-ml-training-f38a8q`; merging to `main` auto-deploys. If the kit changes, re-run `python run_pipeline.py`, refresh the baked constants in `src/lib/financialModel.ts`, and re-zip `public/financial-model/financial-model-kit.zip`.
+
 ## 2026-06-24 - Add Launch Gantt module at /gantt (bundled static page) + top-right button
 - **Files:** new `public/gantt/index.html` (self-contained Gantt — same engine as the Soundwiserx Gantt, reskinned to FI brand black/green, cosmetic login gate, seeded with the LinkedIn launch plan); `src/pages/Landing.tsx` (green "Launch Gantt" button top-right next to the Dark toggle → opens /gantt in a new tab; no grid tile); `vercel.json` (`/gantt → /gantt/` redirect).
 - **Why bundled (not a separate repo/Vercel project):** rides this host's existing git-push auto-deploy; Vercel serves the static `public/gantt/` before the SPA catch-all, so `/gantt/` resolves.

@@ -1,0 +1,5 @@
+# Install with:  pip install -r requirements.txt
+# pandas       -- tables in Python (DataFrames) + CSV/SQL readers
+# scikit-learn -- the ML algorithms (logistic regression, train/test split, metrics)
+pandas>=2.0
+scikit-learn>=1.3

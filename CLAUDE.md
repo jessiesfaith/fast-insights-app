@@ -23,8 +23,13 @@ Generic workflow rules live in `~/.claude/CLAUDE.md` (they apply to every repo).
 - **Dev (localhost):** `npm run dev` -> Vite dev server (default http://localhost:5173).
 - **Build:** `npm run build` (`tsc -b && vite build`). Single-file build: `npm run build:single`
   (`vite-plugin-singlefile`, `SINGLE_FILE=1`). Preview: `npm run preview`.
-- **Test:** `npm run test` (`vitest run`; 9 test files in `src/tests/`, ~100 tests). Watch:
-  `npm run test:watch`.
+- **Test:** `npm run test` (`vitest run`; 32 test files in `src/tests/`, ~374 tests as of
+  2026-08-28). Watch: `npm run test:watch`.
+- **Financial Model Lab (added 2026-08-28):** teaching module at `/financial-model`
+  (`src/pages/FinancialModelLab.tsx` + `src/lib/financialModel.ts`). Its runnable learning kit lives
+  in `financial-model/` (Python + SQL, seed 42); the numbers baked into the lib/page are that kit's
+  real outputs. If the kit changes: re-run `python run_pipeline.py`, refresh the constants in
+  `src/lib/financialModel.ts`, and re-zip `public/financial-model/financial-model-kit.zip`.
 - **Typecheck:** `tsc -b` (no standalone script; also the first half of `npm run build`).
 - **Lint:** none configured. TS `strict` + `noUnusedLocals`/`noUnusedParameters` are the gate.
 - **Deploy:** `git push origin main` -> Vercel auto-deploys (GitHub integration).

@@ -1,0 +1,253 @@
+company_id,company_name,sector
+C001,Pinnacle Provisions,Consumer Products
+C002,Brightpath Manufacturing,Industrial Equipment
+C003,Highland Clinics,Healthcare Services
+C004,Harborline Medical,Healthcare Services
+C005,Granite Fabrication,Industrial Equipment
+C006,Lakeshore Software,Software & SaaS
+C007,Redrock Cloudworks,Software & SaaS
+C008,Northgate Care Group,Healthcare Services
+C009,Summit Diagnostics,Healthcare Services
+C010,Clearwater Partners,Business Services
+C011,Highland Supply,Specialty Retail
+C012,Silverbirch Partners,Business Services
+C013,Longview Retail,Specialty Retail
+C014,Maplecrest Industrial,Industrial Equipment
+C015,Stonebridge Analytics,Software & SaaS
+C016,Summit Outsourcing,Business Services
+C017,Oakfield Trading Co,Specialty Retail
+C018,Stonebridge Controls,Industrial Equipment
+C019,Northgate Supply,Specialty Retail
+C020,Seabrook Provisions,Consumer Products
+C021,Kestrel Manufacturing,Industrial Equipment
+C022,Copperleaf Medical,Healthcare Services
+C023,Stonebridge Wellness,Healthcare Services
+C024,Oakfield Beverage Co,Consumer Products
+C025,Kestrel Care Group,Healthcare Services
+C026,Greenfield Foods,Consumer Products
+C027,Brightpath Wellness,Healthcare Services
+C028,Seabrook Brands,Consumer Products
+C029,Hartwell Logistics,Business Services
+C030,Westwind Provisions,Consumer Products
+C031,Clearwater Beverage Co,Consumer Products
+C032,Northgate Software,Software & SaaS
+C033,Clearwater Retail,Specialty Retail
+C034,Silverbirch Retail,Specialty Retail
+C035,Brightpath Systems,Software & SaaS
+C036,Northgate Apparel,Consumer Products
+C037,Northgate Manufacturing,Industrial Equipment
+C038,Kestrel Stores,Specialty Retail
+C039,Pinnacle Analytics,Software & SaaS
+C040,Kestrel Tooling,Industrial Equipment
+C041,Copperleaf Foods,Consumer Products
+C042,Silverbirch Digital,Software & SaaS
+C043,Summit Platforms,Software & SaaS
+C044,Silverbirch Clinics,Healthcare Services
+C045,Copperleaf Tooling,Industrial Equipment
+C046,Fairhaven Digital,Software & SaaS
+C047,Riverbend Manufacturing,Industrial Equipment
+C048,Amberton Provisions,Consumer Products
+C049,Redrock Health,Healthcare Services
+C050,Harborline Fabrication,Industrial Equipment
+C051,Kingsport Advisory,Business Services
+C052,Foxglove Cloudworks,Software & SaaS
+C053,Kestrel Clinics,Healthcare Services
+C054,Cascade Analytics,Software & SaaS
+C055,Riverbend Fabrication,Industrial Equipment
+C056,Kingsport Mercantile,Specialty Retail
+C057,Bluepine Trading Co,Specialty Retail
+C058,Amberton Care Group,Healthcare Services
+C059,Silverbirch Systems,Software & SaaS
+C060,Bluepine Home Goods,Consumer Products
+C061,Copperleaf Apparel,Consumer Products
+C062,Clearwater Home Goods,Consumer Products
+C063,Highland Manufacturing,Industrial Equipment
+C064,Hartwell Digital,Software & SaaS
+C065,Silverbirch Platforms,Software & SaaS
+C066,Amberton Outsourcing,Business Services
+C067,Summit Staffing,Business Services
+C068,Brightpath Platforms,Software & SaaS
+C069,Kingsport Logistics,Business Services
+C070,Fairhaven Manufacturing,Industrial Equipment
+C071,Ironwood Medical,Healthcare Services
+C072,Hartwell Mercantile,Specialty Retail
+C073,Maplecrest Supply,Specialty Retail
+C074,Seabrook Systems,Software & SaaS
+C075,Harborline Stores,Specialty Retail
+C076,Northgate Controls,Industrial Equipment
+C077,Clearwater Clinics,Healthcare Services
+C078,Pinnacle Clinics,Healthcare Services
+C079,Copperleaf Staffing,Business Services
+C080,Amberton Machinery,Industrial Equipment
+C081,Kestrel Systems,Software & SaaS
+C082,Greenfield Consulting,Business Services
+C083,Seabrook Outfitters,Specialty Retail
+C084,Oakfield Stores,Specialty Retail
+C085,Seabrook Trading Co,Specialty Retail
+C086,Amberton Advisory,Business Services
+C087,Oakfield Supply,Specialty Retail
+C088,Oakfield Clinics,Healthcare Services
+C089,Maplecrest Brands,Consumer Products
+C090,Seabrook Logistics,Business Services
+C091,Seabrook Retail,Specialty Retail
+C092,Oakfield Apparel,Consumer Products
+C093,Riverbend Health,Healthcare Services
+C094,Redrock Care Group,Healthcare Services
+C095,Kingsport Controls,Industrial Equipment
+C096,Cascade Fabrication,Industrial Equipment
+C097,Clearwater Advisory,Business Services
+C098,Greenfield Medical,Healthcare Services
+C099,Maplecrest Advisory,Business Services
+C100,Stonebridge Outsourcing,Business Services
+C101,Bluepine Manufacturing,Industrial Equipment
+C102,Seabrook Outsourcing,Business Services
+C103,Kingsport Trading Co,Specialty Retail
+C104,Westwind Supply,Specialty Retail
+C105,Maplecrest Trading Co,Specialty Retail
+C106,Longview Logistics,Business Services
+C107,Kestrel Controls,Industrial Equipment
+C108,Longview Care Group,Healthcare Services
+C109,Kestrel Outfitters,Specialty Retail
+C110,Northgate Fabrication,Industrial Equipment
+C111,Greenfield Clinics,Healthcare Services
+C112,Silverbirch Mercantile,Specialty Retail
+C113,Granite Machinery,Industrial Equipment
+C114,Fairhaven Platforms,Software & SaaS
+C115,Juniper Apparel,Consumer Products
+C116,Westwind Analytics,Software & SaaS
+C117,Hartwell Home Goods,Consumer Products
+C118,Copperleaf Platforms,Software & SaaS
+C119,Lakeshore Systems,Software & SaaS
+C120,Granite Tooling,Industrial Equipment
+C121,Seabrook Home Goods,Consumer Products
+C122,Stonebridge Machinery,Industrial Equipment
+C123,Brightpath Machinery,Industrial Equipment
+C124,Amberton Medical,Healthcare Services
+C125,Kingsport Brands,Consumer Products
+C126,Copperleaf Outfitters,Specialty Retail
+C127,Ironwood Platforms,Software & SaaS
+C128,Northgate Systems,Software & SaaS
+C129,Copperleaf Outsourcing,Business Services
+C130,Harborline Trading Co,Specialty Retail
+C131,Juniper Digital,Software & SaaS
+C132,Stonebridge Provisions,Consumer Products
+C133,Brightpath Consulting,Business Services
+C134,Summit Partners,Business Services
+C135,Northgate Home Goods,Consumer Products
+C136,Westwind Beverage Co,Consumer Products
+C137,Clearwater Logistics,Business Services
+C138,Kingsport Digital,Software & SaaS
+C139,Granite Medical,Healthcare Services
+C140,Summit Outfitters,Specialty Retail
+C141,Stonebridge Fabrication,Industrial Equipment
+C142,Fairhaven Home Goods,Consumer Products
+C143,Longview Machinery,Industrial Equipment
+C144,Lakeshore Analytics,Software & SaaS
+C145,Maplecrest Fabrication,Industrial Equipment
+C146,Seabrook Care Group,Healthcare Services
+C147,Maplecrest Partners,Business Services
+C148,Silverbirch Consulting,Business Services
+C149,Longview Outfitters,Specialty Retail
+C150,Redrock Supply,Specialty Retail
+C151,Kestrel Health,Healthcare Services
+C152,Seabrook Beverage Co,Consumer Products
+C153,Brightpath Beverage Co,Consumer Products
+C154,Copperleaf Health,Healthcare Services
+C155,Riverbend Stores,Specialty Retail
+C156,Seabrook Software,Software & SaaS
+C157,Maplecrest Platforms,Software & SaaS
+C158,Clearwater Consulting,Business Services
+C159,Northgate Wellness,Healthcare Services
+C160,Amberton Logistics,Business Services
+C161,Stonebridge Diagnostics,Healthcare Services
+C162,Seabrook Consulting,Business Services
+C163,Silverbirch Outsourcing,Business Services
+C164,Granite Manufacturing,Industrial Equipment
+C165,Kingsport Staffing,Business Services
+C166,Oakfield Brands,Consumer Products
+C167,Granite Apparel,Consumer Products
+C168,Seabrook Analytics,Software & SaaS
+C169,Northgate Medical,Healthcare Services
+C170,Amberton Software,Software & SaaS
+C171,Fairhaven Partners,Business Services
+C172,Lakeshore Clinics,Healthcare Services
+C173,Copperleaf Systems,Software & SaaS
+C174,Riverbend Tooling,Industrial Equipment
+C175,Brightpath Apparel,Consumer Products
+C176,Redrock Partners,Business Services
+C177,Kingsport Medical,Healthcare Services
+C178,Brightpath Partners,Business Services
+C179,Kingsport Platforms,Software & SaaS
+C180,Granite Wellness,Healthcare Services
+C181,Granite Industrial,Industrial Equipment
+C182,Oakfield Analytics,Software & SaaS
+C183,Harborline Health,Healthcare Services
+C184,Redrock Apparel,Consumer Products
+C185,Ironwood Manufacturing,Industrial Equipment
+C186,Brightpath Provisions,Consumer Products
+C187,Harborline Mercantile,Specialty Retail
+C188,Stonebridge Advisory,Business Services
+C189,Lakeshore Mercantile,Specialty Retail
+C190,Summit Trading Co,Specialty Retail
+C191,Kingsport Supply,Specialty Retail
+C192,Clearwater Staffing,Business Services
+C193,Copperleaf Software,Software & SaaS
+C194,Redrock Machinery,Industrial Equipment
+C195,Brightpath Diagnostics,Healthcare Services
+C196,Highland Care Group,Healthcare Services
+C197,Westwind Trading Co,Specialty Retail
+C198,Northgate Industrial,Industrial Equipment
+C199,Pinnacle Retail,Specialty Retail
+C200,Hartwell Machinery,Industrial Equipment
+C201,Foxglove Staffing,Business Services
+C202,Westwind Manufacturing,Industrial Equipment
+C203,Cascade Clinics,Healthcare Services
+C204,Amberton Digital,Software & SaaS
+C205,Pinnacle Outsourcing,Business Services
+C206,Cascade Supply,Specialty Retail
+C207,Stonebridge Retail,Specialty Retail
+C208,Foxglove Manufacturing,Industrial Equipment
+C209,Cascade Wellness,Healthcare Services
+C210,Hartwell Medical,Healthcare Services
+C211,Redrock Retail,Specialty Retail
+C212,Foxglove Controls,Industrial Equipment
+C213,Clearwater Systems,Software & SaaS
+C214,Oakfield Wellness,Healthcare Services
+C215,Granite Beverage Co,Consumer Products
+C216,Westwind Systems,Software & SaaS
+C217,Seabrook Industrial,Industrial Equipment
+C218,Summit Medical,Healthcare Services
+C219,Highland Apparel,Consumer Products
+C220,Westwind Apparel,Consumer Products
+C221,Maplecrest Wellness,Healthcare Services
+C222,Highland Industrial,Industrial Equipment
+C223,Seabrook Medical,Healthcare Services
+C224,Kestrel Trading Co,Specialty Retail
+C225,Amberton Industrial,Industrial Equipment
+C226,Bluepine Consulting,Business Services
+C227,Westwind Controls,Industrial Equipment
+C228,Juniper Platforms,Software & SaaS
+C229,Lakeshore Tooling,Industrial Equipment
+C230,Pinnacle Industrial,Industrial Equipment
+C231,Cascade Home Goods,Consumer Products
+C232,Amberton Cloudworks,Software & SaaS
+C233,Summit Systems,Software & SaaS
+C234,Highland Digital,Software & SaaS
+C235,Brightpath Clinics,Healthcare Services
+C236,Ironwood Advisory,Business Services
+C237,Juniper Retail,Specialty Retail
+C238,Pinnacle Beverage Co,Consumer Products
+C239,Brightpath Tooling,Industrial Equipment
+C240,Greenfield Industrial,Industrial Equipment
+N001,NorthPine Holdings,Consumer Products
+N002,Veldt Software,Software & SaaS
+N003,Quarry Industrial,Industrial Equipment
+N004,Bristlecone Health,Healthcare Services
+N005,Copperline Staffing,Business Services
+N006,Aster & Vine Retail,Specialty Retail
+N007,Helix Diagnostics,Healthcare Services
+N008,Foundry Cloudworks,Software & SaaS
+N009,Meridian Provisions,Consumer Products
+N010,Atlas Advisory Group,Business Services
+N011,Ridgeway Fabrication,Industrial Equipment
+N012,Lumen Home Goods,Consumer Products

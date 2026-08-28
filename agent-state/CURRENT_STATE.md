@@ -1,6 +1,6 @@
 # CURRENT_STATE - AR Tool-Beta (fast-insights-app)
 
-_Last updated: 2026-06-24_
+_Last updated: 2026-08-28 (Financial Model Lab added on branch `claude/financial-model-ml-training-f38a8q`, not yet merged)_
 
 ## Purpose
 **AR Tool-Beta** - a modern glassmorphic accounts-receivable reconciliation dashboard for Fast Insights. It ingests six AR datasets (invoices, cash receipts, credit memos, GL entries, bank statements, customers) via CSV/JSON upload, sample data, or a Supabase cloud project, then runs reconciliation, aging, KPIs, bad-debt and scenario analysis with an ICFR-style audit trail. This repo is the multi-tool host at app.fastinsights.io: the AR tool lives at `/ar`, a Landing tool-picker at `/`, and it proxies each finance tool (`/revrec`, `/cashflow`, `/estimated-taxes`, etc.) to sibling Vercel projects. It also serves a **bundled static Launch Gantt** at `public/gantt/` → `app.fastinsights.io/gantt`, opened by a top-right button on the Landing (login-gated, session-only).
@@ -20,6 +20,7 @@ _Last updated: 2026-06-24_
 - `src/styles/` - `glass.css`, `globals.css`, `tokens.css`, `print.css`.
 - `vercel.json` - SPA rewrites + per-tool proxies + a `/gantt → /gantt/` redirect.
 - `public/gantt/index.html` - **bundled static Launch Gantt** (self-contained; canonical source for the `/gantt` tool — edit here + push to update).
+- `src/pages/FinancialModelLab.tsx` + `src/lib/financialModel.ts` - **Financial Model Lab** teaching module at `/financial-model` (SQL + Python + ML on a capital-allocation decision; 10 tabs incl. mock Power BI, traceable Excel, governance, EY lens). Runnable kit in `financial-model/`; downloads served from `public/financial-model/`.
 - `index.html` - sets theme pre-paint (defaults dark); `vite.config.ts` (config) + generated `vite.config.js`/`.d.ts` (gitignored).
 
 ## Commands

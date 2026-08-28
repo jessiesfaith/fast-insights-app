@@ -1,0 +1,102 @@
+{
+  "model_version": "1.0",
+  "status": "APPROVED",
+  "trained_at_utc": "2026-08-27T23:53:58+00:00",
+  "algorithm": "StandardScaler + multinomial LogisticRegression (scikit-learn)",
+  "training_view": "v_training_dataset",
+  "features": [
+    "revenue_growth_pct",
+    "operating_margin_pct",
+    "debt_to_ebitda",
+    "interest_rate_pct",
+    "cash_pct_of_revenue",
+    "market_growth_pct",
+    "fragmentation_index"
+  ],
+  "label": "best_action",
+  "rows": {
+    "train": 180,
+    "test": 60
+  },
+  "random_state": 42,
+  "metrics": {
+    "train_accuracy": 0.8944,
+    "test_accuracy": 0.8833,
+    "per_class": {
+      "MA": {
+        "precision": 0.8889,
+        "recall": 0.8,
+        "f1-score": 0.8421
+      },
+      "NEW_PRODUCT": {
+        "precision": 0.8182,
+        "recall": 0.9,
+        "f1-score": 0.8571
+      },
+      "PAY_DEBT": {
+        "precision": 0.95,
+        "recall": 0.95,
+        "f1-score": 0.95
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "MA",
+        "NEW_PRODUCT",
+        "PAY_DEBT"
+      ],
+      "rows_true_cols_pred": [
+        [
+          16,
+          4,
+          0
+        ],
+        [
+          1,
+          18,
+          1
+        ],
+        [
+          1,
+          0,
+          19
+        ]
+      ]
+    }
+  },
+  "validation_gate": {
+    "min_test_accuracy": 0.8,
+    "min_class_recall": 0.7,
+    "passed": true
+  },
+  "coefficients_standardized": {
+    "MA": {
+      "revenue_growth_pct": -1.168,
+      "operating_margin_pct": -0.34,
+      "debt_to_ebitda": -1.563,
+      "interest_rate_pct": -0.065,
+      "cash_pct_of_revenue": 1.091,
+      "market_growth_pct": -0.329,
+      "fragmentation_index": 0.879
+    },
+    "NEW_PRODUCT": {
+      "revenue_growth_pct": 1.019,
+      "operating_margin_pct": 0.498,
+      "debt_to_ebitda": -1.098,
+      "interest_rate_pct": -0.691,
+      "cash_pct_of_revenue": -0.4,
+      "market_growth_pct": 0.95,
+      "fragmentation_index": -0.371
+    },
+    "PAY_DEBT": {
+      "revenue_growth_pct": 0.149,
+      "operating_margin_pct": -0.157,
+      "debt_to_ebitda": 2.661,
+      "interest_rate_pct": 0.756,
+      "cash_pct_of_revenue": -0.691,
+      "market_growth_pct": -0.621,
+      "fragmentation_index": -0.508
+    }
+  },
+  "note": "Synthetic teaching dataset. In a real ICFR-style process a named human owner reviews this card and signs the approval."
+}

@@ -1,0 +1,13 @@
+company_id,company_name,sector,revenue_growth_pct,operating_margin_pct,debt_to_ebitda,interest_rate_pct,cash_pct_of_revenue,market_growth_pct,fragmentation_index,p_ma,p_new_product,p_pay_debt,recommended_action,confidence,model_version,scored_at_utc
+N001,NorthPine Holdings,Consumer Products,2.1,11.5,4.2,7.1,8.1,3.2,0.71,0.51,0.05,0.439,MA,0.51,1.0,2026-08-27T23:54:00+00:00
+N002,Veldt Software,Software & SaaS,14.8,21.0,0.5,5.9,23.2,8.3,0.44,0.001,0.999,0.0,NEW_PRODUCT,0.999,1.0,2026-08-27T23:54:00+00:00
+N003,Quarry Industrial,Industrial Equipment,1.2,10.0,5.89,8.4,5.8,2.3,0.46,0.002,0.002,0.996,PAY_DEBT,0.996,1.0,2026-08-27T23:54:00+00:00
+N004,Bristlecone Health,Healthcare Services,4.0,12.5,1.47,5.6,23.6,3.9,0.68,0.974,0.025,0.001,MA,0.974,1.0,2026-08-27T23:54:00+00:00
+N005,Copperline Staffing,Business Services,2.5,13.0,1.15,5.7,25.3,3.2,0.82,0.998,0.001,0.0,MA,0.998,1.0,2026-08-27T23:54:00+00:00
+N006,Aster & Vine Retail,Specialty Retail,0.8,5.5,8.64,8.9,4.1,2.5,0.55,0.0,0.0,1.0,PAY_DEBT,1.0,1.0,2026-08-27T23:54:00+00:00
+N007,Helix Diagnostics,Healthcare Services,9.5,15.0,0.85,5.8,13.3,3.9,0.68,0.286,0.708,0.006,NEW_PRODUCT,0.708,1.0,2026-08-27T23:54:00+00:00
+N008,Foundry Cloudworks,Software & SaaS,11.0,17.5,3.32,7.6,8.5,8.3,0.44,0.001,0.964,0.035,NEW_PRODUCT,0.964,1.0,2026-08-27T23:54:00+00:00
+N009,Meridian Provisions,Consumer Products,1.5,9.0,1.68,5.5,23.9,3.2,0.71,0.997,0.003,0.0,MA,0.997,1.0,2026-08-27T23:54:00+00:00
+N010,Atlas Advisory Group,Business Services,3.0,14.0,1.44,5.6,24.0,3.2,0.82,0.997,0.003,0.0,MA,0.997,1.0,2026-08-27T23:54:00+00:00
+N011,Ridgeway Fabrication,Industrial Equipment,2.0,12.0,3.3,7.2,7.3,2.3,0.46,0.096,0.104,0.801,PAY_DEBT,0.801,1.0,2026-08-27T23:54:00+00:00
+N012,Lumen Home Goods,Consumer Products,5.5,13.5,1.62,6.1,12.5,3.2,0.71,0.805,0.18,0.015,MA,0.805,1.0,2026-08-27T23:54:00+00:00

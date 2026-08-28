@@ -8,7 +8,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { Activity, ArrowRight, BarChart3, Boxes, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -148,6 +148,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Six scenario-driven analyses: which capital move clears its hurdle (M&A, new product, capacity, AI, debt paydown) with a pro-forma WACC, underwrite a customer\'s financials to size a trade-credit line with a security & guarantee ladder and industry backdrop, a treasury & hedging playbook for money market, swaps, and derivatives built into the capital-allocation tab, a market analysis tab — dial ranges, cross-effects, industry & asset trend charts, and the debt cycles — Dalio\'s economic machine (cycles, three equilibriums, two levers, live), a valuation workbench (5-yr DCF with terminal value, EV↔equity bridge, EV/EBITDA comps cross-check, WACC×growth sensitivity grid, three-statement linkage), a formula reference tying every equation to its decision with a full glossary, interview-prep tabs (an EY-style technical gap check, a Q&A drill with model answers, a round-by-round interview map, and a calculator workbench), a bond-market tab (the full H.15 Treasury curve with real yields, breakevens, computed slopes, and the Fed-vs-10Y divergence), and a real-estate financing tab (mortgage = 10Y + spread, payment sensitivity, and the CRE lender dashboard with DSCR stress). Education only; not investment or credit advice.',
     href: '/corporate-finance',
     icon: Briefcase,
+    status: 'live',
+  },
+  {
+    id: 'financial-model',
+    name: 'Financial Model Lab',
+    tagline: 'Learn SQL + Python by building a real ML pipeline: should the next $10M fund a new product line, an acquisition, or pay off debt? Certified data → SQL views → trained/validated/approved model → inference → a mock Power BI report and a traceable-formula Excel workbook, plus scheduling, the finance AI stack (rules → ML → LLM → agent), a manager\'s governance & audit-readiness playbook, and an EY interview lens. Includes a downloadable runnable kit. Education only; not investment advice.',
+    href: '/financial-model',
+    icon: Braces,
     status: 'live',
   },
   {
