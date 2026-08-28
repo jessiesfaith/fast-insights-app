@@ -1,11 +1,11 @@
 # HANDOFF
 
-_Last updated: 2026-06-24_
+_Last updated: 2026-08-28 (remote Claude Code session)_
 
 ## Active request status
-**COMPLETE & handed off (2026-06-24).** Added the **Launch Gantt** module — a self-contained Gantt at `public/gantt/index.html`, opened via a top-right **button** on the Landing (no grid tile), login-gated (`fastinsights`/`fastinsights`, session-only). Live at app.fastinsights.io/gantt (verified 200; button present in the deployed bundle). Working tree clean; nothing mid-flight.
+**COMPLETE & handed off (2026-08-28).** Built and deployed the **Financial Model Lab** — a SQL + Python + ML teaching module at `/financial-model` (10 tabs incl. an interactive what-if sandbox running the exact trained model in-browser, a governance practicum with live completeness/accuracy checks + gated sign-off + downloadable review record, a live drift monitor, an agent layer with runbook/prompt/builder guide, and a per-tab user-guide pane) plus its runnable kit in `financial-model/` (dataset generator → SQLite/SQL → scikit-learn train/validate/inference → drift check; seed 42, all site numbers are the kit's real outputs). Merged to `main` with Jessica's approval across commits `48cc8e2..b9ddd35`; Vercel auto-deploy. The red "in-review" highlighting was approved off (`HIGHLIGHT_NEW = false` in `src/pages/FinancialModelLab.tsx` — reusable toggle for future review batches). **Jessica's plan: work through the module herself next and ask questions "while going through the motions" — expect learner-mode Q&A and small refinements, not new construction.**
 
-## Completed this session
+## Completed prior session (2026-06-24)
 - Answered "is Fast Insights on Supabase?" -> **Yes.** Main app already uses the **"ar-recon"** Supabase project via `@supabase/supabase-js` (read-only AR data load in `src/lib/supabase.ts`). Cashflow Tool has its own Supabase backend (migrations).
 - Established the gap for **email notifications**: there is **no Supabase Auth, no user accounts, no stored user emails** anywhere in the app. Supabase does not send notification email (auth-flow email only). Real notifications need an email provider (Resend/Postmark/SendGrid) called from a Supabase Edge Function or cron/trigger. Three paths scoped: (1) auth emails ~1hr, (2) transactional alerts ~half day, (3) announcements/newsletter via a dedicated service ~30min no-code. Jessica dismissed the "which kind?" question - decision still open.
 - Cleaned up this repo's durable state (these docs were 18 days stale).

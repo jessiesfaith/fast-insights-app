@@ -15,10 +15,12 @@ Use rg/search before opening files. Open only files relevant to the next request
 Run from inside: 01 Projects/Fast Insights/10 Code Repos/AR Tool-Beta
 
 Current objective:
-QUEUED: set up email notifications for users (see ACTIVE_REQUEST.md). Blocked on Jessica picking the notification type (auth emails / transactional alerts / newsletter) and defining who the "users" are. Supabase ("ar-recon") is already set up but there are NO user accounts or stored emails and no email sender yet.
+LIKELY NEXT: Jessica is working through the new **Financial Model Lab** (`/financial-model`, kit in `financial-model/`) as a learner and will ask questions / request refinements "while going through the motions". Support her tab by tab; the module's conventions are documented in CLAUDE.md and agent-state/CHANGE_LOG.md (2026-08-28 entries). If content changes are requested, remember the red-review mechanism: `HIGHLIGHT_NEW` in `src/pages/FinancialModelLab.tsx` renders new sections red until she approves.
+
+STILL QUEUED (older): email notifications for users (see ACTIVE_REQUEST.md) — blocked on Jessica picking the notification type and defining who the "users" are.
 
 Active request status:
-Last session (2026-06-24) was Q&A + agent-state cleanup - complete. No app code change in progress.
+Last session (2026-08-28, remote) shipped the Financial Model Lab end to end — complete, deployed from `main` (`b9ddd35`). No app code change in progress.
 
 Heads-up (current):
 - Working tree is CLEAN. Only untracked items are agent-state/ + CLAUDE.md (durable local memory, not gitignored). The old Landing.tsx/vercel.json WIP edits are long committed.
