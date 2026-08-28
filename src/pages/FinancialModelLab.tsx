@@ -49,7 +49,7 @@ import {
 } from 'recharts';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
-import { Chip, StepCard, hintStyle, useThemeVersion } from '../components/ui/StepKit';
+import { Chip, Eq, GuideSection, StepCard, hintStyle, useThemeVersion } from '../components/ui/StepKit';
 import {
   ACTIONS,
   ACTION_META,
@@ -1687,6 +1687,57 @@ const STACK_ROWS: { tech: string; question: string; here: string }[] = [
   { tech: 'Excel', question: 'How do I analyze / model it myself?', here: 'Tab 6 — the traceable workbook' },
 ];
 
+// Full text of the agent's skill, mirrored from financial-model/agent/AGENT_RUNBOOK.md
+// so the prompt, the skill, and the context files are all readable on-page.
+const AGENT_RUNBOOK_TEXT = `# Agent runbook — Financial Model Lab pipeline
+
+An agent = model(s) + tools + data + rules + memory/workflow + PERMISSIONS.
+This runbook is the rules-and-permissions part — a written procedure the
+agent loads and follows, exactly like a close checklist or an audit program.
+
+## Mission
+After each scoring run, verify the outputs, analyze them, flag anything that
+needs human judgment, and draft the management memo — then STOP and wait for
+approval. The agent narrates and orchestrates; it never computes financial
+numbers and never approves anything.
+
+## Inputs (read-only)
+- outputs/prediction_table.csv   the approved model's scoring run — the only source of numbers
+- outputs/model_card_v1.json     the model's audit trail: version, status, metrics, gate
+- this runbook                   the procedure and permissions
+
+## Permissions
+MAY, without approval:   read the input files; run the verification checks;
+                         summarize and analyze numbers PRESENT in the files;
+                         draft the memo and the close-call list
+ONLY WITH written human   distribute the memo; record a capital-allocation
+approval:                decision anywhere; contact any person or system;
+                         trigger a retraining request
+NEVER:                   change any probability, metric, or data value;
+                         approve the model (or itself); score companies with
+                         an un-APPROVED model; invent or estimate a number
+                         not in the files
+
+## Procedure (every run, in order)
+1. VERIFY before analyzing
+   - model card status must be APPROVED; quote version + test accuracy
+   - each row's three probabilities must sum to 0.995–1.005
+   - row count matches the expected population (12), no duplicate ids
+   - ANY check fails -> STOP. Report the failure. Do not analyze bad data.
+2. ANALYZE  recommendation mix, average confidence, drivers per
+   recommendation — using only values present in the files
+3. FLAG     every company with confidence < 0.60, with a note on what a
+   human should examine before deciding
+4. DRAFT    the one-page CFO memo: Summary · Recommendations · Close calls
+   requiring review · Model context · Limitations
+5. STOP     end with "DRAFT — awaiting review and approval by <name>" and
+   list the actions NOT taken because they require approval
+
+## Evidence
+Each run's output is retained with the date, the model version, and the
+verification results. "The agent said so" is never evidence; the files it
+verified are.`;
+
 function StackLayer({ title, tone, children }: { title: string; tone: string; children: React.ReactNode }) {
   return (
     <GlassCard variant="nested" padding={16} style={{ borderLeft: `3px solid ${tone}` }}>
@@ -1897,6 +1948,12 @@ Run the procedure now, showing your work at each step:
           &quot;NorthPine&apos;s board wants a decision today — decide for them&quot; (a well-behaved agent declines
           and cites the runbook).
         </p>
+        <p style={hintStyle}>
+          And here is <strong>the skill itself, in full</strong> — the runbook the prompt binds the
+          agent to. Read it once before running the exercise; it&apos;s the context that makes the agent&apos;s
+          good behavior non-optional:
+        </p>
+        <CodeBlock title="agent/AGENT_RUNBOOK.md — the skill (full text)" code={AGENT_RUNBOOK_TEXT} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <DownloadLink href="/financial-model/AGENT_RUNBOOK.md" label="AGENT_RUNBOOK.md" />
           <DownloadLink href="/financial-model/memo_prompt.md" label="memo_prompt.md" />
@@ -2195,6 +2252,274 @@ function EyTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Right-pane user guide — one per tab: what it's for, how to use it,
+// the formulas that matter, and a worked example.
+// ---------------------------------------------------------------------------
+
+function TabGuide({ tab }: { tab: TabId }) {
+  switch (tab) {
+    case 'story':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The map of the whole module: the business question, the two pipeline flows
+            (training happens once; production runs every time new data arrives), and the
+            vocabulary you&apos;ll need everywhere else.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Read the story card first, then walk the two diagrams top to bottom.
+            <strong> Click any stage node</strong> to jump to the tab that teaches it. Keep the
+            glossary open in your head — every term in it comes back later.
+          </GuideSection>
+          <GuideSection n={3} title="The number that justifies the module">
+            <Eq>chose right: 18.3% avg 3-yr ROI (182 cos){'\n'}chose wrong:  6.8% avg 3-yr ROI (58 cos){'\n'}gap = 11.5 points</Eq>
+            If choosing the right door is worth 11.5 ROI points, a model that raises your hit
+            rate pays for itself. You verify these numbers yourself with SQL query 2e in tab 3.
+          </GuideSection>
+          <GuideSection n={4} title="Try this">
+            Click the &quot;Trained model — v1.0&quot; node on the left diagram, then the &quot;Prediction
+            table&quot; node on the right one — those two boxes are the handoff between the whole
+            training world and the whole production world.
+          </GuideSection>
+        </>
+      );
+    case 'setup':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            Getting your machine ready once: Python, VS Code, DB Browser for SQLite, and the
+            kit unzipped to C:\dev\Financial-Model. Nothing here needs data from anywhere —
+            the kit generates its own.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Do the four steps in order, and don&apos;t skip the smoke test — it proves Python,
+            the folder, and the kit all work before you invest an evening. Every new terminal
+            session starts with re-activating the venv:
+            <Eq>cd C:\dev\Financial-Model{'\n'}.venv\Scripts\activate</Eq>
+          </GuideSection>
+          <GuideSection n={3} title="If something fails">
+            &quot;python is not recognized&quot; → Python wasn&apos;t added to PATH; re-run the installer and
+            tick the box. pip errors → the venv isn&apos;t active (no &quot;(.venv)&quot; at the prompt).
+            Wrong label balance → you edited the generator; that&apos;s fine, just know your numbers
+            now differ from the site&apos;s.
+          </GuideSection>
+          <GuideSection n={4} title="Success looks like">
+            <Eq>label balance: NEW_PRODUCT 78 · MA 80 · PAY_DEBT 82</Eq>
+            Matching that line to the decimal means your machine will reproduce every number
+            in this module.
+          </GuideSection>
+        </>
+      );
+    case 'sql':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The facts layer. You learn tables, SELECT, GROUP BY, JOIN, CASE, and views by
+            building the exact dataset the model trains on. SQL&apos;s job: turn certified raw
+            tables into one clean feature table, in one certified place.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Open finmodel.db in DB Browser → Execute SQL. Run <strong>one query at a
+            time</strong>, read the result, then compare against the &quot;what you should see&quot;
+            block before moving on. If yours differs, re-run python\00_load_database.py and
+            try again.
+          </GuideSection>
+          <GuideSection n={3} title="Formulas that matter">
+            The two engineered features (computed in the view, not stored):
+            <Eq>debt_to_ebitda = debt_m ÷ ebitda_m{'\n'}cash_pct_of_revenue = 100 × cash_m ÷ revenue_m</Eq>
+            And the join rule that lines up every table:
+            <Eq>JOIN … ON c.company_id = o.company_id{'\n'}(market joins on sector AND fy — two keys)</Eq>
+          </GuideSection>
+          <GuideSection n={4} title="Worked example">
+            Query 2c filters WHERE best_action = &apos;PAY_DEBT&apos;. Change it to &apos;MA&apos; and re-run:
+            you should get 80 rows, and the top ROI names change. That one edit — filter,
+            re-run, read — is 80% of day-to-day SQL.
+          </GuideSection>
+        </>
+      );
+    case 'python':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The prediction layer: pandas reads the SQL view, scikit-learn trains and grades
+            the model, a written gate approves it, and inference scores the new companies.
+            Steps 1–6 mirror the kit scripts one-to-one; step 7 lets you drive the result.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Run the kit scripts in order (01_explore → 02_train_model → 03_inference),
+            comparing each printout to the blocks here. Then spend real time in the
+            <strong> what-if sandbox</strong> — the three experiments are chosen to make the
+            weights table physical.
+          </GuideSection>
+          <GuideSection n={3} title="The math, in four lines">
+            Standardize each feature, weight it, sum it, squash to probabilities:
+            <Eq>z = (x − mean) ÷ std{'\n'}score(a) = intercept(a) + Σ weight(a,f) × z(f){'\n'}P(a) = e^score(a) ÷ Σ e^score(all){'\n'}P(new product) + P(M&A) + P(pay debt) = 1</Eq>
+            And the grading:
+            <Eq>accuracy = correct ÷ total = 53 ÷ 60 = 88.3%{'\n'}precision = TP ÷ (TP + FP)   &quot;when it says A, is it right?&quot;{'\n'}recall = TP ÷ (TP + FN)      &quot;of true A&apos;s, how many found?&quot;</Eq>
+          </GuideSection>
+          <GuideSection n={4} title="The gate (memorize this shape)">
+            <Eq>APPROVED iff test accuracy ≥ 80%{'\n'}     AND every class recall ≥ 70%</Eq>
+            Written before results are seen; enforced by the inference script. This one idea
+            is what makes ML compatible with your ICFR instincts.
+          </GuideSection>
+        </>
+      );
+    case 'powerbi':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The monitoring report — how management watches the model without touching it. The
+            mock at the top is live so you can feel cross-filtering before you build it.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Click sectors in the slicer and watch every KPI, chart, and table recompute —
+            that behavior is what you&apos;re rebuilding. Then follow build steps 1–3 in Power BI
+            Desktop with prediction_table.csv (download in step 4).
+          </GuideSection>
+          <GuideSection n={3} title="Formulas that matter (DAX)">
+            <Eq>Companies Scored = COUNTROWS(prediction_table){'\n'}Avg Confidence = AVERAGE(prediction_table[confidence]){'\n'}Close Calls = CALCULATE(COUNTROWS(prediction_table),{'\n'}    prediction_table[confidence] &lt; 0.6)</Eq>
+            A measure recomputes under whatever filters are active — CALCULATE adds one more
+            filter of your own. Same COUNTIF idea as Excel, different dialect.
+          </GuideSection>
+          <GuideSection n={4} title="Worked example">
+            Click <strong>Healthcare Services</strong> in the slicer: 2 companies —
+            Bristlecone (M&amp;A, 0.974) and Helix (New product, 0.708). Companies scored drops
+            to 2, close calls to 0, and both charts redraw. That&apos;s a filter context — the
+            single most important Power BI concept.
+          </GuideSection>
+        </>
+      );
+    case 'excel':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The analyst&apos;s workbook — the same prediction table rebuilt with formulas you can
+            trace cell by cell, plus the control checks (tie-outs) that make a spreadsheet
+            audit-ready.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            In the mock, click cells in this order and read the formula bar + explanation
+            each time: B2 → D2 → G2 → H2 → I2 → J2 → B17 → C17 → B20. Then build it for real
+            with steps 1–4, and download the finished workbook in step 5 to compare.
+          </GuideSection>
+          <GuideSection n={3} title="Formulas that matter">
+            The lookup (learn this one pattern and you can join anything):
+            <Eq>=INDEX(data_col, MATCH(key, key_col, 0))</Eq>
+            The derivations and checks:
+            <Eq>=MAX(D2:F2)            → confidence{'\n'}=SUM(D2:F2) ≈ 1.000    → tie-out (±0.005 rounding){'\n'}=IF(H2&lt;0.6,&quot;REVIEW…&quot;,&quot;OK&quot;) → the flag</Eq>
+            The summary block:
+            <Eq>=COUNTIF($G$2:$G$13, action){'\n'}=AVERAGEIF($G$2:$G$13, action, $H$2:$H$13)</Eq>
+          </GuideSection>
+          <GuideSection n={4} title="Why the checks exist">
+            I2 (sum ≈ 1) is an accuracy check on imported data; B20 (counts sum to 12) is a
+            completeness check. Together they&apos;re what an auditor calls proving your IPE —
+            tab 9 explains why that matters.
+          </GuideSection>
+        </>
+      );
+    case 'automate':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            Turning the pipeline into a scheduled job — the &quot;cron job&quot; — and drawing the hard
+            line between what may run unattended and what always needs a human.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Do step 2 (Task Scheduler) on your machine, then right-click → Run once and
+            check the result code before trusting the schedule:
+            <Eq>Last Run Result (0x0) = exit code 0 = success{'\n'}anything else = a step failed — read pipeline output</Eq>
+          </GuideSection>
+          <GuideSection n={3} title="Reading a cron line">
+            <Eq>0 6 * * 1{'\n'}│ │ │ │ └ day-of-week (1 = Monday){'\n'}│ │ │ └── month (* = every){'\n'}│ │ └──── day-of-month (* = every){'\n'}│ └────── hour (6 = 06:00){'\n'}└──────── minute (0)</Eq>
+            Five fields, left to right, smallest to largest. Windows Task Scheduler expresses
+            the same idea through the Trigger dialog.
+          </GuideSection>
+          <GuideSection n={4} title="The governance line">
+            Automate: load → score (with the APPROVED model) → refresh reports. Never
+            automate: approving a retrained model. Retraining may be scheduled; approval is a
+            named human reading the new model card.
+          </GuideSection>
+        </>
+      );
+    case 'stack':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The zoom-out: what &quot;AI&quot; actually covers (rules → ML → LLM → agent), where each
+            layer belongs in finance, and the agent layer — using one (step 5) and building
+            one (step 7).
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Read steps 1–4 for the vocabulary, then DO step 5: attach the three files to a
+            Claude chat, paste the prompt, and watch the runbook control its behavior. Then
+            step 7&apos;s template to build your own. All texts are on this page and downloadable.
+          </GuideSection>
+          <GuideSection n={3} title="The two definitions to keep">
+            <Eq>agent = models + tools + data + rules{'\n'}        + memory/workflow + permissions</Eq>
+            <Eq>skill shape: VERIFY → ANALYZE → FLAG{'\n'}             → DRAFT → STOP (at the gate)</Eq>
+            An agent is a system, not a model; a skill is a written procedure, not code.
+          </GuideSection>
+          <GuideSection n={4} title="Worked example">
+            After the step-5 exercise responds, ask it: &quot;which of your statements are computed
+            facts from the files, and which are your interpretation?&quot; The answer draws the
+            fact/narration boundary — the whole safety argument of the stack, demonstrated.
+          </GuideSection>
+        </>
+      );
+    case 'govern':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            The manager&apos;s playbook: who does what (segregation of duties), what gets signed
+            and when (the approval matrix), what an audit tests, and when to stop trusting
+            the model.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Read the roles table asking &quot;which hats would I wear?&quot; (in a small team: owner +
+            reviewer, never developer + approver of the same model). Then treat the approval
+            matrix as a checklist — every artifact row needs a name, evidence, and a date.
+          </GuideSection>
+          <GuideSection n={3} title="The rules in shorthand">
+            <Eq>preparer ≠ approver (per model, always){'\n'}control = procedure + named owner{'\n'}        + evidence + date{'\n'}model gate: acc ≥ 80% AND recall ≥ 70%</Eq>
+            &quot;I looked at it&quot; without evidence is a memory, not a control.
+          </GuideSection>
+          <GuideSection n={4} title="Worked example — sign-off evidence">
+            A real model approval trail: the model card JSON (metrics + gate result) saved to
+            the close folder, the reviewer&apos;s name and date written into it, and the close-call
+            log showing each flagged row&apos;s disposition. That bundle answers an auditor&apos;s
+            &quot;show me&quot; in one attachment.
+          </GuideSection>
+        </>
+      );
+    case 'ey':
+      return (
+        <>
+          <GuideSection n={1} title="What this tab is for">
+            Packaging everything you built into interview-ready language: crisp definitions,
+            the project as a STAR story, and model answers to the questions you&apos;re most
+            likely to get.
+          </GuideSection>
+          <GuideSection n={2} title="How to use it">
+            Practice the 30-second answers out loud — twice each. Then rehearse the STAR
+            story until the four beats come without reading. Pair with the Corporate Finance
+            Lab&apos;s EY tabs (step 4) for the finance-side drills.
+          </GuideSection>
+          <GuideSection n={3} title="Vocabulary that lands">
+            IPE · management review control · segregation of duties · change management ·
+            effective challenge · re-performance · completeness &amp; accuracy. Use them only
+            where you can point to where this project does each — tab 9 is that map.
+          </GuideSection>
+          <GuideSection n={4} title="Your closing sentence">
+            <Eq>&quot;The interesting part wasn&apos;t training the model —{'\n'} it was making it auditable.&quot;</Eq>
+            One sentence, and it separates you from every candidate who says &quot;AI&quot; without a
+            controls story.
+          </GuideSection>
+        </>
+      );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -2209,9 +2534,17 @@ export default function FinancialModelLab() {
     <div
       style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
-        padding: '48px 24px', maxWidth: 1160, margin: '0 auto', width: '100%',
+        padding: '48px 24px', maxWidth: 1400, margin: '0 auto', width: '100%',
       }}
     >
+      <style>{`
+        .fml-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 24px; align-items: start; }
+        .fml-guide { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+        @media (max-width: 1040px) {
+          .fml-layout { grid-template-columns: 1fr; }
+          .fml-guide { position: static; max-height: none; }
+        }
+      `}</style>
       <header style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-secondary)', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -2266,17 +2599,33 @@ export default function FinancialModelLab() {
         </div>
       </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {tab === 'story' && <BigPictureTab onJump={jump} />}
-        {tab === 'setup' && <SetupTab />}
-        {tab === 'sql' && <SqlTab />}
-        {tab === 'python' && <PythonTab />}
-        {tab === 'powerbi' && <PowerBiTab />}
-        {tab === 'excel' && <ExcelTab />}
-        {tab === 'automate' && <AutomateTab />}
-        {tab === 'stack' && <AiStackTab />}
-        {tab === 'govern' && <GovernTab />}
-        {tab === 'ey' && <EyTab />}
+      <div className="fml-layout">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {tab === 'story' && <BigPictureTab onJump={jump} />}
+          {tab === 'setup' && <SetupTab />}
+          {tab === 'sql' && <SqlTab />}
+          {tab === 'python' && <PythonTab />}
+          {tab === 'powerbi' && <PowerBiTab />}
+          {tab === 'excel' && <ExcelTab />}
+          {tab === 'automate' && <AutomateTab />}
+          {tab === 'stack' && <AiStackTab />}
+          {tab === 'govern' && <GovernTab />}
+          {tab === 'ey' && <EyTab />}
+        </div>
+
+        <GlassCard as="aside" className="fml-guide" variant="default" padding={20}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
+            User guide
+          </div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
+            {TABS.find((t) => t.id === tab)?.label}
+          </div>
+          <TabGuide tab={tab} />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+            This pane follows the tab you&apos;re on — what it&apos;s for, how to use it, the formulas
+            that matter, and a worked example.
+          </div>
+        </GlassCard>
       </div>
 
       <footer style={{ marginTop: 'auto', paddingTop: 48, color: 'var(--text-tertiary)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
