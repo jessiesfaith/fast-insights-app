@@ -57,6 +57,7 @@ import {
   CHOSE_RIGHT,
   CLOSE_CALL_THRESHOLD,
   FEATURES,
+  FeatureId,
   LABEL_BALANCE,
   MODEL_CARD,
   PREDICTIONS,
@@ -65,6 +66,7 @@ import {
   buildExcelReportSpec,
   downloadFinancialModelWorkbook,
   predictionKpis,
+  scoreCompany,
 } from '../lib/financialModel';
 
 // ---------------------------------------------------------------------------
@@ -873,6 +875,156 @@ function CoefficientTable() {
   );
 }
 
+const SANDBOX_RANGES: Record<FeatureId, { min: number; max: number; step: number; dec: number }> = {
+  revenue_growth_pct: { min: -12, max: 22, step: 0.1, dec: 1 },
+  operating_margin_pct: { min: 2, max: 35, step: 0.1, dec: 1 },
+  debt_to_ebitda: { min: 0, max: 12, step: 0.05, dec: 2 },
+  interest_rate_pct: { min: 2.5, max: 12, step: 0.05, dec: 2 },
+  cash_pct_of_revenue: { min: 2, max: 28, step: 0.1, dec: 1 },
+  market_growth_pct: { min: -4, max: 11, step: 0.1, dec: 1 },
+  fragmentation_index: { min: 0.15, max: 0.9, step: 0.01, dec: 2 },
+};
+
+function WhatIfSandbox() {
+  const dark = useDarkTheme();
+  const [presetId, setPresetId] = useState('N001');
+  const [edited, setEdited] = useState(false);
+  const [features, setFeatures] = useState<Record<FeatureId, number>>({ ...PREDICTIONS[0].features });
+  const result = useMemo(() => scoreCompany(features), [features]);
+
+  const loadPreset = (id: string) => {
+    const row = PREDICTIONS.find((r) => r.companyId === id);
+    if (!row) return;
+    setPresetId(id);
+    setEdited(false);
+    setFeatures({ ...row.features });
+  };
+  const setFeature = (f: FeatureId, v: number) => {
+    setFeatures((prev) => ({ ...prev, [f]: v }));
+    setEdited(true);
+  };
+
+  const presetName = PREDICTIONS.find((r) => r.companyId === presetId)?.companyName ?? '';
+  const drivers = FEATURES
+    .map((f) => ({ f, v: result.contributions[result.recommended][f.id] }))
+    .sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  const closeCall = result.confidence < CLOSE_CALL_THRESHOLD;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <label htmlFor="fml-preset" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700 }}>
+          Start from
+        </label>
+        <select
+          id="fml-preset"
+          value={presetId}
+          onChange={(e) => loadPreset(e.target.value)}
+          style={{
+            ...mono, fontSize: 12.5, padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+            color: 'var(--text-primary)', background: 'var(--bg-elevated-2)', border: '1px solid var(--border-strong)',
+          }}
+        >
+          {PREDICTIONS.map((r) => (
+            <option key={r.companyId} value={r.companyId}>{r.companyId} — {r.companyName}</option>
+          ))}
+        </select>
+        {edited && (
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--severity-medium)' }}>
+            edited — your scenario, no longer {presetName}
+          </span>
+        )}
+        {edited && (
+          <Chip active={false} onClick={() => loadPreset(presetId)}>Reset to {presetId}</Chip>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 20, alignItems: 'start' }}>
+        {/* the 7 inputs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {FEATURES.map((f) => {
+            const r = SANDBOX_RANGES[f.id];
+            return (
+              <div key={f.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 2 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{f.label}</span>
+                  <span style={{ ...mono, fontSize: 12.5, color: 'var(--accent)', fontWeight: 700 }}>
+                    {features[f.id].toFixed(r.dec)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={r.min}
+                  max={r.max}
+                  step={r.step}
+                  value={features[f.id]}
+                  onChange={(e) => setFeature(f.id, Number(e.target.value))}
+                  aria-label={f.label}
+                  style={{ width: '100%', accentColor: 'var(--accent)' }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* live model output */}
+        <GlassCard variant="nested" padding={16}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+            Model v{MODEL_CARD.version} says — live
+          </div>
+          {ACTIONS.map((a) => {
+            const pct = result.p[a] * 100;
+            const winner = a === result.recommended;
+            return (
+              <div key={a} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: winner ? 700 : 500, color: winner ? actionColor(a, dark) : 'var(--text-secondary)' }}>
+                    {ACTION_META[a].label}
+                  </span>
+                  <span style={{ ...mono, fontSize: 12.5, fontWeight: winner ? 700 : 500, color: winner ? actionColor(a, dark) : 'var(--text-secondary)' }}>
+                    {pct.toFixed(1)}%
+                  </span>
+                </div>
+                <div style={{ height: 10, borderRadius: 6, background: 'var(--bg-elevated-2)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: actionColor(a, dark), transition: 'width .18s ease' }} />
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, margin: '12px 0' }}>
+            <ActionPill action={result.recommended} />
+            <span style={{ ...mono, fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              confidence {result.confidence.toFixed(3)}
+            </span>
+            {closeCall && (
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--severity-medium)' }}>
+                ⚠ close call — route to a human
+              </span>
+            )}
+          </div>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+              Why — feature pushes for {ACTION_META[result.recommended].short}
+            </div>
+            {drivers.map(({ f, v }) => (
+              <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, lineHeight: 1.8 }}>
+                <span style={{ color: 'var(--text-secondary)' }}>{f.label}</span>
+                <span style={{ ...mono, fontWeight: Math.abs(v) >= 0.8 ? 700 : 500, color: v > 0 ? 'var(--pos)' : 'var(--neg)' }}>
+                  {v > 0 ? '+' : ''}{v.toFixed(2)}
+                </span>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>
+              Each number is that feature&apos;s weight × its standardized value — the model&apos;s
+              &quot;vote math&quot; before the softmax turns it into probabilities.
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+    </div>
+  );
+}
+
 function PythonTab() {
   return (
     <>
@@ -979,6 +1131,23 @@ Wrote outputs/prediction_table.csv and table 'predictions' in finmodel.db`}
           </strong> between M&amp;A and paying debt. That&apos;s not a failure; that&apos;s the model being honest.
           The reports in the next two tabs are built to surface exactly that.
         </p>
+      </StepCard>
+
+      <StepCard n={7} icon={<Brain size={18} />} title="Drive the model yourself — the what-if sandbox">
+        <p style={hintStyle}>
+          This is <strong>the exact approved model v1.0</strong> — the same 21 weights, scaler, and
+          softmax from the pickle — re-implemented in your browser (tested to reproduce{' '}
+          <span style={mono}>predict_proba</span> on all 12 companies). Pick a company, drag its
+          numbers, and watch the three probabilities re-balance in real time. This is the fastest way
+          to build probability intuition: the model never says &quot;M&amp;A&quot;, it says &quot;51% M&amp;A / 44% pay
+          debt&quot;, and your job as the human is deciding what to do with that shape.
+        </p>
+        <WhatIfSandbox />
+        <ul style={{ ...hintStyle, paddingLeft: 18, marginTop: 14, marginBottom: 0 }}>
+          <li><strong>Experiment 1 — leverage takes over:</strong> start from N012 (Lumen, an 80% M&amp;A call) and drag Debt/EBITDA from 1.62 up past 6. Watch Pay debt eat both growth options — the +2.66 weight from step 4, live.</li>
+          <li><strong>Experiment 2 — resolve NorthPine:</strong> start from N001 (the 51% coin-flip). Nudge interest rate up 1 point → Pay debt wins; nudge fragmentation up instead → M&amp;A pulls away. Close calls are close because two stories are simultaneously plausible.</li>
+          <li><strong>Experiment 3 — build vs. buy:</strong> start from N002 (Veldt, 99.9% new product) and drag revenue growth down to −5 with cash up to 26. The model flips toward M&amp;A: companies that can&apos;t grow themselves buy growth.</li>
+        </ul>
       </StepCard>
     </>
   );

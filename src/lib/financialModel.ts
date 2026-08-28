@@ -225,6 +225,67 @@ export function predictionKpis(rows: PredictionRow[] = PREDICTIONS): PredictionK
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 // ---------------------------------------------------------------------------
+// In-browser inference — the exact model v1.0, as 45 numbers
+// ---------------------------------------------------------------------------
+//
+// Extracted from outputs/model_v1.pkl: the StandardScaler statistics (fit on
+// the 180 training rows) and the multinomial LogisticRegression weights and
+// intercepts. scoreCompany() reproduces sklearn's predict_proba — verified in
+// tests against every baked prediction row — so the what-if sandbox on the
+// page runs the same approved model, not an approximation.
+
+/** Feature order the model was trained with (matches FEATURES order). */
+const FEATURE_ORDER: FeatureId[] = FEATURES.map((f) => f.id);
+
+export const MODEL_PARAMS = {
+  classes: ['MA', 'NEW_PRODUCT', 'PAY_DEBT'] as ActionId[],
+  means: [3.91333333, 12.19166667, 4.27666667, 6.434, 15.09833333, 3.84666667, 0.50083333],
+  scales: [5.16636988, 5.93839555, 3.31385827, 1.95013606, 7.57475687, 2.67694685, 0.11171827],
+  intercepts: [-0.35986933, -0.31128256, 0.67115189],
+  coefs: [
+    [-1.16818565, -0.3401682, -1.5625655, -0.065434, 1.09101645, -0.32886929, 0.87921003],
+    [1.01932057, 0.49752965, -1.09818875, -0.69087026, -0.40001336, 0.94999685, -0.37144181],
+    [0.14886509, -0.15736145, 2.66075425, 0.75630426, -0.69100309, -0.62112756, -0.50776823],
+  ],
+};
+
+export interface ScoreResult {
+  p: Record<ActionId, number>;
+  recommended: ActionId;
+  confidence: number;
+  /** Per-action logit contribution of each feature (weight × standardized value). */
+  contributions: Record<ActionId, Record<FeatureId, number>>;
+}
+
+/** Standardize → weighted sums → softmax: logistic regression by hand. */
+export function scoreCompany(features: Record<FeatureId, number>): ScoreResult {
+  const { classes, means, scales, intercepts, coefs } = MODEL_PARAMS;
+  const z = FEATURE_ORDER.map((f, i) => (features[f] - means[i]) / scales[i]);
+
+  const contributions = {} as Record<ActionId, Record<FeatureId, number>>;
+  const logits = classes.map((cls, c) => {
+    contributions[cls] = {} as Record<FeatureId, number>;
+    let logit = intercepts[c];
+    FEATURE_ORDER.forEach((f, i) => {
+      const contrib = coefs[c][i] * z[i];
+      contributions[cls][f] = contrib;
+      logit += contrib;
+    });
+    return logit;
+  });
+
+  // Softmax with the max subtracted for numeric stability.
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const total = exps.reduce((s, e) => s + e, 0);
+
+  const p = {} as Record<ActionId, number>;
+  classes.forEach((cls, c) => { p[cls] = exps[c] / total; });
+  const recommended = classes.reduce((best, cls) => (p[cls] > p[best] ? cls : best), classes[0]);
+  return { p, recommended, confidence: p[recommended], contributions };
+}
+
+// ---------------------------------------------------------------------------
 // Excel report spec — one definition for the on-page mock AND the .xlsx
 // ---------------------------------------------------------------------------
 //

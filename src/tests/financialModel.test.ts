@@ -14,6 +14,7 @@ import {
   buildExcelReportSpec,
   buildFinancialModelWorkbook,
   predictionKpis,
+  scoreCompany,
   WORKBOOK_SHEET_NAMES,
 } from '../lib/financialModel';
 
@@ -114,6 +115,33 @@ describe('excel report spec (shared by the mock grid and the workbook)', () => {
     const totalRow = spec.rows[summaryStart + ACTIONS.length];
     expect(totalRow[1].v).toBe(12);
     expect(totalRow[2].v).toBe(k.avgConfidence);
+  });
+});
+
+describe('in-browser model (scoreCompany)', () => {
+  it('reproduces sklearn predict_proba on every baked prediction row', () => {
+    for (const r of PREDICTIONS) {
+      const s = scoreCompany(r.features);
+      expect(s.recommended).toBe(r.recommended);
+      for (const a of ACTIONS) {
+        // baked probabilities are rounded to 3 decimals
+        expect(Math.abs(s.p[a] - r.p[a])).toBeLessThanOrEqual(0.0015);
+      }
+      const sum = ACTIONS.reduce((acc, a) => acc + s.p[a], 0);
+      expect(sum).toBeCloseTo(1, 9);
+    }
+  });
+
+  it('responds to features in the taught direction (leverage → pay debt)', () => {
+    const base = { ...PREDICTIONS[11].features }; // N012 Lumen, an M&A call
+    const low = scoreCompany(base);
+    const high = scoreCompany({ ...base, debt_to_ebitda: 6.5 });
+    expect(low.recommended).toBe('MA');
+    expect(high.recommended).toBe('PAY_DEBT');
+    expect(high.p.PAY_DEBT).toBeGreaterThan(low.p.PAY_DEBT);
+    // contributions: the leverage push toward PAY_DEBT grows with leverage
+    expect(high.contributions.PAY_DEBT.debt_to_ebitda)
+      .toBeGreaterThan(low.contributions.PAY_DEBT.debt_to_ebitda);
   });
 });
 
