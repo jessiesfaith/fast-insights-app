@@ -91,6 +91,11 @@ export const parseISO = (s: string): Date | null => {
 export const fmtDate = (d: Date): string =>
   `${MONTHS[d.getMonth()]} ${d.getDate()}, ${String(d.getFullYear()).slice(2)}`;
 
+/** Local-calendar YYYY-MM-DD. Never use toISOString() for calendar dates —
+ *  it converts to UTC and shifts the day for anyone east of Greenwich. */
+export const isoLocal = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 /** Add months, clamping to the last day when the target month is shorter
  *  (Jan 31 + 1 month → Feb 28). */
 export function addMonths(date: Date, n: number): Date {
@@ -147,7 +152,9 @@ export function scheduleFor(inv: RevenueLine): LineSchedule {
     const spread = rows.reduce((s, r) => s + r.amount, 0);
     rows[rows.length - 1].amount = round2(rows[rows.length - 1].amount + (total - spread));
   }
-  return { rows, start, end: new Date(end.getTime() - DAY), totalDays };
+  // Last day of service = the calendar day before the exclusive end. Computed
+  // in calendar space, not by subtracting 24h, so DST transitions can't shift it.
+  return { rows, start, end: new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1), totalDays };
 }
 
 /** One pass builds every schedule, the month columns, the tax-basis view, and
@@ -189,8 +196,22 @@ export function buildModel(invoices: RevenueLine[]): ScheduleModel {
   return { schedules, keys, totals, chart, cash, compare };
 }
 
+/** True only for a well-formed YYYY-MM-DD naming a real calendar day —
+ *  rejects rollover dates like 2026-02-31 that Date() silently normalizes. */
+export function isValidISODate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+const MAX_AMOUNT = 99_999_999.99;
+const MAX_QTY = 1_000_000;
+
 /** Validate and clamp a raw extracted/entered line before it touches state —
- *  never trust model output raw. */
+ *  never trust model output raw. Strings are length-capped and numbers
+ *  range-clamped so prompt-injected extraction output can't plant absurd
+ *  figures or oversized text. */
 export function normalizeLine(
   r: Partial<RevenueLine> & Record<string, unknown>,
   source: string,
@@ -198,14 +219,18 @@ export function normalizeLine(
   fallbackDate: string
 ): RevenueLine {
   const isSubscription = !!r.isSubscription;
+  const rawAmount = Number(r.amount) || 0;
+  const rawQty = Number(r.quantity) || 1;
   return {
     id,
-    source,
-    invoiceNumber: String(r.invoiceNumber ?? '').trim(),
-    invoiceDate: /^\d{4}-\d{2}-\d{2}$/.test(String(r.invoiceDate ?? '')) ? String(r.invoiceDate) : fallbackDate,
-    productName: String(r.productName ?? 'Unnamed line').trim() || 'Unnamed line',
-    quantity: Number(r.quantity) || 1,
-    amount: round2(Number(r.amount) || 0),
+    source: source.slice(0, 120),
+    invoiceNumber: String(r.invoiceNumber ?? '').trim().slice(0, 60),
+    invoiceDate: isValidISODate(String(r.invoiceDate ?? '')) ? String(r.invoiceDate) : fallbackDate,
+    // Falsy → the named fallback; whitespace-only trims to '' so the editable
+    // field shows its placeholder (matches the approved prototype).
+    productName: String(r.productName || 'Unnamed line').trim().slice(0, 300),
+    quantity: Math.min(MAX_QTY, Math.max(0, rawQty)) || 1,
+    amount: round2(Math.sign(rawAmount) * Math.min(MAX_AMOUNT, Math.abs(rawAmount))),
     isSubscription,
     termMonths: Math.min(24, Math.max(1, Number(r.termMonths) || (isSubscription ? 12 : 1))),
   };

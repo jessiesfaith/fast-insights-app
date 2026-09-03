@@ -10,6 +10,8 @@ import {
   addMonths,
   buildModel,
   DEMO_LINES,
+  isoLocal,
+  isValidISODate,
   monthKey,
   normalizeLine,
   scheduleFor,
@@ -160,6 +162,46 @@ describe('normalizeLine — clamps untrusted extraction output', () => {
     expect(n.amount).toBe(11);
     expect(n.quantity).toBe(1);
     expect(n.termMonths).toBe(1);
+  });
+});
+
+describe('date validity and local formatting', () => {
+  it('rejects calendar-rollover dates like Feb 31 that Date() silently normalizes', () => {
+    expect(isValidISODate('2026-02-31')).toBe(false);
+    expect(isValidISODate('2026-13-01')).toBe(false);
+    expect(isValidISODate('2026-02-28')).toBe(true);
+    expect(isValidISODate('2028-02-29')).toBe(true); // leap day
+    expect(isValidISODate('2026-02-29')).toBe(false); // not a leap year
+    const n = normalizeLine({ invoiceDate: '2026-02-31', isSubscription: true }, 'f', 'd1', '2026-09-03');
+    expect(n.invoiceDate).toBe('2026-09-03');
+  });
+
+  it('isoLocal formats the local calendar day (no UTC shift)', () => {
+    expect(isoLocal(new Date(2026, 0, 5))).toBe('2026-01-05');
+    expect(isoLocal(new Date(2026, 11, 31))).toBe('2026-12-31');
+  });
+
+  it('service end date is the local calendar day before the exclusive end', () => {
+    const s = scheduleFor(line({ invoiceDate: '2026-01-15', termMonths: 12 }));
+    expect(s.end && isoLocal(s.end)).toBe('2027-01-14');
+  });
+});
+
+describe('normalizeLine — string and amount clamps', () => {
+  it('keeps whitespace-only names empty (placeholder shows) but names missing ones', () => {
+    const a = normalizeLine({ productName: '   ', isSubscription: true }, 'f', 'p1', '2026-09-03');
+    expect(a.productName).toBe('');
+    const b = normalizeLine({ isSubscription: true }, 'f', 'p2', '2026-09-03');
+    expect(b.productName).toBe('Unnamed line');
+  });
+
+  it('caps absurd extracted amounts and string lengths, preserving sign', () => {
+    const big = normalizeLine({ amount: 1e12, isSubscription: true }, 'f', 'c1', '2026-09-03');
+    expect(big.amount).toBe(99_999_999.99);
+    const neg = normalizeLine({ amount: -1e12, isSubscription: true }, 'f', 'c2', '2026-09-03');
+    expect(neg.amount).toBe(-99_999_999.99);
+    const longName = normalizeLine({ productName: 'x'.repeat(5000), isSubscription: true }, 'f', 'c3', '2026-09-03');
+    expect(longName.productName.length).toBe(300);
   });
 });
 

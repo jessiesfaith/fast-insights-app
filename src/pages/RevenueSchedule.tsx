@@ -19,7 +19,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import {
-  buildModel, DEMO_LINES, fmtDate, monthKey, monthLabel, normalizeLine,
+  buildModel, DEMO_LINES, fmtDate, isoLocal, monthKey, monthLabel, normalizeLine,
   parseISO, usd, usdShort, RevenueLine,
 } from '../lib/revenueSchedule';
 
@@ -35,35 +35,34 @@ const MUTED = '#5F6B63';
 const serif: CSSProperties = { fontFamily: "Georgia, 'Iowan Old Style', serif" };
 const num: CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum'" };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => isoLocal(new Date());
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-/* ── extraction ─────────────────────────────────────────── */
-const EXTRACT_PROMPT = `You are reading a customer invoice. Extract every billable line item.
+/* ── extraction (the prompt lives server-side in api/extract.js) ── */
 
-Return ONLY a JSON array. No prose, no markdown fences. Each element:
-{"invoiceNumber":string,"invoiceDate":"YYYY-MM-DD","productName":string,"quantity":number,"amount":number,"isSubscription":boolean,"termMonths":number}
+// Vercel serverless functions cap request bodies at ~4.5MB; base64 inflates a
+// PDF by ~33%, so anything over ~3.3MB raw can't reach the reader at all.
+const MAX_PDF_BYTES = 3_300_000;
 
-Rules:
-- amount is the extended line total in dollars, digits only (no currency symbols or commas).
-- invoiceDate is the invoice issue date, repeated on every line from the same invoice.
-- isSubscription is true when the line is a recurring/term service: subscription, license, SaaS, maintenance, support plan, retainer, hosting, annual/monthly plan.
-- termMonths: use the term stated on the invoice if there is one. Otherwise 12 for a subscription line and 1 for a one-time line.
-- Skip subtotals, tax, shipping, and discounts as separate lines.
-- If a field is genuinely absent, use "" for text, 0 for numbers.`;
-
-type ContentBlock = Record<string, unknown>;
-
-async function callExtract(content: ContentBlock[]): Promise<Array<Record<string, unknown>>> {
+async function callExtract(payload: { kind: 'pdf'; data: string } | { kind: 'sheet'; text: string }): Promise<Array<Record<string, unknown>>> {
   const res = await fetch('/api/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(payload),
   });
   if (res.status === 503) {
     throw new Error('Invoice reading is not configured on this deployment yet (missing API key).');
   }
-  if (!res.ok) throw new Error(`Reader returned ${res.status}.`);
+  if (res.status === 404 || res.status === 405) {
+    throw new Error('Invoice reading is only available on the deployed site, not in local dev.');
+  }
+  if (res.status === 413) {
+    throw new Error('That file is too large for the reader (about 3MB max for PDFs).');
+  }
+  if (!res.ok) {
+    const err: { error?: string } = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Reader returned ${res.status}.`);
+  }
   const data: { text?: string } = await res.json();
   const clean = String(data.text ?? '').replace(/```json/g, '').replace(/```/g, '').trim();
   const a = clean.indexOf('[');
@@ -94,14 +93,24 @@ async function sheetToText(file: File): Promise<string> {
 async function extractFrom(file: File): Promise<Array<Record<string, unknown>>> {
   const ext = (file.name.split('.').pop() ?? '').toLowerCase();
   if (ext === 'pdf') {
+    if (file.size > MAX_PDF_BYTES) {
+      throw new Error('That PDF is over the ~3MB reading limit — try a smaller export of it.');
+    }
     const b64 = await toBase64(file);
-    return callExtract([
-      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
-      { type: 'text', text: EXTRACT_PROMPT },
-    ]);
+    return callExtract({ kind: 'pdf', data: b64 });
   }
   const text = await sheetToText(file);
-  return callExtract([{ type: 'text', text: `${EXTRACT_PROMPT}\n\nInvoice data:\n${text}` }]);
+  return callExtract({ kind: 'sheet', text });
+}
+
+/* ── CSV cell hygiene ───────────────────────────────────── */
+// Quote every text field (extracted invoice numbers/products can contain
+// commas or quotes), and neutralize leading formula characters so a malicious
+// invoice can't plant an executable =/+/-/@ formula in the exported CSV.
+function csvCell(value: string): string {
+  let s = String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
 }
 
 /* ── shared style fragments ─────────────────────────────── */
@@ -182,13 +191,13 @@ export default function RevenueSchedule() {
     const body = schedules.map(({ inv, rows, end }) => {
       const byKey = new Map(rows.map((r) => [r.key, r.amount]));
       return [
-        inv.invoiceNumber, `"${inv.productName.replace(/"/g, "'")}"`,
-        inv.invoiceDate, end ? end.toISOString().slice(0, 10) : '',
+        csvCell(inv.invoiceNumber), csvCell(inv.productName),
+        inv.invoiceDate, end ? isoLocal(end) : '',
         inv.termMonths, inv.amount,
         ...keys.map((k) => byKey.get(k) ?? ''),
       ].join(',');
     });
-    const footer = ['Total', '', '', '', '', billed, ...keys.map((k) => totals.get(k) ?? 0)].join(',');
+    const footer = ['Total', '', '', '', '', Math.round(billed * 100) / 100, ...keys.map((k) => totals.get(k) ?? 0)].join(',');
     const csv = [header.join(','), ...body, footer].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a');
@@ -210,7 +219,10 @@ export default function RevenueSchedule() {
           }}
         >
           <div>
-            <h1 style={{ ...serif, fontSize: 34, lineHeight: 1.1, letterSpacing: '-0.01em', margin: 0, fontWeight: 400 }}>
+            {/* color set explicitly: the app-wide h1/h2 rule paints headings
+                near-white in the default dark theme, and this page commits to
+                its light paper look in both themes */}
+            <h1 style={{ ...serif, fontSize: 34, lineHeight: 1.1, letterSpacing: '-0.01em', margin: 0, fontWeight: 400, color: INK }}>
               Subscription revenue schedule
             </h1>
             <p style={{ marginTop: 8, marginBottom: 0, fontSize: 14, maxWidth: 448, color: MUTED }}>
@@ -630,7 +642,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
           gap: 8, paddingBottom: 12, borderBottom: `1px solid ${RULE}`,
         }}
       >
-        <h2 style={{ ...serif, fontSize: 21, margin: 0, fontWeight: 400 }}>{title}</h2>
+        <h2 style={{ ...serif, fontSize: 21, margin: 0, fontWeight: 400, color: INK }}>{title}</h2>
         {note && <p style={{ fontSize: 12, color: MUTED, margin: 0 }}>{note}</p>}
       </div>
       <div style={{ paddingTop: 16 }}>{children}</div>
