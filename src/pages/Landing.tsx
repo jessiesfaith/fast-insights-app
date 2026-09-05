@@ -8,7 +8,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarClock, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -156,6 +156,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Learn SQL + Python by building a real ML pipeline: should the next $10M fund a new product line, an acquisition, or pay off debt? Certified data → SQL views → trained/validated/approved model → inference → a mock Power BI report and a traceable-formula Excel workbook, plus scheduling, the finance AI stack (rules → ML → LLM → agent), a manager\'s governance & audit-readiness playbook, and an EY interview lens. Includes a downloadable runnable kit. Education only; not investment advice.',
     href: '/financial-model',
     icon: Braces,
+    status: 'live',
+  },
+  {
+    id: 'revenue-schedule',
+    name: 'Revenue Schedule',
+    tagline: 'Invoice-to-amortization schedules — upload invoices, spread subscription revenue across service months with daily proration, and see accrual vs. tax with the deferred revenue balance. Session only; nothing is stored.',
+    href: '/revenue-schedule',
+    icon: CalendarClock,
     status: 'live',
   },
   {
