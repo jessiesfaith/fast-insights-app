@@ -293,7 +293,7 @@ export default function PulseBot() {
               </div>
             )}
             {record && savedTo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: MUTED }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 11, color: MUTED }}>
                 {savedTo === 'cloud' ? '✓ Sent to the Fast Insights team.' : 'Saved on this device — nothing left your browser.'}
                 <button
                   onClick={() => downloadPulseRecord(record)}
@@ -301,6 +301,9 @@ export default function PulseBot() {
                 >
                   <Download size={11} /> Download
                 </button>
+                {savedTo === 'local' && (
+                  <a href="/pulse-inbox" style={{ color: '#7FD4A8', fontSize: 11 }}>View inbox →</a>
+                )}
               </div>
             )}
           </div>

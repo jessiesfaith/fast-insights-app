@@ -24,6 +24,7 @@ import CorporateFinanceLab from './pages/CorporateFinanceLab';
 import FinancialModelLab from './pages/FinancialModelLab';
 import RevenueSchedule from './pages/RevenueSchedule';
 import PulseBot from './components/PulseBot';
+import PulseInbox from './pages/PulseInbox';
 
 export default function App() {
   return (
@@ -35,6 +36,9 @@ export default function App() {
         <Route path="/corporate-finance" element={<CorporateFinanceLab />} />
         <Route path="/financial-model" element={<FinancialModelLab />} />
         <Route path="/revenue-schedule" element={<RevenueSchedule />} />
+        {/* Owner/demo view of collected Pulse feedback (device-local until
+            Supabase is configured). Deliberately not on the Landing grid. */}
+        <Route path="/pulse-inbox" element={<PulseInbox />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {/* Pulse — floating feedback survey + suggestion widget, on every page.

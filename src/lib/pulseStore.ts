@@ -86,3 +86,34 @@ export function downloadPulseRecord(record: PulseRecord): void {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** All survey records archived on this device (newest first) — the demo-mode
+ *  inbox reads these until the Supabase table exists. */
+export function getLocalPulseRecords(): PulseRecord[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    const arr: PulseRecord[] = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? [...arr].reverse() : [];
+  } catch {
+    return [];
+  }
+}
+
+export function clearLocalPulseRecords(): void {
+  try {
+    localStorage.removeItem(LOCAL_KEY);
+  } catch {
+    /* nothing to clear */
+  }
+}
+
+export function downloadAllPulseRecords(records: PulseRecord[]): void {
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' }),
+  );
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fast-insights-pulse-inbox.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
