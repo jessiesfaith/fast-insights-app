@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "api/extract.js": { "maxDuration": 60 },
+    "api/assist.js": { "maxDuration": 60 }
+  },
   "redirects": [
     { "source": "/cashflow", "destination": "/cashflow/", "permanent": false },
     { "source": "/revrec", "destination": "/revrec/", "permanent": false },

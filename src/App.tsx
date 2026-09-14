@@ -23,6 +23,7 @@ import MarketScenarios from './pages/MarketScenarios';
 import CorporateFinanceLab from './pages/CorporateFinanceLab';
 import FinancialModelLab from './pages/FinancialModelLab';
 import RevenueSchedule from './pages/RevenueSchedule';
+import PulseBot from './components/PulseBot';
 
 export default function App() {
   return (
@@ -36,6 +37,9 @@ export default function App() {
         <Route path="/revenue-schedule" element={<RevenueSchedule />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      {/* Pulse — floating feedback survey + suggestion widget, on every page.
+          Completed surveys land in Supabase pulse_feedback (local fallback). */}
+      <PulseBot />
       {/* Privacy-first, cookieless page analytics (Vercel Web Analytics). Enable it in the
           Vercel project dashboard (Analytics tab) for data to start flowing. */}
       <Analytics />
