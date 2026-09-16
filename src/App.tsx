@@ -8,6 +8,8 @@
 //                        credit underwriting · treasury & hedging playbook)
 //   /financial-model   → Financial Model Lab (learn SQL + Python by building an
 //                        ML capital-allocation pipeline, with BI/Excel reports)
+//   /arr-and-churn     → ARR and Churn (ARR, net retention and churn for a
+//                        subscription business and a donor-funded nonprofit)
 //   *                  → redirect to landing
 //
 // Future tools (Revenue Recognition, Cashflow) will mount here as additional
@@ -20,6 +22,7 @@ import ARTool from './pages/ARTool';
 import MarketScenarios from './pages/MarketScenarios';
 import CorporateFinanceLab from './pages/CorporateFinanceLab';
 import FinancialModelLab from './pages/FinancialModelLab';
+import ArrAndChurn from './pages/ArrAndChurn';
 
 export default function App() {
   return (
@@ -30,6 +33,7 @@ export default function App() {
         <Route path="/market-scenarios" element={<MarketScenarios />} />
         <Route path="/corporate-finance" element={<CorporateFinanceLab />} />
         <Route path="/financial-model" element={<FinancialModelLab />} />
+        <Route path="/arr-and-churn" element={<ArrAndChurn />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {/* Privacy-first, cookieless page analytics (Vercel Web Analytics). Enable it in the

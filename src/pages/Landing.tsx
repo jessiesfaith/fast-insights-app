@@ -8,7 +8,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Repeat, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -43,6 +43,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'ASC 606 schedules, deferred revenue waterfalls, and rev-rec close support.',
     href: '/revrec',
     icon: TrendingUp,
+    status: 'live',
+  },
+  {
+    id: 'arr-and-churn',
+    name: 'ARR and Churn',
+    tagline: 'ARR, net retention and churn for a subscription business and a donor-funded nonprofit, side by side.',
+    href: '/arr-and-churn',
+    icon: Repeat,
     status: 'live',
   },
   {
