@@ -6,11 +6,15 @@
   "description": "AR Tool-Beta — modern glassmorphic AR reconciliation dashboard, single-file build.",
   "scripts": {
     "dev": "vite",
+    "dev:fast": "vite --no-open",
     "build": "tsc -b && vite build",
-    "build:single": "cross-env SINGLE_FILE=1 tsc -b && cross-env SINGLE_FILE=1 vite build",
+    "build:single": "tsc -b && vite build --mode single",
     "preview": "vite preview",
+    "typecheck": "tsc -b",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:changed": "vitest run --changed",
+    "clean": "node -e \"for (const p of ['dist','tsconfig.tsbuildinfo','tsconfig.node.tsbuildinfo','node_modules/.vite']) require('fs').rmSync(p, { recursive: true, force: true })\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",

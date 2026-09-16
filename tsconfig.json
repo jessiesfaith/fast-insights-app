@@ -10,6 +10,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    // `tsc -b` needs this alongside `noEmit`: without it the build thinks it
+    // must emit src/App.js, never finds it, and re-checks every file on every
+    // run. With it, an unchanged tree is a no-op instead of a full typecheck.
+    "incremental": true,
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
