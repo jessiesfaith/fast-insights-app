@@ -30,6 +30,12 @@ Generic workflow rules live in `~/.claude/CLAUDE.md` (they apply to every repo).
   in `financial-model/` (Python + SQL, seed 42); the numbers baked into the lib/page are that kit's
   real outputs. If the kit changes: re-run `python run_pipeline.py`, refresh the constants in
   `src/lib/financialModel.ts`, and re-zip `public/financial-model/financial-model-kit.zip`.
+- **Economic Cycles (added 2026-10-12, in review on branch `claude/pensive-galileo-2rrmlt`):** reference
+  module at `/economic-cycles` (`src/pages/EconomicCycles.tsx` + `src/lib/businessCycle.ts`). Tab 1 rebuilds
+  the "U.S. Business Cycle Indicators: Leading, Coincident and Lagging" graphic as a live chart from the
+  `INDICATORS` snapshot (dated Sept 2026 — refresh before relying on it). Tab 2 is a CPA/TCP diagram gallery
+  driven by `REFERENCE_IMAGES` in the page; files live in `public/economic-cycles/`. To add a diagram: drop
+  the file there and add an entry (entries flagged `pending: true` render a "not uploaded yet" placeholder).
 - **Typecheck:** `tsc -b` (no standalone script; also the first half of `npm run build`).
 - **Lint:** none configured. TS `strict` + `noUnusedLocals`/`noUnusedParameters` are the gate.
 - **Deploy:** `git push origin main` -> Vercel auto-deploys (GitHub integration).

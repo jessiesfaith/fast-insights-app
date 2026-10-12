@@ -21,6 +21,7 @@ _Last updated: 2026-08-28 (Financial Model Lab merged to `main` at `99fe45a` wit
 - `vercel.json` - SPA rewrites + per-tool proxies + a `/gantt → /gantt/` redirect.
 - `public/gantt/index.html` - **bundled static Launch Gantt** (self-contained; canonical source for the `/gantt` tool — edit here + push to update).
 - `src/pages/FinancialModelLab.tsx` + `src/lib/financialModel.ts` - **Financial Model Lab** teaching module at `/financial-model` (SQL + Python + ML on a capital-allocation decision; 10 tabs incl. mock Power BI, traceable Excel, governance, EY lens). Runnable kit in `financial-model/`; downloads served from `public/financial-model/`.
+- `src/pages/EconomicCycles.tsx` + `src/lib/businessCycle.ts` - **Economic Cycles** module at `/economic-cycles` (business-cycle indicator chart + CPA/TCP diagram gallery; images in `public/economic-cycles/`). In review on branch `claude/pensive-galileo-2rrmlt` as of 2026-10-12.
 - `index.html` - sets theme pre-paint (defaults dark); `vite.config.ts` (config) + generated `vite.config.js`/`.d.ts` (gitignored).
 
 ## Commands

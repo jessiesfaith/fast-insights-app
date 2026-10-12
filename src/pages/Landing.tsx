@@ -8,7 +8,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { track } from '@vercel/analytics';
-import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Boxes, Braces, Briefcase, Building2, Calculator, CalendarRange, Check, ClipboardCheck, Copy, Factory, FileText, KeyRound, Landmark, LineChart, PieChart, Scale, Sparkles, TrendingUp, Truck, Wallet } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -156,6 +156,14 @@ const TOOLS: ToolEntry[] = [
     tagline: 'Learn SQL + Python by building a real ML pipeline: should the next $10M fund a new product line, an acquisition, or pay off debt? Certified data → SQL views → trained/validated/approved model → inference → a mock Power BI report and a traceable-formula Excel workbook, plus scheduling, the finance AI stack (rules → ML → LLM → agent), a manager\'s governance & audit-readiness playbook, and an EY interview lens. Includes a downloadable runnable kit. Education only; not investment advice.',
     href: '/financial-model',
     icon: Braces,
+    status: 'live',
+  },
+  {
+    id: 'economic-cycles',
+    name: 'Economic Cycles',
+    tagline: 'Where the U.S. economy is in the business cycle, read three ways: leading, coincident and lagging indicators placed on the cycle curve with the latest readings, breadth counts, and a table view — plus a CPA tax reference tab (partnership vs. S-corp debt basis, property contributions & distributions across all entities, and end-to-end entity workflows). Education only; not investment or tax advice.',
+    href: '/economic-cycles',
+    icon: LineChart,
     status: 'live',
   },
   {

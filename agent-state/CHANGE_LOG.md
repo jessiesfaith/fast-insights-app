@@ -2,6 +2,13 @@
 
 Newest first. Keep entries to a few bullets - no long logs.
 
+## 2026-10-12 - Add Economic Cycles module at /economic-cycles (review draft) [branch claude/pensive-galileo-2rrmlt]
+- **Files:** new `src/lib/businessCycle.ts` (indicator snapshot + cycle-curve geometry + breadth read), `src/pages/EconomicCycles.tsx` (2 tabs), `src/tests/businessCycle.test.ts` (13 tests), route in `src/App.tsx`, card in `src/pages/Landing.tsx`, images in `public/economic-cycles/`.
+- **Tab 1:** the Leading / Coincident / Lagging business-cycle graphic rebuilt as a native SVG chart (light/dark, hover detail, per-panel table view, breadth tiles, legend, sources, collapsible source image for side-by-side review). Source LEI arrow corrected to ▲ (rising LEI is the better direction).
+- **Tab 2:** CPA/TCP reference gallery with lightbox: debt-basis master grid, partnership vs S-corp liabilities, property contribution/distribution (all entities), partnership end-to-end workflow. S-corp workflow, C-corp workflow and the all-entities IRC grid are wired as placeholders — their files did not arrive in the session; add them to `public/economic-cycles/` under the names shown on the placeholder cards.
+- **Verified:** `tsc -b` clean; vitest 392/392 across 33 files; `vite build` green; both tabs + lightbox + hover + table + phone width screenshotted in light and dark via Playwright against the built preview.
+- **Not deployed:** pushed to the feature branch only, for Jessica's review before merging to `main`.
+
 ## 2026-08-28 - Add Financial Model Lab at /financial-model (SQL + Python + ML teaching module) [branch claude/financial-model-ml-training-f38a8q]
 - **Files:** new `financial-model/` runnable learning kit (seeded dataset generator; SQLite DDL + 4 SQL step scripts; scikit-learn explore/train-validate-approve/inference scripts; `run_pipeline.py` + `.bat` orchestrator; README); new `src/lib/financialModel.ts` (real pipeline outputs baked in + shared Excel report spec + xlsx-js-style workbook builder), `src/pages/FinancialModelLab.tsx` (10 tabs: big picture, setup, SQL, Python/ML, mock Power BI, traceable Excel, automation, AI stack, governance & audit, EY interview lens), `src/tests/financialModel.test.ts` (11 tests); route in `src/App.tsx`; card in `src/pages/Landing.tsx`; downloads in `public/financial-model/` (kit zip + prediction_table.csv + model_card_v1.json).
 - **Model:** multinomial logistic regression on 240 synthetic certified capital-allocation decisions (new product / M&A / pay debt), seed 42 → 88.3% test accuracy, written validation gate APPROVED; 12 fiscal-2025 companies scored (N001 NorthPine is a deliberate 51% close call).
