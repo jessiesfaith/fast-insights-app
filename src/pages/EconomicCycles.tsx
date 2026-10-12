@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   BookOpen,
+  FileCheck2,
   ExternalLink,
   ImageOff,
   Maximize2,
@@ -37,16 +38,25 @@ import {
   cycleHeight,
   indicatorsFor,
 } from '../lib/businessCycle';
+import {
+  DEBT_BASIS_GRID,
+  GridCell,
+  SCORP_CORRECTIONS,
+  SCORP_EXAMPLE,
+  fmtAmt,
+  sCorpWorkflow,
+} from '../lib/entityTaxReference';
 
 // ---------------------------------------------------------------------------
 // Tabs
 // ---------------------------------------------------------------------------
 
-type TabId = 'cycle' | 'reference';
+type TabId = 'cycle' | 'reference' | 'digital';
 
 const TABS: { id: TabId; label: string; icon: typeof Activity }[] = [
   { id: 'cycle', label: '1 · Business cycle indicators', icon: Activity },
   { id: 'reference', label: '2 · CPA tax reference', icon: BookOpen },
+  { id: 'digital', label: '3 · Digital rebuild (corrected)', icon: FileCheck2 },
 ];
 
 const mono: CSSProperties = { fontFamily: 'var(--font-mono)' };
@@ -487,7 +497,6 @@ const REFERENCE_IMAGES: RefImage[] = [
     title: 'S-Corporation end-to-end workflow (swimlane diagram)',
     caption: 'Contribution (§351, §362) → operations (§1366, §1367) → nonliquidating distribution (§311(b), §1368) → liquidation (§331, §336) → Forms 1120-S / 1040, with stock basis tracked across the swimlanes.',
     src: '/economic-cycles/scorp-end-to-end-workflow.webp',
-    pending: true,
   },
   {
     id: 'ccorp-workflow',
@@ -495,7 +504,6 @@ const REFERENCE_IMAGES: RefImage[] = [
     title: 'C-Corporation end-to-end workflow — 80% shareholder example',
     caption: 'Formation (§351, §362, §358) → operations (§11, §312, §316) → nonliquidating distribution (§301, §311, §316) → liquidation (§331, §336, §337) → shareholder basis, E&P and Forms 1120 / 1099-DIV / 1040.',
     src: '/economic-cycles/ccorp-end-to-end-workflow.webp',
-    pending: true,
   },
   {
     id: 'tcp-all-entities',
@@ -503,7 +511,6 @@ const REFERENCE_IMAGES: RefImage[] = [
     title: 'CPA TCP: all business entities — IRC rules + easy math',
     caption: 'One grid for partnership, S-corp and C-corp across contribution, operations & gain character, debt & loss limitations, nonliquidating distribution, sale/liquidation and tax forms, plus the asset-specific sections (§1231, §1245, §1250, §751).',
     src: '/economic-cycles/cpa-tcp-all-entities-irc-rules.webp',
-    pending: true,
   },
 ];
 
@@ -677,6 +684,337 @@ function ReferenceTab() {
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// Tab 3 — digital rebuild of two reference diagrams (data-driven, corrected)
+// ---------------------------------------------------------------------------
+
+const VERDICT_TONE: Record<GridCell['verdict'], { color: string; label: string }> = {
+  yes: { color: 'var(--pos)', label: 'Yes' },
+  no: { color: 'var(--neg)', label: 'No' },
+  conditional: { color: 'var(--severity-medium)', label: 'Conditional' },
+  note: { color: 'var(--text-tertiary)', label: '' },
+};
+
+function VerdictCell({ cell }: { cell: GridCell }) {
+  const t = VERDICT_TONE[cell.verdict];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {t.label && (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: t.color }}>
+          <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, background: t.color }} />
+          {t.label}
+        </span>
+      )}
+      {cell.text && <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45 }}>{cell.text}</span>}
+    </div>
+  );
+}
+
+function DebtBasisGrid() {
+  return (
+    <GlassCard variant="default" padding={0} style={{ overflow: 'hidden' }}>
+      <div style={{ padding: '16px 18px 10px' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Debt &amp; basis master comparison grid</h3>
+        <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '6px 0 0' }}>
+          &ldquo;Basis&rdquo; means partnership outside basis or S-corp shareholder stock/debt basis. The partnership
+          column assumes the liability is allocated as described. A partnership liability can increase outside basis
+          without satisfying the separate at-risk limitation, and a guarantee&apos;s treatment depends on its actual
+          enforceability and economic substance.
+        </p>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+          <thead>
+            <tr>
+              {['#', 'Debt / liability fact pattern', 'Partnership basis §752', 'S-Corp shareholder basis §1366(d)', 'At-risk §465'].map((h) => (
+                <th key={h} style={{ ...thStyle, whiteSpace: 'normal', background: 'var(--bg-elevated-2)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {DEBT_BASIS_GRID.map((r) => (
+              <tr key={r.n}>
+                <td style={{ ...tdStyle, ...mono, verticalAlign: 'top', color: 'var(--text-muted)' }}>{r.n}</td>
+                <td style={{ ...tdStyle, whiteSpace: 'normal', verticalAlign: 'top', fontWeight: 600, color: 'var(--text-primary)', minWidth: 180 }}>{r.pattern}</td>
+                <td style={{ ...tdStyle, whiteSpace: 'normal', verticalAlign: 'top' }}><VerdictCell cell={r.partnership} /></td>
+                <td style={{ ...tdStyle, whiteSpace: 'normal', verticalAlign: 'top' }}><VerdictCell cell={r.sCorp} /></td>
+                <td style={{ ...tdStyle, whiteSpace: 'normal', verticalAlign: 'top' }}><VerdictCell cell={r.atRisk} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </GlassCard>
+  );
+}
+
+interface LaneCell {
+  code: string;
+  title: string;
+  rows?: { label: string; value: string; strong?: boolean; tone?: 'pos' | 'neg' }[];
+  notes?: string[];
+  /** Index into SCORP_CORRECTIONS when this cell corrects the image. */
+  corrected?: boolean;
+}
+
+function SwimCell({ cell }: { cell: LaneCell }) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${cell.corrected ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 10,
+        background: 'var(--bg-elevated-2)', padding: '10px 12px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ ...mono, fontSize: 10.5, fontWeight: 700, color: 'var(--accent)' }}>{cell.code}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{cell.title}</span>
+        {cell.corrected && (
+          <span title="This cell corrects the source image" style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 5, padding: '1px 5px' }}>
+            CORRECTED
+          </span>
+        )}
+      </div>
+      {cell.rows && (
+        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <tbody>
+            {cell.rows.map((r) => (
+              <tr key={r.label}>
+                <td style={{ fontSize: 11.5, color: r.strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: r.strong ? 700 : 400, padding: '2px 6px 2px 0', borderBottom: '1px solid var(--border)', lineHeight: 1.35 }}>{r.label}</td>
+                <td style={{ ...mono, fontSize: 11.5, textAlign: 'right', whiteSpace: 'nowrap', padding: '2px 0', borderBottom: '1px solid var(--border)', fontWeight: r.strong ? 700 : 500, color: r.tone === 'pos' ? 'var(--pos)' : r.tone === 'neg' ? 'var(--neg)' : 'var(--text-primary)' }}>{r.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {cell.notes && (
+        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+          {cell.notes.map((n) => <li key={n}>{n}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SCorpSwimlane() {
+  const w = useMemo(() => sCorpWorkflow(SCORP_EXAMPLE), []);
+  const a = w.a;
+  const pct = `${(a.ownership * 100).toFixed(0)}%`;
+  const stages = [
+    { n: 1, title: 'Contribution', refs: '§351, §358, §362' },
+    { n: 2, title: 'Operations & income', refs: '§1366, §1367' },
+    { n: 3, title: 'Nonliquidating distribution', refs: '§311(b), §1368' },
+    { n: 4, title: 'Liquidation', refs: '§331, §336' },
+    { n: 5, title: 'Tax return', refs: 'Forms 1120-S, K-1, 1040' },
+  ];
+  const lanes: { title: string; sub: string; cells: LaneCell[] }[] = [
+    {
+      title: 'S-Corp', sub: 'entity level',
+      cells: [
+        { code: '1A', title: 'Receive property', rows: [
+          { label: `Asset received: ${a.contribution.asset}`, value: '' },
+          { label: 'Tax basis (carryover, §362)', value: fmtAmt(a.contribution.basis) },
+          { label: 'FMV', value: fmtAmt(a.contribution.fmv) },
+          { label: 'Gain recognised (§351 control ≥ 80%)', value: fmtAmt(w.contributionGain), strong: true },
+        ] },
+        { code: '2A', title: 'Operate the business', rows: [
+          { label: 'Ordinary income', value: fmtAmt(a.operations.ordinaryIncome) },
+          { label: 'Depreciation', value: fmtAmt(-a.operations.depreciation) },
+          { label: 'Other deductions', value: fmtAmt(-a.operations.otherDeductions) },
+          { label: 'Net income (passes through)', value: fmtAmt(w.netIncome), strong: true },
+        ], notes: ['No entity-level tax (S-corp).'] },
+        { code: '3A', title: 'Distribute appreciated property', rows: [
+          { label: `Asset distributed: ${a.distribution.asset}`, value: '' },
+          { label: 'FMV', value: fmtAmt(a.distribution.fmv) },
+          { label: 'Tax basis', value: fmtAmt(a.distribution.basis) },
+          { label: 'Entity gain recognised (§311(b))', value: fmtAmt(w.entityGainOnDistribution), strong: true },
+        ], notes: ['Treated as if sold at FMV; gain passes through to shareholders (§1366) and is separately stated on K-1.'] },
+        { code: '4A', title: 'Liquidate (§336)', rows: [
+          { label: 'Remaining asset: cash', value: fmtAmt(a.liquidation.cash) },
+          { label: 'Tax basis', value: fmtAmt(a.liquidation.cash) },
+          { label: 'Entity gain', value: fmtAmt(w.entityGainOnLiquidation), strong: true },
+        ], notes: ['No entity-level tax; the corporation terminates.'] },
+        { code: '5A', title: 'File Form 1120-S (final)', notes: [
+          `Ordinary business income ${fmtAmt(w.netIncome)} and the separately stated §311(b) gain ${fmtAmt(w.entityGainOnDistribution)}.`,
+          'Schedule K-1 to each shareholder; mark the final return.',
+        ] },
+      ],
+    },
+    {
+      title: 'Shareholder', sub: `${pct} owner`,
+      cells: [
+        { code: '1B', title: 'Contribute property', rows: [
+          { label: 'Basis in stock received (§358)', value: fmtAmt(w.initialStockBasis), strong: true },
+          { label: 'Gain to shareholder', value: fmtAmt(w.contributionGain) },
+        ], notes: [`Owns ${pct} of the stock.`] },
+        { code: '2B', title: 'Receive K-1 allocations', rows: [
+          { label: `Share of net income (${pct} × ${fmtAmt(w.netIncome)})`, value: fmtAmt(w.incomeShare), strong: true },
+        ], notes: ['Reported on Form 1040 (Schedule E, from K-1 box 1); increases stock basis.'] },
+        { code: '3B', title: 'Receive the property', corrected: true, rows: [
+          { label: `Share of §311(b) gain (${pct} × ${fmtAmt(w.entityGainOnDistribution)})`, value: fmtAmt(w.gainShare), tone: 'neg' },
+          { label: 'Distribution amount (FMV of property)', value: fmtAmt(w.distributionAmount) },
+          { label: 'Gain on the distribution itself (excess over basis)', value: fmtAmt(w.distributionGain), strong: true },
+          { label: `Basis in ${a.distribution.asset.toLowerCase()} received (FMV)`, value: fmtAmt(w.shareholderBasisInProperty) },
+        ], notes: ['The pass-through gain is taxable now; the distribution is tax-free only to the extent of stock basis, and the excess (if any) is capital gain (§1368(b)(2)).'] },
+        { code: '4B', title: 'Receive liquidating distribution', corrected: true, rows: [
+          { label: `Cash received (${pct} × ${fmtAmt(a.liquidation.cash)})`, value: fmtAmt(w.liquidationCash) },
+          { label: 'Stock basis before', value: fmtAmt(w.steps[3].basis) },
+          { label: 'Capital gain recognised (§331)', value: fmtAmt(w.liquidationGain), strong: true, tone: 'neg' },
+        ] },
+        { code: '5B', title: 'File Form 1040', notes: [
+          `Ordinary income ${fmtAmt(w.incomeShare)} (Schedule E).`,
+          `Capital gain from the property distribution ${fmtAmt(w.gainShare + w.distributionGain)} and from liquidation ${fmtAmt(w.liquidationGain)} (Schedule D / Form 8949).`,
+          'Capital gains taxed at 0% / 15% / 20% depending on income.',
+        ] },
+      ],
+    },
+    {
+      title: 'Basis tracking', sub: 'stock basis',
+      cells: [
+        { code: '1C', title: 'Initial stock basis', rows: [
+          { label: 'Basis in contributed property', value: fmtAmt(w.initialStockBasis) },
+          { label: 'Stock basis', value: fmtAmt(w.steps[0].basis), strong: true },
+        ] },
+        { code: '2C', title: 'Increase for income', rows: [
+          { label: 'Beginning basis', value: fmtAmt(w.steps[0].basis) },
+          { label: '+ Share of income', value: fmtAmt(w.incomeShare) },
+          { label: 'Ending basis', value: fmtAmt(w.steps[1].basis), strong: true },
+        ] },
+        { code: '3C', title: 'Gain first, then the distribution', corrected: true, rows: [
+          { label: 'Beginning basis', value: fmtAmt(w.steps[1].basis) },
+          { label: '+ Share of §311(b) gain', value: fmtAmt(w.gainShare) },
+          { label: '= Basis before distribution', value: fmtAmt(w.steps[2].basis) },
+          { label: '− Distribution (FMV, limited to basis)', value: fmtAmt(w.steps[3].applied) },
+          { label: 'Ending basis (never below zero)', value: fmtAmt(w.steps[3].basis), strong: true },
+        ], notes: ['Ordering: increases for income/gain first, then distributions (Reg. §1.1367-1(f)).'] },
+        { code: '4C', title: 'Final basis at liquidation', corrected: true, rows: [
+          { label: 'Beginning basis', value: fmtAmt(w.steps[3].basis) },
+          { label: '− Cash received (limited to basis)', value: fmtAmt(w.steps[4].applied) },
+          { label: 'Excess = capital gain', value: fmtAmt(w.liquidationGain) },
+          { label: 'Ending basis', value: fmtAmt(w.finalBasis), strong: true },
+        ] },
+        { code: '5C', title: 'Stock basis summary', rows: [
+          { label: 'Initial basis', value: fmtAmt(w.initialStockBasis) },
+          { label: '+ Share of income', value: fmtAmt(w.incomeShare) },
+          { label: '+ Share of §311(b) gain', value: fmtAmt(w.gainShare) },
+          { label: '− Property distribution', value: fmtAmt(w.steps[3].applied) },
+          { label: '− Liquidating cash', value: fmtAmt(w.steps[4].applied) },
+          { label: 'Ending basis', value: fmtAmt(w.finalBasis) },
+          { label: 'Total capital gains recognised', value: fmtAmt(w.totalCapitalGain), strong: true, tone: 'neg' },
+        ] },
+      ],
+    },
+    {
+      title: 'Tax reporting', sub: 'forms & items',
+      cells: [
+        { code: '1D', title: 'No immediate reporting', notes: ['No gain on the §351 contribution.', 'No K-1 item.', 'Keep records of the property\'s basis and FMV.'] },
+        { code: '2D', title: 'Annual reporting', notes: ['Form 1120-S: ordinary income, deductions, credits.', `K-1 to the shareholder; Form 1040 reports ${fmtAmt(w.incomeShare)} ordinary income.`] },
+        { code: '3D', title: 'Reporting the distribution', notes: [
+          `Form 1120-S: ${fmtAmt(w.entityGainOnDistribution)} §311(b) gain, separately stated.`,
+          `K-1: shareholder\'s share ${fmtAmt(w.gainShare)} (capital / §1231 character follows the asset).`,
+          'Shareholder reports it on Schedule D / Form 8949.',
+        ] },
+        { code: '4D', title: 'Final return', notes: [
+          'Form 1120-S final return; issue final K-1s.',
+          `Shareholder reports the §331 liquidation gain ${fmtAmt(w.liquidationGain)} on Schedule D / Form 8949.`,
+        ] },
+        { code: '5D', title: 'Key forms & K-1 items', rows: [
+          { label: 'Form 1120-S', value: 'entity return' },
+          { label: 'Schedule K-1', value: 'ordinary · cap. gains' },
+          { label: 'Form 1040', value: 'Sch. E · Sch. D' },
+          { label: 'Form 8949 / Sch. D', value: 'capital gains' },
+        ] },
+      ],
+    },
+  ];
+
+  return (
+    <GlassCard variant="default" padding={0} style={{ overflow: 'hidden' }}>
+      <div style={{ padding: '16px 18px 12px', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ maxWidth: 640 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>S-corporation end-to-end workflow — {pct} shareholder example</h3>
+          <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '6px 0 0' }}>
+            Contribution → operations → nonliquidating property distribution → liquidation → tax return. Every number
+            below is computed from the assumptions on the right by <span style={mono}>sCorpWorkflow()</span>, with stock
+            basis rolled forward under the §1367 ordering rules and floored at zero. Cells marked{' '}
+            <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 5, padding: '1px 5px' }}>CORRECTED</span>{' '}
+            differ from the source image — see the list underneath.
+          </p>
+        </div>
+        <GlassCard variant="nested" padding={12} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, minWidth: 260 }}>
+          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>Example assumptions</div>
+          <div>Shareholder owns <strong>{pct}</strong>.</div>
+          <div>Contributes {a.contribution.asset.toLowerCase()} with basis <span style={mono}>{fmtAmt(a.contribution.basis)}</span> and FMV <span style={mono}>{fmtAmt(a.contribution.fmv)}</span>.</div>
+          <div>Entity earns net income <span style={mono}>{fmtAmt(w.netIncome)}</span>.</div>
+          <div>Later distributes the {a.distribution.asset.toLowerCase()} (FMV <span style={mono}>{fmtAmt(a.distribution.fmv)}</span>) to this shareholder, then liquidates with cash <span style={mono}>{fmtAmt(a.liquidation.cash)}</span>.</div>
+        </GlassCard>
+      </div>
+
+      <div style={{ overflowX: 'auto', padding: '0 18px 18px' }}>
+        <div style={{ minWidth: 1100 }}>
+          <div className="econ-swim-head">
+            <div />
+            {stages.map((s) => (
+              <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
+                <span className="center" style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--accent)', color: 'var(--accent-contrast)', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{s.n}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{s.title}</div>
+                  <div style={{ ...mono, fontSize: 10, color: 'var(--text-tertiary)' }}>{s.refs}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {lanes.map((lane) => (
+            <div key={lane.title} className="econ-swim-row">
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated-2)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lane.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{lane.sub}</div>
+              </div>
+              {lane.cells.map((c) => <SwimCell key={c.code} cell={c} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)', padding: '14px 18px 18px' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
+          Corrections vs. the source image
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+          {SCORP_CORRECTIONS.map((c) => (
+            <GlassCard key={c.cell} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{c.cell}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--neg)', marginTop: 4, lineHeight: 1.45 }}><strong>Image:</strong> {c.image}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.45 }}><strong style={{ color: 'var(--pos)' }}>Correct:</strong> {c.correct}</div>
+              <div style={{ ...mono, fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 6 }}>{c.ref}</div>
+            </GlassCard>
+          ))}
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
+function DigitalTab() {
+  return (
+    <>
+      <GlassCard variant="default" padding={20}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Digital rebuild — the reference diagrams as data, corrected</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0', maxWidth: 860 }}>
+          The diagrams on tab 2 are AI-generated images: dense and useful, but they cannot be edited where they are
+          wrong, they ignore light/dark mode, and nothing in them is searchable or testable. This tab rebuilds two of
+          them as data in the app itself. The comparison grid becomes a real table; the S-corp workflow becomes a
+          swimlane whose numbers are <strong>computed from the assumptions</strong> and checked by unit tests, with
+          each correction to the image called out. If this format works, the remaining diagrams follow the same
+          pattern. Study material only; not tax advice.
+        </p>
+      </GlassCard>
+      <DebtBasisGrid />
+      <SCorpSwimlane />
+    </>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -695,6 +1033,7 @@ export default function EconomicCycles() {
         .econ-panel { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 0; align-items: stretch; }
         .econ-rail { padding: 18px 16px; border-right: 1px solid var(--border); background: var(--bg-elevated-2); }
         .econ-footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .econ-swim-head, .econ-swim-row { display: grid; grid-template-columns: 120px repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; align-items: stretch; }
         @media (max-width: 900px) {
           .econ-panel { grid-template-columns: 1fr; }
           .econ-rail { border-right: none; border-bottom: 1px solid var(--border); }
@@ -720,7 +1059,7 @@ export default function EconomicCycles() {
           Where the U.S. economy is in the business cycle, read three ways: <strong>leading</strong> indicators that
           turn first, <strong>coincident</strong> indicators that move with it, and <strong>lagging</strong> indicators
           that confirm it. A second tab holds CPA tax reference diagrams (entity basis, contributions, distributions
-          and end-to-end workflows). <strong>Education only; not investment, accounting, or tax advice.</strong>
+          and end-to-end workflows), and a third rebuilds them as corrected, data-driven pages. <strong>Education only; not investment, accounting, or tax advice.</strong>
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
           {TABS.map((t) => {
@@ -753,6 +1092,7 @@ export default function EconomicCycles() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {tab === 'cycle' && <CycleTab />}
         {tab === 'reference' && <ReferenceTab />}
+        {tab === 'digital' && <DigitalTab />}
       </div>
 
       <footer style={{ marginTop: 'auto', paddingTop: 48, color: 'var(--text-tertiary)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
