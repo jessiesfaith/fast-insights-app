@@ -37,8 +37,8 @@ Generic workflow rules live in `~/.claude/CLAUDE.md` (they apply to every repo).
   driven by `REFERENCE_IMAGES` in the page; files live in `public/economic-cycles/`. To add a diagram: drop
   the file there and add an entry (entries flagged `pending: true` render a "not uploaded yet" placeholder).
   Tab 3 ("Digital rebuild") recreates diagrams as data in `src/lib/entityTaxReference.ts` — the debt/basis
-  grid as a table and the S-corp workflow with numbers COMPUTED by `sCorpWorkflow()` (tested) plus a
-  corrections list vs. the image. Follow that pattern to digitise the remaining diagrams.
+  grid as a table and the S-corp / C-corp workflows with numbers COMPUTED by `sCorpWorkflow()` /
+  `cCorpWorkflow()` (tested) rendered by one generic `Swimlane` component, each with a corrections list vs. the image. Follow that pattern to digitise the remaining diagrams.
 - **Typecheck:** `tsc -b` (no standalone script; also the first half of `npm run build`).
 - **Lint:** none configured. TS `strict` + `noUnusedLocals`/`noUnusedParameters` are the gate.
 - **Deploy:** `git push origin main` -> Vercel auto-deploys (GitHub integration).

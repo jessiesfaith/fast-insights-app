@@ -39,8 +39,11 @@ import {
   indicatorsFor,
 } from '../lib/businessCycle';
 import {
+  CCORP_CORRECTIONS,
+  CCORP_EXAMPLE,
   DEBT_BASIS_GRID,
   GridCell,
+  cCorpWorkflow,
   SCORP_CORRECTIONS,
   SCORP_EXAMPLE,
   fmtAmt,
@@ -796,6 +799,88 @@ function SwimCell({ cell }: { cell: LaneCell }) {
   );
 }
 
+interface SwimStage { n: number; title: string; refs: string }
+interface SwimLane { title: string; sub: string; cells: LaneCell[] }
+interface Correction { cell: string; image: string; correct: string; ref: string }
+
+const CorrectedBadge = () => (
+  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 5, padding: '1px 5px' }}>
+    CORRECTED
+  </span>
+);
+
+/** A stage × lane grid with a header, an assumptions box, and the corrections list. */
+function Swimlane({
+  title, intro, assumptions, stages, lanes, corrections,
+}: {
+  title: string;
+  intro: React.ReactNode;
+  assumptions: React.ReactNode;
+  stages: SwimStage[];
+  lanes: SwimLane[];
+  corrections: Correction[];
+}) {
+  const cols = `120px repeat(${stages.length}, minmax(0, 1fr))`;
+  return (
+    <GlassCard variant="default" padding={0} style={{ overflow: 'hidden' }}>
+      <div style={{ padding: '16px 18px 12px', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ maxWidth: 640 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{title}</h3>
+          <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '6px 0 0' }}>
+            {intro} Cells marked <CorrectedBadge /> differ from the source image — see the list underneath.
+          </p>
+        </div>
+        <GlassCard variant="nested" padding={12} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, minWidth: 260, maxWidth: 420 }}>
+          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>Example assumptions</div>
+          {assumptions}
+        </GlassCard>
+      </div>
+
+      <div style={{ overflowX: 'auto', padding: '0 18px 18px' }}>
+        <div style={{ minWidth: 200 * stages.length + 120 }}>
+          <div className="econ-swim-row" style={{ gridTemplateColumns: cols }}>
+            <div />
+            {stages.map((s) => (
+              <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
+                <span className="center" style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--accent)', color: 'var(--accent-contrast)', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{s.n}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{s.title}</div>
+                  <div style={{ ...mono, fontSize: 10, color: 'var(--text-tertiary)' }}>{s.refs}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {lanes.map((lane) => (
+            <div key={lane.title} className="econ-swim-row" style={{ gridTemplateColumns: cols }}>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated-2)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lane.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{lane.sub}</div>
+              </div>
+              {lane.cells.map((c) => <SwimCell key={c.code} cell={c} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)', padding: '14px 18px 18px' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
+          Corrections vs. the source image
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+          {corrections.map((c) => (
+            <GlassCard key={c.cell} variant="nested" padding={12}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{c.cell}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--neg)', marginTop: 4, lineHeight: 1.45 }}><strong>Image:</strong> {c.image}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.45 }}><strong style={{ color: 'var(--pos)' }}>Correct:</strong> {c.correct}</div>
+              <div style={{ ...mono, fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 6 }}>{c.ref}</div>
+            </GlassCard>
+          ))}
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 function SCorpSwimlane() {
   const w = useMemo(() => sCorpWorkflow(SCORP_EXAMPLE), []);
   const a = w.a;
@@ -929,69 +1014,230 @@ function SCorpSwimlane() {
   ];
 
   return (
-    <GlassCard variant="default" padding={0} style={{ overflow: 'hidden' }}>
-      <div style={{ padding: '16px 18px 12px', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ maxWidth: 640 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>S-corporation end-to-end workflow — {pct} shareholder example</h3>
-          <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '6px 0 0' }}>
-            Contribution → operations → nonliquidating property distribution → liquidation → tax return. Every number
-            below is computed from the assumptions on the right by <span style={mono}>sCorpWorkflow()</span>, with stock
-            basis rolled forward under the §1367 ordering rules and floored at zero. Cells marked{' '}
-            <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 5, padding: '1px 5px' }}>CORRECTED</span>{' '}
-            differ from the source image — see the list underneath.
-          </p>
-        </div>
-        <GlassCard variant="nested" padding={12} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, minWidth: 260 }}>
-          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>Example assumptions</div>
-          <div>Shareholder owns <strong>{pct}</strong>.</div>
-          <div>Contributes {a.contribution.asset.toLowerCase()} with basis <span style={mono}>{fmtAmt(a.contribution.basis)}</span> and FMV <span style={mono}>{fmtAmt(a.contribution.fmv)}</span>.</div>
-          <div>Entity earns net income <span style={mono}>{fmtAmt(w.netIncome)}</span>.</div>
-          <div>Later distributes the {a.distribution.asset.toLowerCase()} (FMV <span style={mono}>{fmtAmt(a.distribution.fmv)}</span>) to this shareholder, then liquidates with cash <span style={mono}>{fmtAmt(a.liquidation.cash)}</span>.</div>
-        </GlassCard>
-      </div>
+    <Swimlane
+      title={`S-corporation end-to-end workflow — ${pct} shareholder example`}
+      intro={<>
+        Contribution → operations → nonliquidating property distribution → liquidation → tax return. Every number
+        below is computed from the assumptions on the right by <span style={mono}>sCorpWorkflow()</span>, with stock
+        basis rolled forward under the §1367 ordering rules and floored at zero.
+      </>}
+      assumptions={<>
+        <div>Shareholder owns <strong>{pct}</strong>.</div>
+        <div>Contributes {a.contribution.asset.toLowerCase()} with basis <span style={mono}>{fmtAmt(a.contribution.basis)}</span> and FMV <span style={mono}>{fmtAmt(a.contribution.fmv)}</span>.</div>
+        <div>Entity earns net income <span style={mono}>{fmtAmt(w.netIncome)}</span>.</div>
+        <div>Later distributes the {a.distribution.asset.toLowerCase()} (FMV <span style={mono}>{fmtAmt(a.distribution.fmv)}</span>) entirely to this shareholder, then liquidates with cash <span style={mono}>{fmtAmt(a.liquidation.cash)}</span>.</div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Kept from the image for comparability: a non-pro-rata property distribution, which an S-corp&apos;s single-class-of-stock rule would normally not permit.</div>
+      </>}
+      stages={stages}
+      lanes={lanes}
+      corrections={SCORP_CORRECTIONS}
+    />
+  );
+}
 
-      <div style={{ overflowX: 'auto', padding: '0 18px 18px' }}>
-        <div style={{ minWidth: 1100 }}>
-          <div className="econ-swim-head">
-            <div />
-            {stages.map((s) => (
-              <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
-                <span className="center" style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--accent)', color: 'var(--accent-contrast)', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{s.n}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{s.title}</div>
-                  <div style={{ ...mono, fontSize: 10, color: 'var(--text-tertiary)' }}>{s.refs}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {lanes.map((lane) => (
-            <div key={lane.title} className="econ-swim-row">
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated-2)', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lane.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{lane.sub}</div>
-              </div>
-              {lane.cells.map((c) => <SwimCell key={c.code} cell={c} />)}
-            </div>
-          ))}
-        </div>
-      </div>
+function CCorpSwimlane() {
+  const w = useMemo(() => cCorpWorkflow(CCORP_EXAMPLE), []);
+  const a = w.a;
+  const pct = `${(a.ownership * 100).toFixed(0)}%`;
+  const ratePct = (r: number) => `${(r * 100).toFixed(0)}%`;
+  const t = w.tiers;
+  const stages: SwimStage[] = [
+    { n: 1, title: 'Formation & contribution', refs: '§351, §358, §362' },
+    { n: 2, title: 'Operations & income', refs: '§11, §312, §316' },
+    { n: 3, title: 'Nonliquidating distribution', refs: '§301, §311(b), §312, §316' },
+    { n: 4, title: 'Liquidation', refs: '§331, §336' },
+    { n: 5, title: 'Shareholder basis & return', refs: '§301(c), §1(h)' },
+    { n: 6, title: 'Tax reporting', refs: 'Forms 1120, 1099-DIV, 1040' },
+  ];
+  const lanes: SwimLane[] = [
+    {
+      title: 'C-Corp', sub: 'entity level',
+      cells: [
+        { code: '1A', title: 'Incorporate & receive property', rows: [
+          { label: `Asset contributed: ${a.contribution.asset}`, value: '' },
+          { label: 'Tax basis to shareholder', value: fmtAmt(a.contribution.basis) },
+          { label: 'FMV', value: fmtAmt(a.contribution.fmv) },
+          { label: 'Gain recognised by corporation', value: fmtAmt(w.contributionGain), strong: true },
+        ], notes: ['Meets §351 control (≥ 80%). Carryover basis to the corporation (§362).'] },
+        { code: '2A', title: 'Operate the business (year 1)', rows: [
+          { label: 'Revenue', value: fmtAmt(a.operations.revenue) },
+          { label: 'Operating expenses', value: fmtAmt(-a.operations.operatingExpenses) },
+          { label: 'Depreciation', value: fmtAmt(-a.operations.depreciation) },
+          { label: 'Taxable income', value: fmtAmt(w.taxableIncome), strong: true },
+          { label: `Corporate tax (${ratePct(a.corporateRate)})`, value: fmtAmt(-w.corporateTaxYear1) },
+          { label: 'Net income after tax', value: fmtAmt(w.netIncomeAfterTax), strong: true },
+        ], notes: ['After-tax income increases E&P (§312).'] },
+        { code: '3A', title: 'Distribute appreciated property', corrected: true, rows: [
+          { label: `Asset distributed: ${a.distribution.asset}`, value: '' },
+          { label: 'FMV', value: fmtAmt(a.distribution.fmv) },
+          { label: 'Tax basis (corporation)', value: fmtAmt(a.distribution.basis) },
+          { label: 'Gain recognised by corporation (§311(b))', value: fmtAmt(w.gainOnDistribution), strong: true },
+          { label: `Corporate tax (${ratePct(a.corporateRate)})`, value: fmtAmt(-w.taxOnDistributionGain) },
+          { label: 'E&P after the distribution', value: fmtAmt(t.epAfter), strong: true },
+        ], notes: ['Treated as if sold at FMV. E&P: + gain, − tax, − FMV distributed (§312(b)).'] },
+        { code: '4A', title: 'Liquidate (§336)', rows: [
+          { label: 'Remaining asset: cash', value: fmtAmt(a.liquidation.cash) },
+          { label: 'Tax basis', value: fmtAmt(a.liquidation.cash) },
+          { label: 'Gain recognised by corporation', value: fmtAmt(w.gainOnLiquidation), strong: true },
+        ], notes: ['Cash has no built-in gain; the corporation distributes it and terminates. (No §337 — no 80% corporate parent.)'] },
+        { code: '5A', title: 'Total tax paid by the corporation', rows: [
+          { label: 'On year-1 income', value: fmtAmt(w.corporateTaxYear1) },
+          { label: 'On the §311(b) gain', value: fmtAmt(w.taxOnDistributionGain) },
+          { label: 'Total corporate tax', value: fmtAmt(w.totalCorporateTax), strong: true },
+        ], notes: ['Level one of the two-level tax.'] },
+        { code: '6A', title: 'File Form 1120', notes: [
+          'Report income, deductions and the §311(b) gain; pay the corporate tax.',
+          'Schedule M-1 / M-2 (book–tax reconciliation, E&P analysis).',
+          'Final return upon liquidation.',
+        ] },
+      ],
+    },
+    {
+      title: 'Shareholder', sub: `${pct} owner`,
+      cells: [
+        { code: '1B', title: 'Receive stock (§358)', rows: [
+          { label: `Stock received (${pct})`, value: fmtAmt(a.contribution.fmv) },
+          { label: 'Basis in stock (carryover)', value: fmtAmt(w.initialStockBasis), strong: true },
+          { label: 'Gain to shareholder', value: fmtAmt(w.contributionGain) },
+        ] },
+        { code: '2B', title: 'No current tax to shareholder', notes: ['Income is taxed at the corporate level.', 'No K-1; stock basis does not change with entity income.'] },
+        { code: '3B', title: 'Receive the property (§301)', corrected: true, rows: [
+          { label: 'Amount distributed (FMV received)', value: fmtAmt(t.amount) },
+          { label: 'Dividend — to the extent of E&P', value: fmtAmt(t.dividend), tone: 'neg' },
+          { label: 'Return of capital — reduces basis', value: fmtAmt(t.returnOfCapital) },
+          { label: 'Capital gain — excess over basis', value: fmtAmt(t.capitalGain) },
+          { label: `Basis in ${a.distribution.asset.toLowerCase()} received (FMV)`, value: fmtAmt(w.shareholderBasisInProperty), strong: true },
+        ], notes: [`E&P available before the distribution: ${fmtAmt(w.epBeforeDistribution)}.`] },
+        { code: '4B', title: 'Receive liquidating distribution (§331)', corrected: true, rows: [
+          { label: `Cash received (${pct} × ${fmtAmt(a.liquidation.cash)})`, value: fmtAmt(w.liquidationCash) },
+          { label: 'Stock basis before', value: fmtAmt(w.basisSteps[1].basis) },
+          { label: 'Capital gain recognised', value: fmtAmt(w.liquidationGain), strong: true, tone: 'neg' },
+        ], notes: ['Treated as full payment in exchange for the stock.'] },
+        { code: '5B', title: 'Total cash flow & tax', corrected: true, rows: [
+          { label: 'Property received (year 1)', value: fmtAmt(a.distribution.fmv) },
+          { label: 'Cash received (liquidation)', value: fmtAmt(w.liquidationCash) },
+          { label: 'Total received', value: fmtAmt(w.totalValueReceived), strong: true },
+          { label: `Dividend tax (assume ${ratePct(a.dividendRate)})`, value: fmtAmt(-w.dividendTax) },
+          { label: `Capital-gain tax (assume ${ratePct(a.capitalGainRate)})`, value: fmtAmt(-w.capitalGainTax) },
+          { label: 'Net to shareholder after tax', value: fmtAmt(w.netAfterTax), strong: true },
+        ], notes: ['Level two of the two-level tax.'] },
+        { code: '6B', title: 'File Form 1040', notes: [
+          `Dividend ${fmtAmt(t.dividend)} from Form 1099-DIV box 1a (qualified: box 1b).`,
+          `Capital gains ${fmtAmt(w.totalCapitalGain)} on Schedule D / Form 8949 (the liquidation, plus any §301(c)(3) excess).`,
+        ] },
+      ],
+    },
+    {
+      title: 'Stock basis', sub: 'shareholder',
+      cells: [
+        { code: '1C', title: 'Initial stock basis', rows: [{ label: 'Stock basis', value: fmtAmt(w.basisSteps[0].basis), strong: true }] },
+        { code: '2C', title: 'Stock basis after year 1', rows: [
+          { label: 'Beginning basis', value: fmtAmt(w.basisSteps[0].basis) },
+          { label: 'Adjustments', value: '—' },
+          { label: 'Ending basis', value: fmtAmt(w.basisSteps[0].basis), strong: true },
+        ], notes: ['Entity income never adjusts C-corp stock basis.'] },
+        { code: '3C', title: 'Stock basis after the distribution', corrected: true, rows: [
+          { label: 'Beginning basis', value: fmtAmt(w.basisSteps[0].basis) },
+          { label: '− Return of capital (only after E&P is exhausted)', value: fmtAmt(-t.returnOfCapital) },
+          { label: 'Ending basis (never below zero)', value: fmtAmt(w.basisSteps[1].basis), strong: true },
+        ], notes: ['A dividend does not reduce stock basis.'] },
+        { code: '4C', title: 'Stock basis at liquidation', corrected: true, rows: [
+          { label: 'Beginning basis', value: fmtAmt(w.basisSteps[1].basis) },
+          { label: '− Recovered against liquidating cash', value: fmtAmt(w.basisSteps[2].applied) },
+          { label: 'Excess cash = capital gain', value: fmtAmt(w.liquidationGain) },
+          { label: 'Ending basis', value: fmtAmt(w.finalBasis), strong: true },
+        ] },
+        { code: '5C', title: 'Basis summary', rows: [
+          { label: 'Initial basis', value: fmtAmt(w.initialStockBasis) },
+          { label: '− Return of capital', value: fmtAmt(-t.returnOfCapital) },
+          { label: '− Recovered at liquidation', value: fmtAmt(w.basisSteps[2].applied) },
+          { label: 'Ending basis', value: fmtAmt(w.finalBasis) },
+          { label: 'Total capital gain recognised', value: fmtAmt(w.totalCapitalGain), strong: true, tone: 'neg' },
+        ] },
+        { code: '6C', title: 'Key forms & sections', rows: [
+          { label: 'Form 1120', value: 'corporate return' },
+          { label: 'Schedules M-1 / M-2', value: 'book–tax · E&P' },
+          { label: 'Form 1099-DIV', value: 'dividends' },
+          { label: 'Form 1040 Sch. D / 8949', value: 'capital gain' },
+        ] },
+      ],
+    },
+    {
+      title: 'Earnings & profits', sub: 'E&P',
+      cells: [
+        { code: '1D', title: 'Initial E&P (§312)', rows: [{ label: 'E&P', value: fmtAmt(w.epSteps[0].ep), strong: true }], notes: ['No E&P from a §351 contribution.'] },
+        { code: '2D', title: 'E&P after year 1', rows: [
+          { label: 'Beginning E&P', value: fmtAmt(w.epSteps[0].ep) },
+          { label: '+ Net income after tax', value: fmtAmt(w.epSteps[1].delta) },
+          { label: 'E&P', value: fmtAmt(w.epSteps[1].ep), strong: true },
+        ] },
+        { code: '3D', title: 'E&P after the distribution', corrected: true, rows: [
+          { label: 'Beginning E&P', value: fmtAmt(w.epSteps[1].ep) },
+          { label: '+ §311(b) gain, net of tax', value: fmtAmt(w.epSteps[2].delta) },
+          { label: '= E&P before distribution', value: fmtAmt(w.epBeforeDistribution) },
+          { label: '− Distribution (FMV, not below zero)', value: fmtAmt(w.epSteps[3].delta) },
+          { label: 'Ending E&P', value: fmtAmt(w.epSteps[3].ep), strong: true },
+        ], notes: ['E&P decides how much of a distribution is a dividend (§316).'] },
+        { code: '4D', title: 'E&P at liquidation', rows: [{ label: 'E&P', value: fmtAmt(w.epSteps[4].ep), strong: true }], notes: ['Irrelevant to a §331 exchange; it disappears with the corporation.'] },
+        { code: '5D', title: 'Character of what the shareholder received', rows: [
+          { label: 'Dividend (ordinary / qualified)', value: fmtAmt(t.dividend) },
+          { label: 'Return of capital', value: fmtAmt(t.returnOfCapital) },
+          { label: 'Capital gain', value: fmtAmt(w.totalCapitalGain) },
+          { label: 'Total', value: fmtAmt(w.totalValueReceived), strong: true },
+        ] },
+        { code: '6D', title: 'E&P reporting', notes: ['Schedule M-2 tracks E&P-related balances.', 'Form 1099-DIV reports dividends to the shareholder.'] },
+      ],
+    },
+    {
+      title: 'Tax impact', sub: 'who pays, what rate',
+      cells: [
+        { code: '1E', title: 'Tax result', notes: ['No entity-level gain (§351).', 'No shareholder gain (§351, §358).', `Corporate asset basis ${fmtAmt(w.entityBasisInContributed)} (§362); stock basis ${fmtAmt(w.initialStockBasis)}.`] },
+        { code: '2E', title: 'Tax result', notes: [`Corporation pays ${ratePct(a.corporateRate)} tax: ${fmtAmt(w.corporateTaxYear1)}.`, 'Shareholder not taxed currently.', `E&P rises to ${fmtAmt(w.epSteps[1].ep)}.`] },
+        { code: '3E', title: 'Tax result', corrected: true, notes: [
+          `Corporation recognises ${fmtAmt(w.gainOnDistribution)} gain, taxed at ${ratePct(a.corporateRate)} = ${fmtAmt(w.taxOnDistributionGain)}.`,
+          `Shareholder recognises a ${fmtAmt(t.dividend)} dividend (taxed at dividend rates)${t.returnOfCapital ? `, ${fmtAmt(t.returnOfCapital)} return of capital` : ''}${t.capitalGain ? `, ${fmtAmt(t.capitalGain)} capital gain` : ''}.`,
+          `Stock basis after: ${fmtAmt(w.basisSteps[1].basis)}.`,
+        ] },
+        { code: '4E', title: 'Tax result', corrected: true, notes: [
+          'Corporation: no gain on cash (basis = FMV).',
+          `Shareholder: long-term capital gain ${fmtAmt(w.liquidationGain)} (${fmtAmt(w.liquidationCash)} − ${fmtAmt(w.basisSteps[1].basis)}).`,
+          'Taxed at 0% / 15% / 20% depending on income level.',
+        ] },
+        { code: '5E', title: 'Two-level tax, in total', rows: [
+          { label: 'Corporate tax', value: fmtAmt(w.totalCorporateTax) },
+          { label: 'Shareholder tax', value: fmtAmt(w.totalShareholderTax) },
+          { label: 'Combined', value: fmtAmt(w.totalCorporateTax + w.totalShareholderTax), strong: true, tone: 'neg' },
+        ], notes: ['Contrast the S-corp above: one level of tax, and entity income lifts basis.'] },
+        { code: '6E', title: 'Key takeaways', notes: [
+          'A C-corp recognises gain on distributing or selling appreciated property.',
+          'A property distribution is a dividend to the extent of E&P (§301, §316).',
+          'Liquidation is two-level: entity gain (§336) and shareholder gain (§331).',
+          'Stock basis is reduced only by return-of-capital distributions, never below zero.',
+        ] },
+      ],
+    },
+  ];
 
-      <div style={{ borderTop: '1px solid var(--border)', padding: '14px 18px 18px' }}>
-        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
-          Corrections vs. the source image
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
-          {SCORP_CORRECTIONS.map((c) => (
-            <GlassCard key={c.cell} variant="nested" padding={12}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{c.cell}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--neg)', marginTop: 4, lineHeight: 1.45 }}><strong>Image:</strong> {c.image}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.45 }}><strong style={{ color: 'var(--pos)' }}>Correct:</strong> {c.correct}</div>
-              <div style={{ ...mono, fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 6 }}>{c.ref}</div>
-            </GlassCard>
-          ))}
-        </div>
-      </div>
-    </GlassCard>
+  return (
+    <Swimlane
+      title={`C-corporation end-to-end workflow — ${pct} shareholder example`}
+      intro={<>
+        Formation → operations → nonliquidating property distribution → liquidation → shareholder basis and return →
+        tax reporting. Every number below is computed from the assumptions on the right by{' '}
+        <span style={mono}>cCorpWorkflow()</span>, keeping both ledgers the exam tests: E&amp;P at the entity and stock
+        basis at the shareholder, with the distribution run through the §301(c) tiers.
+      </>}
+      assumptions={<>
+        <div>Shareholder owns <strong>{pct}</strong>.</div>
+        <div>Contributes {a.contribution.asset.toLowerCase()} with basis <span style={mono}>{fmtAmt(a.contribution.basis)}</span> and FMV <span style={mono}>{fmtAmt(a.contribution.fmv)}</span>.</div>
+        <div>Corporation earns taxable income <span style={mono}>{fmtAmt(w.taxableIncome)}</span> (tax {ratePct(a.corporateRate)}).</div>
+        <div>Later distributes the {a.distribution.asset.toLowerCase()} (FMV <span style={mono}>{fmtAmt(a.distribution.fmv)}</span>) entirely to this shareholder, then liquidates with cash <span style={mono}>{fmtAmt(a.liquidation.cash)}</span>.</div>
+        <div>Illustrative shareholder rates: dividends {ratePct(a.dividendRate)}, capital gains {ratePct(a.capitalGainRate)}.</div>
+      </>}
+      stages={stages}
+      lanes={lanes}
+      corrections={CCORP_CORRECTIONS}
+    />
   );
 }
 
@@ -1002,15 +1248,16 @@ function DigitalTab() {
         <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Digital rebuild — the reference diagrams as data, corrected</h2>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0', maxWidth: 860 }}>
           The diagrams on tab 2 are AI-generated images: dense and useful, but they cannot be edited where they are
-          wrong, they ignore light/dark mode, and nothing in them is searchable or testable. This tab rebuilds two of
-          them as data in the app itself. The comparison grid becomes a real table; the S-corp workflow becomes a
-          swimlane whose numbers are <strong>computed from the assumptions</strong> and checked by unit tests, with
-          each correction to the image called out. If this format works, the remaining diagrams follow the same
+          wrong, they ignore light/dark mode, and nothing in them is searchable or testable. This tab rebuilds three of
+          them as data in the app itself. The comparison grid becomes a real table; the S-corp and C-corp workflows
+          become swimlanes whose numbers are <strong>computed from the assumptions</strong> and checked by unit tests,
+          with each correction to the image called out. If this format works, the remaining diagrams follow the same
           pattern. Study material only; not tax advice.
         </p>
       </GlassCard>
       <DebtBasisGrid />
       <SCorpSwimlane />
+      <CCorpSwimlane />
     </>
   );
 }
@@ -1033,7 +1280,7 @@ export default function EconomicCycles() {
         .econ-panel { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 0; align-items: stretch; }
         .econ-rail { padding: 18px 16px; border-right: 1px solid var(--border); background: var(--bg-elevated-2); }
         .econ-footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .econ-swim-head, .econ-swim-row { display: grid; grid-template-columns: 120px repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; align-items: stretch; }
+        .econ-swim-row { display: grid; gap: 8px; margin-bottom: 8px; align-items: stretch; }
         @media (max-width: 900px) {
           .econ-panel { grid-template-columns: 1fr; }
           .econ-rail { border-right: none; border-bottom: 1px solid var(--border); }

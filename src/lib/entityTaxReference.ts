@@ -244,3 +244,228 @@ export const fmtAmt = (n: number): string => {
   if (n === 0) return '0'; // also normalises -0
   return n < 0 ? `(${Math.abs(n).toLocaleString('en-US')})` : n.toLocaleString('en-US');
 };
+
+// ---------------------------------------------------------------------------
+// 3. C-corporation end-to-end workflow (computed)
+// ---------------------------------------------------------------------------
+
+export interface CCorpAssumptions {
+  /** This shareholder's ownership share (0..1). */
+  ownership: number;
+  /** Property contributed at formation under §351. */
+  contribution: { asset: string; basis: number; fmv: number };
+  /** Year-1 operations. */
+  operations: { revenue: number; operatingExpenses: number; depreciation: number };
+  /** Flat corporate rate (§11). */
+  corporateRate: number;
+  /** Appreciated property later distributed to THIS shareholder (nonliquidating). */
+  distribution: { asset: string; basis: number; fmv: number };
+  /** Cash remaining at liquidation (assumed basis = FMV). */
+  liquidation: { cash: number };
+  /** Illustrative shareholder rates on qualified dividends and long-term capital gain. */
+  dividendRate: number;
+  capitalGainRate: number;
+}
+
+export const CCORP_EXAMPLE: CCorpAssumptions = {
+  ownership: 0.8,
+  contribution: { asset: 'Land', basis: 100_000, fmv: 400_000 },
+  operations: { revenue: 500_000, operatingExpenses: 300_000, depreciation: 0 },
+  corporateRate: 0.21,
+  distribution: { asset: 'Land', basis: 100_000, fmv: 300_000 },
+  liquidation: { cash: 200_000 },
+  dividendRate: 0.15,
+  capitalGainRate: 0.20,
+};
+
+export interface EpStep {
+  label: string;
+  delta: number;
+  ep: number;
+  ref: string;
+}
+
+/** The §301(c) three-tier treatment of a nonliquidating distribution. */
+export interface DistributionTiers {
+  amount: number;
+  /** Tier 1 — dividend to the extent of E&P (§301(c)(1), §316). */
+  dividend: number;
+  /** Tier 2 — return of capital, reduces stock basis but not below zero (§301(c)(2)). */
+  returnOfCapital: number;
+  /** Tier 3 — excess over basis is gain from sale/exchange (§301(c)(3)). */
+  capitalGain: number;
+  basisAfter: number;
+  epAfter: number;
+}
+
+export function applyDistribution301(amount: number, ep: number, basis: number): DistributionTiers {
+  const dividend = Math.min(amount, Math.max(0, ep));
+  const remaining = amount - dividend;
+  const returnOfCapital = Math.min(remaining, basis);
+  const capitalGain = remaining - returnOfCapital;
+  return {
+    amount,
+    dividend,
+    returnOfCapital,
+    capitalGain,
+    basisAfter: basis - returnOfCapital,
+    epAfter: Math.max(0, ep - amount),
+  };
+}
+
+export interface CCorpWorkflow {
+  a: CCorpAssumptions;
+  // 1 · formation
+  contributionGain: number;
+  entityBasisInContributed: number;
+  initialStockBasis: number;
+  // 2 · operations
+  taxableIncome: number;
+  corporateTaxYear1: number;
+  netIncomeAfterTax: number;
+  // 3 · nonliquidating property distribution
+  gainOnDistribution: number;
+  taxOnDistributionGain: number;
+  epBeforeDistribution: number;
+  tiers: DistributionTiers;
+  shareholderBasisInProperty: number;
+  // 4 · liquidation
+  gainOnLiquidation: number;
+  liquidationCash: number;
+  liquidationGain: number;
+  // 5 · shareholder totals
+  epSteps: EpStep[];
+  basisSteps: BasisStep[];
+  finalBasis: number;
+  totalValueReceived: number;
+  dividendTax: number;
+  capitalGainTax: number;
+  totalShareholderTax: number;
+  totalCorporateTax: number;
+  netAfterTax: number;
+  totalCapitalGain: number;
+}
+
+/**
+ * Walk a C-corporation and its shareholder through formation → operations →
+ * appreciated-property distribution → liquidation, keeping BOTH ledgers the
+ * exam cares about: earnings & profits at the entity and stock basis at the
+ * shareholder. The distribution runs through the §301(c) tiers (dividend to
+ * the extent of E&P, then return of capital to zero basis, then gain); the
+ * liquidation is a §331 sale of the stock.
+ */
+export function cCorpWorkflow(a: CCorpAssumptions = CCORP_EXAMPLE): CCorpWorkflow {
+  const { ownership } = a;
+  const epSteps: EpStep[] = [];
+  const basisSteps: BasisStep[] = [];
+  let ep = 0;
+  let basis = 0;
+
+  // 1 · §351 formation: no gain either side; carryover basis; no E&P created.
+  const contributionGain = 0;
+  const entityBasisInContributed = a.contribution.basis; // §362
+  const initialStockBasis = a.contribution.basis; // §358
+  basis = initialStockBasis;
+  basisSteps.push({ label: `Initial stock basis — ${a.contribution.asset} contributed (carryover)`, applied: basis, basis, gain: 0, ref: '§358' });
+  epSteps.push({ label: 'Formation — a §351 contribution creates no E&P', delta: 0, ep, ref: '§312' });
+
+  // 2 · operations taxed at the entity (§11); E&P grows by after-tax income.
+  const taxableIncome = a.operations.revenue - a.operations.operatingExpenses - a.operations.depreciation;
+  const corporateTaxYear1 = taxableIncome * a.corporateRate;
+  const netIncomeAfterTax = taxableIncome - corporateTaxYear1;
+  ep += netIncomeAfterTax;
+  epSteps.push({ label: `Year-1 taxable income ${taxableIncome.toLocaleString()} less corporate tax ${corporateTaxYear1.toLocaleString()}`, delta: netIncomeAfterTax, ep, ref: '§11 · §312' });
+
+  // 3 · appreciated property distributed: §311(b) gain at the entity, taxed;
+  //     E&P up by the gain, down by the tax, then down by FMV (§312(b));
+  //     the shareholder runs the FMV through §301(c).
+  const gainOnDistribution = a.distribution.fmv - a.distribution.basis;
+  const taxOnDistributionGain = gainOnDistribution * a.corporateRate;
+  ep += gainOnDistribution - taxOnDistributionGain;
+  epSteps.push({ label: `§311(b) gain on ${a.distribution.asset} ${gainOnDistribution.toLocaleString()} less tax ${taxOnDistributionGain.toLocaleString()}`, delta: gainOnDistribution - taxOnDistributionGain, ep, ref: '§311(b) · §312(b)' });
+  const epBeforeDistribution = ep;
+  const tiers = applyDistribution301(a.distribution.fmv, ep, basis);
+  ep = tiers.epAfter;
+  epSteps.push({ label: `Distribution of ${a.distribution.asset} at FMV`, delta: -(epBeforeDistribution - ep), ep, ref: '§312(a)(3) · §312(b)' });
+  basis = tiers.basisAfter;
+  basisSteps.push({ label: `Property distribution — dividend ${tiers.dividend.toLocaleString()} (no basis effect); return of capital ${tiers.returnOfCapital.toLocaleString()}`, applied: -tiers.returnOfCapital, basis, gain: tiers.capitalGain, ref: '§301(c)' });
+  const shareholderBasisInProperty = a.distribution.fmv; // §301(d)
+
+  // 4 · liquidation: cash carries no gain (§336); §331 sale of the stock.
+  const gainOnLiquidation = 0;
+  const liquidationCash = a.liquidation.cash * ownership;
+  const applied = Math.min(basis, liquidationCash);
+  const liquidationGain = liquidationCash - applied;
+  basis -= applied;
+  basisSteps.push({ label: `Liquidating distribution — cash (${(ownership * 100).toFixed(0)}% × ${a.liquidation.cash.toLocaleString()})`, applied: -applied, basis, gain: liquidationGain, ref: '§331 · §336' });
+  epSteps.push({ label: 'Liquidation — E&P is irrelevant to a §331 exchange; the corporation terminates', delta: -ep, ep: 0, ref: '§331' });
+
+  // 5 · totals
+  const totalValueReceived = a.distribution.fmv + liquidationCash;
+  const dividendTax = tiers.dividend * a.dividendRate;
+  const totalCapitalGain = tiers.capitalGain + liquidationGain;
+  const capitalGainTax = totalCapitalGain * a.capitalGainRate;
+  const totalShareholderTax = dividendTax + capitalGainTax;
+  const totalCorporateTax = corporateTaxYear1 + taxOnDistributionGain;
+
+  return {
+    a,
+    contributionGain,
+    entityBasisInContributed,
+    initialStockBasis,
+    taxableIncome,
+    corporateTaxYear1,
+    netIncomeAfterTax,
+    gainOnDistribution,
+    taxOnDistributionGain,
+    epBeforeDistribution,
+    tiers,
+    shareholderBasisInProperty,
+    gainOnLiquidation,
+    liquidationCash,
+    liquidationGain,
+    epSteps,
+    basisSteps,
+    finalBasis: basis,
+    totalValueReceived,
+    dividendTax,
+    capitalGainTax,
+    totalShareholderTax,
+    totalCorporateTax,
+    netAfterTax: totalValueReceived - totalShareholderTax,
+    totalCapitalGain,
+  };
+}
+
+export const CCORP_CORRECTIONS: { cell: string; image: string; correct: string; ref: string }[] = [
+  {
+    cell: '3B / 3C — stock basis after the dividend',
+    image: 'Reduces stock basis by the FMV of the property (240,000) to (140,000) and says "stock basis can be negative (§301(d))".',
+    correct: 'A distribution is a dividend to the extent of E&P and a dividend never touches stock basis. Only the part beyond E&P reduces basis, and only to zero; anything beyond that is capital gain. §301(d) sets the shareholder\'s basis in the property received (FMV); it says nothing about negative stock basis.',
+    ref: '§301(c)(1)–(3) · §301(d) · §316',
+  },
+  {
+    cell: '3B — amount of the distribution',
+    image: 'Shows FMV received 300,000 but a dividend of only 240,000 (80%).',
+    correct: 'The amount of a property distribution is the FMV of what THIS shareholder actually receives. If the whole parcel goes to the 80% holder, the distribution is 300,000.',
+    ref: '§301(b)(1)',
+  },
+  {
+    cell: '3A / 3D — E&P after the distribution',
+    image: 'Remaining E&P 116,000 (158,000 − 42,000), ignoring the gain.',
+    correct: 'E&P rises by the §311(b) gain and falls by the tax on it, then falls by the FMV of the property distributed (not below zero).',
+    ref: '§312(a)(3) · §312(b)',
+  },
+  {
+    cell: '4B / 4C — liquidation gain',
+    image: 'Capital gain 300,000, computed as 160,000 − (140,000).',
+    correct: 'Liquidation gain = cash received − remaining stock basis, with basis floored at zero: 160,000 − 100,000 = 60,000 in this example.',
+    ref: '§331(a) · §336',
+  },
+  {
+    cell: '5B / 5C — total tax and net after-tax return',
+    image: 'Total shareholder tax 96,000 and net 304,000, built on the figures above.',
+    correct: 'Dividend tax and capital-gain tax recompute from the corrected tiers; the corporation separately paid tax at the entity level on both the operating income and the §311(b) gain — the two-level system the exam is testing.',
+    ref: '§11 · §1(h)',
+  },
+];
